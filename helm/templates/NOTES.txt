@@ -1,0 +1,42 @@
+⛩  K8s-Janus deployed successfully!
+
+  Release:   {{ .Release.Name }}
+  Namespace: {{ .Values.janus.namespace }}
+  Version:   {{ .Chart.AppVersion }}
+
+{{- if eq .Values.service.type "LoadBalancer" }}
+
+  Waiting for LoadBalancer IP...
+  Run this to get the external URL:
+
+    kubectl get svc {{ include "janus.webui.name" . }} \
+      -n {{ .Values.janus.namespace }} \
+      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+
+  Or watch until it's ready:
+
+    kubectl get svc {{ include "janus.webui.name" . }} \
+      -n {{ .Values.janus.namespace }} --watch
+
+{{- else if eq .Values.service.type "NodePort" }}
+
+  Access via NodePort:
+
+    export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+    export NODE_PORT=$(kubectl get svc {{ include "janus.webui.name" . }} \
+      -n {{ .Values.janus.namespace }} \
+      -o jsonpath='{.spec.ports[0].nodePort}')
+    echo "http://$NODE_IP:$NODE_PORT"
+
+{{- else if .Values.ingress.enabled }}
+
+  Access via Ingress:
+
+    https://{{ .Values.ingress.host }}
+
+{{- end }}
+
+  Tail logs:
+
+    kubectl logs -f deploy/{{ include "janus.controller.name" . }} -n {{ .Values.janus.namespace }}
+    kubectl logs -f deploy/{{ include "janus.webui.name" . }} -n {{ .Values.janus.namespace }}
