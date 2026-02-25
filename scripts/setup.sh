@@ -176,7 +176,14 @@ for ctx in "${REMOTE_CONTEXTS[@]}"; do
       --wait \
       --timeout 60s \
       &>/dev/null; then
-    ok "helm-remote deployed on ${BOLD}$ctx${RESET}"
+    # Verify the SA actually exists after deploy
+    if kubectl --context="$ctx" get serviceaccount janus-remote \
+        -n "$JANUS_NS" &>/dev/null 2>&1; then
+      ok "helm-remote deployed on ${BOLD}$ctx${RESET}"
+    else
+      warn "helm-remote deploy reported success but SA missing on '$ctx'"
+      warn "Try: helm uninstall janus-remote --kube-context $ctx -n $JANUS_NS && re-run setup.sh"
+    fi
   else
     warn "helm-remote deploy failed on '$ctx' — skipping this cluster"
   fi
@@ -304,11 +311,19 @@ for ctx in "${ALL_SELECTED[@]}"; do
     -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' 2>/dev/null)
 
   # Issue a static token for the janus-remote ServiceAccount (1-year validity)
+  token_err=$(mktemp)
   cluster_token=$(kubectl --context="$ctx" create token janus-remote \
-    --namespace="$JANUS_NS" --duration=8760h 2>/dev/null || true)
+    --namespace="$JANUS_NS" --duration=8760h 2>"$token_err" || true)
+  if [[ -z "$cluster_token" ]]; then
+    warn "Could not issue token for 'janus-remote' on '$ctx':"
+    warn "  $(cat "$token_err")"
+    rm -f "$token_err"
+    continue
+  fi
+  rm -f "$token_err"
 
-  if [[ -z "$cluster_server" || -z "$cluster_ca" || -z "$cluster_token" ]]; then
-    warn "Could not generate static kubeconfig for context '$ctx' — skipping"
+  if [[ -z "$cluster_server" || -z "$cluster_ca" ]]; then
+    warn "Could not read cluster endpoint/CA for context '$ctx' — skipping"
     continue
   fi
 
