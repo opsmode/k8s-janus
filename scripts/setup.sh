@@ -150,6 +150,12 @@ else
   read -r yn
   if [[ "$yn" =~ ^[Yy]$ ]]; then
     kubectl create namespace "$JANUS_NS"
+    kubectl label namespace "$JANUS_NS" \
+      app.kubernetes.io/managed-by=Helm --overwrite &>/dev/null
+    kubectl annotate namespace "$JANUS_NS" \
+      meta.helm.sh/release-name=k8s-janus \
+      meta.helm.sh/release-namespace="$JANUS_NS" \
+      --overwrite &>/dev/null
     ok "Created namespace '$JANUS_NS'"
   else
     die "Namespace '$JANUS_NS' is required — deploy k8s-janus first or re-run and create it"
@@ -190,6 +196,12 @@ for ctx in "${ALL_SELECTED[@]}"; do
   kubectl create secret generic "$secret_name" \
     --from-file=kubeconfig="$kubeconfig_path" \
     --namespace="$JANUS_NS" &>/dev/null
+  kubectl label secret "$secret_name" -n "$JANUS_NS" \
+    app.kubernetes.io/managed-by=Helm --overwrite &>/dev/null
+  kubectl annotate secret "$secret_name" -n "$JANUS_NS" \
+    meta.helm.sh/release-name=k8s-janus \
+    meta.helm.sh/release-namespace="$JANUS_NS" \
+    --overwrite &>/dev/null
   ok "Created secret: ${GREEN}${BOLD}$secret_name${RESET}"
   SECRETS_CREATED+=("$ctx:$secret_name")
 done
