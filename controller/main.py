@@ -257,25 +257,38 @@ async def grant_access(name: str, spec: dict, patch):
                 raise
             logger.info(f"🔗 [{name}] RoleBinding={rb_name} already exists in cluster={target_cluster} ns={namespace}")
 
-        # 3. Resolve server URL and CA from the cluster's kubeconfig Secret
+        # 3. Resolve server URL and CA for the target cluster.
+        #    Central cluster: read from the in-cluster service account files.
+        #    Remote clusters: parse from the kubeconfig Secret.
         cluster_cfg = next((c for c in CLUSTERS if c["name"] == target_cluster), None)
         server_url = ""
         ca_data = ""
 
         try:
-            secret_name_cfg = cluster_cfg.get("secretName") if cluster_cfg else None
-            if secret_name_cfg:
-                core_v1_central, _ = get_k8s_clients()
-                kc_secret = core_v1_central.read_namespaced_secret(name=secret_name_cfg, namespace=JANUS_NAMESPACE)
-                kubeconfig_raw = base64.b64decode(kc_secret.data["kubeconfig"])
-                kc = yaml.safe_load(kubeconfig_raw)
-                cluster_entry = kc.get("clusters", [{}])[0].get("cluster", {})
-                server_url = cluster_entry.get("server", "")
-                ca_b64 = cluster_entry.get("certificate-authority-data", "")
-                ca_data = ca_b64  # already base64-encoded
-                logger.info(f"🗺️  [{name}] resolved server URL for cluster={target_cluster} from kubeconfig Secret: {server_url}")
+            if target_cluster == CLUSTERS[0]["name"]:
+                # In-cluster: host is injected as KUBERNETES_SERVICE_HOST/PORT
+                host = os.environ.get("KUBERNETES_SERVICE_HOST", "")
+                port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
+                server_url = f"https://{host}:{port}"
+                ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+                if os.path.exists(ca_path):
+                    with open(ca_path, "rb") as f:
+                        ca_data = base64.b64encode(f.read()).decode()
+                logger.info(f"🗺️  [{name}] resolved server URL for central cluster: {server_url}")
+            else:
+                secret_name_cfg = cluster_cfg.get("secretName") if cluster_cfg else None
+                if secret_name_cfg:
+                    core_v1_central, _ = get_k8s_clients()
+                    kc_secret = core_v1_central.read_namespaced_secret(name=secret_name_cfg, namespace=JANUS_NAMESPACE)
+                    kubeconfig_raw = base64.b64decode(kc_secret.data["kubeconfig"])
+                    kc = yaml.safe_load(kubeconfig_raw)
+                    cluster_entry = kc.get("clusters", [{}])[0].get("cluster", {})
+                    server_url = cluster_entry.get("server", "")
+                    ca_b64 = cluster_entry.get("certificate-authority-data", "")
+                    ca_data = ca_b64  # already base64-encoded
+                    logger.info(f"🗺️  [{name}] resolved server URL for cluster={target_cluster}: {server_url}")
         except Exception as e:
-            logger.warning(f"⚠️  [{name}] could not read kubeconfig Secret for cluster={target_cluster}: {e}")
+            logger.warning(f"⚠️  [{name}] could not resolve server/CA for cluster={target_cluster}: {e}")
 
         # 4. Issue TokenRequest on the remote cluster.
         #    Use audiences=[] so GKE defaults to the cluster's own OIDC issuer URL,

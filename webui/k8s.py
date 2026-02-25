@@ -196,5 +196,11 @@ def read_token_secret(secret_name: str) -> tuple[str, str, str]:
     secret = core_v1.read_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE)
     token  = b64.b64decode(secret.data.get("token",  "")).decode("utf-8")
     server = b64.b64decode(secret.data.get("server", "")).decode("utf-8")
-    ca     = b64.b64decode(secret.data.get("ca",     "")).decode("utf-8")
+    # ca is stored as base64(PEM) — decode the K8s envelope, then decode
+    # the inner base64 to get the raw PEM for use as an SSL CA cert file.
+    ca_b64 = b64.b64decode(secret.data.get("ca", ""))
+    try:
+        ca = b64.b64decode(ca_b64).decode("utf-8")
+    except Exception:
+        ca = ca_b64.decode("utf-8")
     return token, server, ca
