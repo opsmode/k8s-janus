@@ -1,0 +1,12 @@
+⛩  K8s-Janus remote agent deployed!
+
+  ServiceAccount {{ .Values.serviceAccountName }} is ready in namespace {{ .Values.namespace }}.
+
+  Now run setup.sh on your central cluster to extract the token
+  and register this cluster:
+
+    ./scripts/setup.sh
+
+  The script will detect this cluster, extract a static token from
+  the {{ .Values.serviceAccountName }} ServiceAccount, and create
+  the kubeconfig Secret on the central cluster automatically.

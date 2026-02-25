@@ -1,0 +1,65 @@
+---
+# ClusterRole with the exact permissions the central Janus controller
+# needs on this remote cluster to provision temporary pod access.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: janus-remote
+  labels:
+    app.kubernetes.io/name: k8s-janus-remote
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+  # List namespaces for the request form dropdown
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  # Create/delete scoped ServiceAccounts for approved requests
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "create", "delete"]
+  # Issue time-limited tokens for approved ServiceAccounts
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    verbs: ["create"]
+  # Create/delete scoped RoleBindings for approved requests
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "create", "delete"]
+  # Manage the janus-pod-exec ClusterRole on this cluster
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["get", "create", "update", "patch", "delete"]
+  # escalate: required to create a ClusterRole that grants exec permissions
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["escalate"]
+  # bind: scoped to janus-pod-exec only
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames: ["janus-pod-exec"]
+    verbs: ["bind"]
+  # Read pods for validation and preview
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  # Read events for pod details
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "create", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: janus-remote
+  labels:
+    app.kubernetes.io/name: k8s-janus-remote
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: janus-remote
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccountName }}
+    namespace: {{ .Values.namespace }}

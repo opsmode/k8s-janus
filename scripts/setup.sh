@@ -180,11 +180,52 @@ for ctx in "${ALL_SELECTED[@]}"; do
   echo -e "  ${BOLD}$ctx${RESET}"
   echo -e "  ${DIM}→ Secret: $secret_name${RESET}"
 
-  # Export a minimal kubeconfig for this context only
-  if ! kubectl config view --minify --flatten --context="$ctx" > "$kubeconfig_path" 2>/dev/null; then
-    warn "Could not export kubeconfig for context '$ctx' — skipping"
+  # Build a static kubeconfig using the janus-remote ServiceAccount token.
+  # This avoids exec-based auth plugins (e.g. gke-gcloud-auth-plugin) that
+  # are not available inside the controller pod.
+  cluster_server=$(kubectl config view --minify --flatten --context="$ctx" \
+    -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)
+  cluster_ca=$(kubectl config view --minify --flatten --context="$ctx" \
+    -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' 2>/dev/null)
+
+  # Check janus-remote ServiceAccount exists (requires helm-remote chart deployed)
+  if ! kubectl --context="$ctx" get serviceaccount janus-remote \
+      -n "$JANUS_NS" &>/dev/null 2>&1; then
+    warn "ServiceAccount 'janus-remote' not found on cluster '$ctx'."
+    warn "Deploy helm-remote first: helm upgrade --install janus-remote ./helm-remote \\"
+    warn "  --kube-context $ctx --namespace $JANUS_NS --create-namespace"
+    warn "Then re-run this script."
     continue
   fi
+
+  # Issue a static token for the janus-remote ServiceAccount
+  cluster_token=$(kubectl --context="$ctx" create token janus-remote \
+    --namespace="$JANUS_NS" --duration=8760h 2>/dev/null)
+
+  if [[ -z "$cluster_server" || -z "$cluster_ca" || -z "$cluster_token" ]]; then
+    warn "Could not generate static kubeconfig for context '$ctx' — skipping"
+    continue
+  fi
+
+  cat > "$kubeconfig_path" <<EOF
+apiVersion: v1
+kind: Config
+clusters:
+- name: ${ctx}
+  cluster:
+    server: ${cluster_server}
+    certificate-authority-data: ${cluster_ca}
+contexts:
+- name: ${ctx}
+  context:
+    cluster: ${ctx}
+    user: janus-remote
+current-context: ${ctx}
+users:
+- name: janus-remote
+  user:
+    token: ${cluster_token}
+EOF
 
   if kubectl get secret "$secret_name" -n "$JANUS_NS" &>/dev/null 2>&1; then
     kubectl delete secret "$secret_name" -n "$JANUS_NS" &>/dev/null
