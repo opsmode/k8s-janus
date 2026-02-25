@@ -76,6 +76,13 @@ janus:
     - kube-node-lease
     - kube-flannel
     - default
+    # GKE system namespaces
+    - gke-managed-cim
+    - gke-managed-networking-dra-driver
+    - gke-managed-system
+    - gke-managed-volumepopulator
+    - gmp-public
+    - gmp-system
 # → templates: controller-deployment.yaml
 controller:
   resources:
