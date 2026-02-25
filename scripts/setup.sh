@@ -310,10 +310,13 @@ for ctx in "${ALL_SELECTED[@]}"; do
   cluster_ca=$(kubectl config view --minify --flatten --context="$ctx" \
     -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' 2>/dev/null)
 
-  # Issue a static token for the janus-remote ServiceAccount (1-year validity)
+  # Issue a static token for the janus-remote ServiceAccount.
+  # grep for the JWT (starts with 'ey') to strip any GKE expiry warnings
+  # that kubectl prints to stdout when the cluster caps token duration.
   token_err=$(mktemp)
   cluster_token=$(kubectl --context="$ctx" create token janus-remote \
-    --namespace="$JANUS_NS" --duration=8760h 2>"$token_err" || true)
+    --namespace="$JANUS_NS" --duration=8760h 2>"$token_err" \
+    | grep '^ey' || true)
   if [[ -z "$cluster_token" ]]; then
     warn "Could not issue token for 'janus-remote' on '$ctx':"
     warn "  $(cat "$token_err")"
