@@ -157,6 +157,18 @@ fi
 
 for ctx in "${ALL_SELECTED[@]}"; do
   echo -e "  ${BOLD}$ctx${RESET}"
+
+  # Safety: remove the main k8s-janus chart from remote clusters if present
+  if [[ "$ctx" != "$CENTRAL_CONTEXT" ]]; then
+    if helm status k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
+        &>/dev/null 2>&1; then
+      warn "Main k8s-janus chart found on remote cluster '$ctx' — removing it"
+      helm uninstall k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
+        &>/dev/null
+      ok "Removed k8s-janus from remote cluster ${BOLD}$ctx${RESET}"
+    fi
+  fi
+
   if helm upgrade --install janus-remote "$HELM_REMOTE_CHART" \
       --kube-context "$ctx" \
       --namespace "$JANUS_NS" \
