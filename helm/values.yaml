@@ -30,7 +30,7 @@ image:
   pullPolicy: IfNotPresent
   controller:
     repository: opsmode/k8s-janus-controller
-    tag: "v0.1.0"
+    tag: "1cc16da"
   webui:
     repository: opsmode/k8s-janus-webui
     tag: "v0.1.0"
@@ -50,16 +50,16 @@ ingress:
   # host: janus.example.com
   # oAuth2ProxyAuthUrl: https://oauth2-proxy.example.com/oauth2/auth
   # oAuth2ProxyAuthSignInUrl: https://oauth2-proxy.example.com/oauth2/start
-  proxyReadTimeout: "3600"  # nginx proxy-read-timeout in seconds
+  proxyReadTimeout: "3600" # nginx proxy-read-timeout in seconds
 # Core Janus configuration — passed to both deployments via ConfigMap.
 # → templates: configmap.yaml, namespace.yaml
 janus:
   # Kubernetes namespace where Janus is deployed and stores token Secrets
   namespace: "k8s-janus"
-  defaultTtlSeconds: 3600  # Default access duration in the request form (1h)
-  maxTtlSeconds: 28800  # Hard cap engineers cannot exceed (8h)
-  crdRetentionSeconds: 86400  # Delete expired/denied/revoked CRDs after (24h)
-  idleTimeoutSeconds: 900  # Terminate idle web terminal sessions (15m)
+  defaultTtlSeconds: 3600 # Default access duration in the request form (1h)
+  maxTtlSeconds: 28800 # Hard cap engineers cannot exceed (8h)
+  crdRetentionSeconds: 86400 # Delete expired/denied/revoked CRDs after (24h)
+  idleTimeoutSeconds: 900 # Terminate idle web terminal sessions (15m)
   # IANA timezone for timestamps in the web UI (e.g. "Europe/Berlin",
   # "America/New_York"). Affects all displayed request times. Default: UTC.
   displayTimezone: "Europe/Berlin"
