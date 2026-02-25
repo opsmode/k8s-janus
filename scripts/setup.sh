@@ -168,7 +168,6 @@ fi
 step "Creating kubeconfig Secrets in namespace '$JANUS_NS'"
 
 SECRETS_CREATED=()
-SECRETS_SKIPPED=()
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -188,9 +187,7 @@ for ctx in "${ALL_SELECTED[@]}"; do
   fi
 
   if kubectl get secret "$secret_name" -n "$JANUS_NS" &>/dev/null 2>&1; then
-    warn "Secret '$secret_name' already exists — skipping (delete it to re-create)"
-    SECRETS_SKIPPED+=("$secret_name")
-    continue
+    kubectl delete secret "$secret_name" -n "$JANUS_NS" &>/dev/null
   fi
 
   kubectl create secret generic "$secret_name" \
@@ -225,7 +222,7 @@ build_clusters_yaml() {
 step "Done! 🎉"
 echo ""
 
-if [[ ${#SECRETS_CREATED[@]} -gt 0 || ${#SECRETS_SKIPPED[@]} -gt 0 ]]; then
+if [[ ${#SECRETS_CREATED[@]} -gt 0 ]]; then
 
   # Detect helm/values.yaml relative to the script location
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -273,10 +270,6 @@ if [[ ${#SECRETS_CREATED[@]} -gt 0 || ${#SECRETS_SKIPPED[@]} -gt 0 ]]; then
   echo -e "${RESET}"
 fi
 
-if [[ ${#SECRETS_SKIPPED[@]} -gt 0 ]]; then
-  echo -e "  ${DIM}Skipped (already exist): ${SECRETS_SKIPPED[*]}${RESET}"
-  echo ""
-fi
 
 echo -e "${MAGENTA}${BOLD}  ⛩  The gate is ready. Go govern it.${RESET}"
 echo ""
