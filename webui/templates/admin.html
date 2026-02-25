@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Admin</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --info:        #3b82f6;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .header-logo svg { color: #fff; }
+    .brand-text h1 {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .nav-link {
+      font-size: 0.78rem; color: var(--text-dim); text-decoration: none;
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .nav-link:hover { color: var(--text); border-color: var(--border-light); }
+    .user-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px 4px 8px;
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1200px; margin: 32px auto; padding: 0 24px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+    }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .card-icon {
+      width: 32px; height: 32px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      color: var(--accent); flex-shrink: 0;
+    }
+    .card-header h2 { font-size: 0.95rem; font-weight: 600; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-input {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 180px;
+    }
+    .filter-input:focus { border-color: var(--accent); }
+    .filter-input::placeholder { color: var(--text-dim); }
+    .filter-select {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .filter-select:focus { border-color: var(--accent); }
+    .count-pill {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      display: flex; align-items: center; gap: 5px;
+      white-space: nowrap;
+    }
+
+    /* ── DATE GROUP ── */
+    .date-group { margin-bottom: 8px; }
+    .date-group-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 0 6px;
+      margin-bottom: 2px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .date-group-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+    .date-group-count {
+      font-size: 0.7rem;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1px 7px;
+      color: var(--text-dim);
+    }
+    .date-group-toggle {
+      margin-left: auto;
+      color: var(--text-dim);
+      transition: transform 0.2s;
+    }
+    .date-group.collapsed .date-group-toggle { transform: rotate(-90deg); }
+    .date-group-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 6px;
+    }
+    .date-group-body { overflow: hidden; }
+    .date-group.collapsed .date-group-body { display: none; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 12px;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(42,52,72,0.5);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    td a { color: var(--accent); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+    td a:hover { text-decoration: underline; }
+    td code {
+      background: var(--surface-3); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #a5b4fc;
+    }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-pending  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .badge-pending .badge-dot  { background: #fbbf24; animation: pulse 1.5s infinite; }
+    .badge-approved { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+    .badge-approved .badge-dot { background: #34d399; }
+    .badge-active   { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+    .badge-active .badge-dot   { background: #818cf8; animation: pulse 2s infinite; }
+    .badge-denied   { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-denied .badge-dot   { background: #f87171; }
+    .badge-expired  { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
+    .badge-expired .badge-dot  { background: #64748b; }
+    .badge-revoked  { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-revoked .badge-dot  { background: #f87171; }
+    .badge-failed   { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
+    .badge-failed .badge-dot   { background: #ef4444; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)} }
+
+    /* ── ACTION BUTTONS ── */
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: transparent; border: 1px solid; padding: 4px 10px; border-radius: 6px;
+      font-size: 0.75rem; font-weight: 500; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .revoke-btn {
+      border-color: rgba(239,68,68,0.35); color: #f87171;
+    }
+    .revoke-btn:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.6); color: #fca5a5; }
+    .approve-btn {
+      border-color: rgba(16,185,129,0.35); color: #34d399;
+    }
+    .approve-btn:hover { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.6); color: #6ee7b7; }
+    .deny-btn {
+      border-color: rgba(239,68,68,0.25); color: #fca5a5;
+    }
+    .deny-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.5); color: #fca5a5; }
+    .action-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+    .action-cell { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+
+    /* ── EMPTY ── */
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 10px; padding: 48px 24px; color: var(--text-dim); font-size: 0.85rem;
+    }
+
+    /* ── NO RESULTS ── */
+    #no-results {
+      display: none;
+      text-align: center;
+      padding: 32px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    /* ── REFRESH BUTTON ── */
+    #refresh-btn:hover { color: var(--text); border-color: var(--border-light); }
+    #refresh-btn.spinning #refresh-icon { animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── AUDIT LOG ── */
+    .audit-event {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      background: var(--surface-3);
+      white-space: nowrap;
+    }
+    .audit-event.created  { color: #60a5fa; border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.08); }
+    .audit-event.approved { color: #34d399; border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); }
+    .audit-event.granted  { color: #a78bfa; border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); }
+    .audit-event.denied   { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
+    .audit-event.revoked  { color: #fb923c; border-color: rgba(251,146,60,0.3);  background: rgba(251,146,60,0.08); }
+    .audit-event.expired  { color: #94a3b8; border-color: rgba(148,163,184,0.2); background: rgba(148,163,184,0.06); }
+    .audit-event.deleted  { color: #64748b; border-color: rgba(100,116,139,0.2); background: rgba(100,116,139,0.06); }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="header-brand" href="/admin" style="text-decoration:none;">
+      <div class="header-logo">
+        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
+      </div>
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>Gate of Access · Admin</span>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
+         style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
+         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
+        <i data-lucide="github" style="width:17px;height:17px;"></i>
+      </a>
+      <a href="/" class="nav-link">
+        <i data-lucide="layout-dashboard" style="width:13px;height:13px;"></i>
+        My Requests
+      </a>
+      {% if user_name %}
+      <div class="user-pill">
+        <i data-lucide="user" style="width:12px;height:12px;"></i>
+        {{ user_name }}
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Broadcast card -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">
+          <i data-lucide="megaphone" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>Broadcast to Active Sessions</h2>
+      </div>
+      <form method="POST" action="/admin/broadcast" style="display:flex;gap:10px;align-items:flex-end;padding:4px 0 0;">
+        <div style="flex:1;">
+          <input name="message" type="text" placeholder="Message to all active terminal sessions…" maxlength="500"
+            style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+                   color:var(--text);font-size:0.88rem;padding:9px 14px;outline:none;"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+            required>
+        </div>
+        <button type="submit"
+          style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+                 background:linear-gradient(135deg,var(--warning),#dc2626);border:none;border-radius:8px;
+                 color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+          <i data-lucide="send" style="width:14px;height:14px;"></i>Send
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">
+          <i data-lucide="shield" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>All Access Requests</h2>
+
+        <button id="refresh-btn" onclick="refreshPage()" style="
+          display:inline-flex;align-items:center;gap:5px;
+          background:var(--surface-2);border:1px solid var(--border);
+          color:var(--text-muted);border-radius:6px;padding:5px 11px;
+          font-size:0.78rem;cursor:pointer;transition:color 0.15s,border-color 0.15s;">
+          <i data-lucide="refresh-cw" id="refresh-icon" style="width:13px;height:13px;"></i>
+          Refresh
+        </button>
+
+        <div class="filter-bar">
+          <input class="filter-input" id="filter-text" type="text" placeholder="Search requester, namespace…" oninput="applyFilters()">
+          <select class="filter-select" id="filter-cluster" onchange="applyFilters()">
+            <option value="">All clusters</option>
+            {% for c in clusters %}
+            <option value="{{ c.name }}">{{ c.displayName if c.displayName else c.name }}</option>
+            {% endfor %}
+          </select>
+          <select class="filter-select" id="filter-phase" onchange="applyFilters()">
+            <option value="">All phases</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Active">Active</option>
+            <option value="Denied">Denied</option>
+            <option value="Expired">Expired</option>
+            <option value="Revoked">Revoked</option>
+            <option value="Failed">Failed</option>
+          </select>
+        </div>
+
+        <div class="count-pill" id="visible-count" style="margin-left:0;">
+          <i data-lucide="layers" style="width:13px;height:13px;"></i>
+          <span id="count-text">{{ access_requests | length }} request{{ 's' if access_requests | length != 1 else '' }}</span>
+        </div>
+      </div>
+
+      {% if access_requests %}
+      <div id="requests-container">
+        {# Group by date bucket server-side #}
+        {% set ns = namespace(today=[], yesterday=[], week=[], older=[]) %}
+        {% for ar in access_requests %}
+          {% set ts = ar.metadata.creationTimestamp %}
+          {# Use data attributes on rows — grouping done in JS for accuracy #}
+        {% endfor %}
+
+        <div class="table-wrap">
+          <table id="requests-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requester</th>
+                <th>Cluster</th>
+                <th>Namespace</th>
+                <th>TTL / Remaining</th>
+                <th>Status</th>
+                <th>Actioned by</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="requests-tbody">
+              {% for ar in access_requests %}
+              {% set spec = ar.get("spec", {}) %}
+              {% set st = ar.get("status", {}) %}
+              {% set phase = st.get("phase", "Pending") %}
+              {% set ttl = spec.get("ttlSeconds", 3600) %}
+              {% set ar_cluster = ar.get("_cluster", "") %}
+              {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
+              <tr class="req-row"
+                  data-requester="{{ spec.get('requester', '') | lower }}"
+                  data-namespace="{{ spec.get('namespace', '') | lower }}"
+                  data-cluster="{{ ar_cluster }}"
+                  data-phase="{{ phase }}"
+                  data-ts="{{ ar.metadata.creationTimestamp }}">
+                <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ spec.get('requester', '—') }}">{{ spec.get("requester", "—") }}</td>
+                <td><code>{{ ar_cluster_display }}</code></td>
+                <td><code>{{ spec.get("namespace", "—") }}</code></td>
+                <td>
+                  {% if phase == "Active" and st.get("expiresAt") %}
+                    <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
+                  {% else %}
+                    {{ (ttl // 3600) }}h {{ ((ttl % 3600) // 60) }}m
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge badge-{{ phase | lower }}">
+                    <span class="badge-dot"></span>
+                    {{ phase }}
+                  </span>
+                </td>
+                <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ st.get('approvedBy', '') }}">
+                  {% if st.get('approvedBy') %}
+                    <span style="font-size:0.8rem;color:var(--text-dim);">{{ st.get('approvedBy') }}</span>
+                  {% else %}
+                    <span style="color:var(--text-dim);">—</span>
+                  {% endif %}
+                </td>
+                <td style="white-space:nowrap;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
+                <td>
+                  {% set requester = spec.get("requester", "") %}
+                  {% if phase == "Pending" %}
+                  <div class="action-cell" id="actions-{{ ar.metadata.name }}">
+                    <button class="action-btn approve-btn"
+                      onclick="inlineApprove('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
+                      <i data-lucide="check" style="width:12px;height:12px;"></i>
+                      Approve
+                    </button>
+                    <button class="action-btn deny-btn"
+                      onclick="inlineDeny('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
+                      <i data-lucide="x" style="width:12px;height:12px;"></i>
+                      Deny
+                    </button>
+                  </div>
+                  {% elif phase in ("Active", "Approved") %}
+                  <div class="action-cell" id="actions-{{ ar.metadata.name }}">
+                    <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
+                      onsubmit="return confirm('Revoke access for {{ requester }}?')">
+                      <button type="submit" class="action-btn revoke-btn">
+                        <i data-lucide="shield-off" style="width:12px;height:12px;"></i>
+                        Revoke
+                      </button>
+                    </form>
+                  </div>
+                  {% else %}
+                  <span style="color:var(--text-dim);">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="no-results">
+          <i data-lucide="search-x" style="width:32px;height:32px;margin-bottom:8px;"></i><br>
+          No requests match your filters
+        </div>
+      </div>
+      {% else %}
+      <div class="empty">
+        <i data-lucide="inbox" style="width:40px;height:40px;"></i>
+        <span>No access requests yet</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── AUDIT LOG ── -->
+    <div class="card" id="audit-card">
+      <div class="card-header" style="margin-bottom:16px;">
+        <div class="card-icon">
+          <i data-lucide="scroll-text" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>Audit Log</h2>
+        <span id="audit-status" style="font-size:0.75rem;color:var(--text-dim);margin-left:6px;"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Event</th>
+              <th>Request</th>
+              <th>Actor</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // ── Refresh button ──
+    function refreshPage() {
+      var btn = document.getElementById('refresh-btn');
+      btn.classList.add('spinning');
+      btn.disabled = true;
+      location.reload();
+    }
+
+
+    // ── TTL countdown ──
+    function updateTtlRemaining() {
+      document.querySelectorAll('.ttl-remaining').forEach(el => {
+        var expires = new Date(el.dataset.expires);
+        var diff = Math.floor((expires - Date.now()) / 1000);
+        if (diff <= 0) {
+          el.textContent = 'Expired';
+          el.style.color = 'var(--danger)';
+        } else {
+          var h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+          el.textContent = h > 0 ? h + 'h ' + m + 'm left' : m + 'm ' + s + 's left';
+          el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--success)';
+        }
+      });
+    }
+    if (document.querySelector('.ttl-remaining')) {
+      updateTtlRemaining();
+      setInterval(updateTtlRemaining, 1000);
+    }
+
+    // ── Date grouping ──
+    function dateBucket(tsStr) {
+      var d = new Date(tsStr);
+      var now = new Date();
+      var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var yesterdayStart = new Date(todayStart - 86400000);
+      var weekStart = new Date(todayStart - 6 * 86400000);
+      if (d >= todayStart)      return 'today';
+      if (d >= yesterdayStart)  return 'yesterday';
+      if (d >= weekStart)       return 'this-week';
+      return 'older';
+    }
+
+    var BUCKET_LABELS = {
+      'today':     'Today',
+      'yesterday': 'Yesterday',
+      'this-week': 'This Week',
+      'older':     'Older',
+    };
+    var BUCKET_ORDER = ['today', 'yesterday', 'this-week', 'older'];
+
+    function buildGroups() {
+      var tbody = document.getElementById('requests-tbody');
+      var rows = Array.from(tbody.querySelectorAll('tr.req-row'));
+
+      // Remove existing group wrappers (re-render on filter)
+      tbody.innerHTML = '';
+
+      // Group rows by bucket
+      var groups = {};
+      BUCKET_ORDER.forEach(b => groups[b] = []);
+      rows.forEach(row => {
+        var ts = row.dataset.ts;
+        groups[dateBucket(ts)].push(row);
+      });
+
+      var totalVisible = 0;
+      BUCKET_ORDER.forEach(bucket => {
+        var bucketRows = groups[bucket].filter(r => !r.classList.contains('hidden'));
+        if (bucketRows.length === 0) return;
+        totalVisible += bucketRows.length;
+
+        // Group header row
+        var headerRow = document.createElement('tr');
+        headerRow.className = 'group-header-row';
+        headerRow.innerHTML = `<td colspan="9" style="padding:14px 12px 4px;background:transparent;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="toggleGroup('${bucket}')">
+            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);">${BUCKET_LABELS[bucket]}</span>
+            <span id="count-${bucket}" style="font-size:0.7rem;background:var(--surface-3);border:1px solid var(--border);border-radius:10px;padding:1px 7px;color:var(--text-dim);">${bucketRows.length}</span>
+            <i data-lucide="chevron-down" id="chevron-${bucket}" style="width:13px;height:13px;color:var(--text-dim);margin-left:auto;transition:transform 0.2s;"></i>
+          </div>
+        </td>`;
+        tbody.appendChild(headerRow);
+
+        bucketRows.forEach(row => {
+          row.dataset.bucket = bucket;
+          tbody.appendChild(row);
+        });
+      });
+
+      // Update total count
+      var total = rows.filter(r => !r.classList.contains('hidden')).length;
+      document.getElementById('count-text').textContent = total + ' request' + (total !== 1 ? 's' : '');
+
+      // No results message
+      document.getElementById('no-results').style.display = total === 0 ? 'block' : 'none';
+
+      lucide.createIcons();
+    }
+
+    function toggleGroup(bucket) {
+      var chevron = document.getElementById('chevron-' + bucket);
+      var rows = document.querySelectorAll('[data-bucket="' + bucket + '"]');
+      var collapsed = chevron.style.transform === 'rotate(-90deg)';
+      chevron.style.transform = collapsed ? '' : 'rotate(-90deg)';
+      rows.forEach(r => r.style.display = collapsed ? '' : 'none');
+    }
+
+    // ── Filtering ──
+    var _allRows = null;
+
+    function applyFilters() {
+      if (!_allRows) {
+        _allRows = Array.from(document.querySelectorAll('tr.req-row'));
+      }
+      var text = document.getElementById('filter-text').value.toLowerCase().trim();
+      var cluster = document.getElementById('filter-cluster').value;
+      var phase = document.getElementById('filter-phase').value;
+
+      _allRows.forEach(row => {
+        var match =
+          (!text    || row.dataset.requester.includes(text) || row.dataset.namespace.includes(text) || row.querySelector('a').textContent.toLowerCase().includes(text)) &&
+          (!cluster || row.dataset.cluster === cluster) &&
+          (!phase   || row.dataset.phase === phase);
+        row.classList.toggle('hidden', !match);
+      });
+
+      buildGroups();
+    }
+
+    // ── Initial render ──
+    _allRows = Array.from(document.querySelectorAll('tr.req-row'));
+    buildGroups();
+
+    // ── Inline approve/deny ──
+    function _setRowPhase(name, phase) {
+      var row = null;
+      var rows = document.querySelectorAll('tr.req-row');
+      for (var r of rows) {
+        var link = r.querySelector('a');
+        if (link && link.textContent.trim() === name) {
+          row = r;
+          break;
+        }
+      }
+      if (!row) return;
+
+      // Update badge
+      var badge = row.querySelector('.badge');
+      if (badge) {
+        badge.className = 'badge badge-' + phase.toLowerCase();
+        badge.querySelector('.badge-dot').className = 'badge-dot';
+        badge.childNodes[badge.childNodes.length - 1].textContent = phase;
+      }
+
+      // Update data-phase for filters
+      row.dataset.phase = phase;
+
+      // Update action cell
+      var actionCell = row.querySelector('.action-cell');
+      if (actionCell) {
+        if (phase === 'Approved') {
+          // Show revoke button
+          var cluster = row.dataset.cluster;
+          actionCell.innerHTML = '<form method="POST" action="/revoke/' + cluster + '/' + name + '" style="display:inline" onsubmit="return confirm(\'Revoke access?\')"><button type="submit" class="action-btn revoke-btn"><i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button></form>';
+        } else {
+          actionCell.outerHTML = '<span style="color:var(--text-dim);">—</span>';
+        }
+        lucide.createIcons();
+      }
+    }
+
+    function _lockActionCell(cell, label) {
+      cell.innerHTML = `<span style="font-size:0.75rem;color:var(--text-dim);display:flex;align-items:center;gap:5px;">
+        <i data-lucide="loader" style="width:12px;height:12px;animation:spin 0.8s linear infinite;"></i>${label}
+      </span>`;
+      lucide.createIcons();
+    }
+
+    async function inlineApprove(cluster, name, btn) {
+      var cell = document.getElementById('actions-' + name);
+      _lockActionCell(cell, 'Approving…');
+      try {
+        var resp = await fetch('/approve/' + cluster + '/' + name, { method: 'POST' });
+        var data = await resp.json();
+        if (data.ok) {
+          _setRowPhase(name, 'Approved');
+        } else {
+          alert('Approve failed: ' + (data.error || 'unknown error'));
+          location.reload();
+        }
+      } catch(e) {
+        alert('Approve failed: ' + e);
+        location.reload();
+      }
+    }
+
+    async function inlineDeny(cluster, name, btn) {
+      var reason = prompt('Denial reason (optional):');
+      if (reason === null) return; // cancelled
+      var cell = document.getElementById('actions-' + name);
+      _lockActionCell(cell, 'Denying…');
+      try {
+        var body = new FormData();
+        body.append('denial_reason', reason || '');
+        var resp = await fetch('/deny/' + cluster + '/' + name, { method: 'POST', body: body });
+        var data = await resp.json();
+        if (data.ok) {
+          _setRowPhase(name, 'Denied');
+        } else {
+          alert('Deny failed: ' + (data.error || 'unknown error'));
+          location.reload();
+        }
+      } catch(e) {
+        alert('Deny failed: ' + e);
+        location.reload();
+      }
+    }
+
+    // ── Audit log ──
+    var _EVENT_CLASS = {
+      'request.created': 'created',
+      'request.approved': 'approved',
+      'access.granted': 'granted',
+      'request.denied': 'denied',
+      'access.revoked': 'revoked',
+      'access.expired': 'expired',
+      'crd.deleted': 'deleted',
+    };
+
+    function _fmtTs(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleString('de-DE', {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          timeZone: 'Europe/Berlin',
+        });
+      } catch(e) { return iso.slice(0, 19).replace('T', ' '); }
+    }
+
+    async function loadAuditLog() {
+      var statusEl = document.getElementById('audit-status');
+      var tbody = document.getElementById('audit-tbody');
+      try {
+        var resp = await fetch('/api/audit');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var rows = await resp.json();
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">No audit entries yet (DB not enabled or no events recorded)</td></tr>';
+          statusEl.textContent = '';
+          return;
+        }
+        var html = '';
+        rows.forEach(function(r) {
+          var cls = _EVENT_CLASS[r.event] || '';
+          html += '<tr>' +
+            '<td style="white-space:nowrap;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;">' + _fmtTs(r.timestamp) + '</td>' +
+            '<td><span class="audit-event ' + cls + '">' + (r.event || '—') + '</span></td>' +
+            '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;color:#a5b4fc;">' + (r.request_name || '—') + '</td>' +
+            '<td style="font-size:0.8rem;">' + (r.actor || '—') + '</td>' +
+            '<td style="font-size:0.8rem;color:var(--text-dim);">' + (r.detail || '') + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+        statusEl.textContent = rows.length + ' entries';
+      } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">Could not load audit log</td></tr>';
+        statusEl.textContent = '';
+      }
+    }
+
+    loadAuditLog();
+  </script>
+</body>
+</html>

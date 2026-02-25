@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "janus.webui.name" . }}
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "janus.webui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "janus.labels" . | nindent 8 }}
+        {{- include "janus.webui.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "janus.webui.name" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: webui
+          image: "{{ .Values.image.webui.repository }}:{{ .Values.image.webui.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: {{ .Values.webui.containerPort }}
+              name: http
+          envFrom:
+            - configMapRef:
+                name: {{ include "janus.configmap.name" . }}
+          env:
+            {{- if .Values.postgresql.enabled }}
+            - name: DB_HOST
+              value: {{ .Values.postgresql.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "janus.fullname" . }}-postgresql
+                  key: password
+            {{- end }}
+          resources:
+            {{- toYaml .Values.webui.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

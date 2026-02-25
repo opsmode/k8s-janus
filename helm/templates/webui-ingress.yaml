@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "janus.fullname" . }}
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+  annotations:
+    acme.cert-manager.io/http01-ingress-class: {{ .Values.ingress.ingressClass }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer }}
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeout | quote }}
+    nginx.ingress.kubernetes.io/auth-url: {{ .Values.ingress.oAuth2ProxyAuthUrl }}
+    nginx.ingress.kubernetes.io/auth-signin: {{ .Values.ingress.oAuth2ProxyAuthSignInUrl }}
+    nginx.ingress.kubernetes.io/auth-response-headers: X-Forwarded-Groups,X-Forwarded-User,X-Forwarded-Email,X-Forwarded-Preferred-Username
+    nginx.ingress.kubernetes.io/auth-snippet: |
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-Uri $request_uri;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Forwarded-Method $request_method;
+    nginx.ingress.kubernetes.io/custom-http-errors: "403"
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: tls-{{ include "janus.fullname" . }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "janus.fullname" . }}-webui
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}

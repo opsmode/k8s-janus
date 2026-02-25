@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | {{ "Approved" if action == "approve" else "Denied" }}</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .header-logo svg { color: #fff; }
+    .brand-text h1 {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .header-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px 4px 8px;
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+    .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success); box-shadow: 0 0 8px var(--success);
+      animation: pulse-anim 2s ease-in-out infinite;
+    }
+    @keyframes pulse-anim {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 560px;
+      margin: 80px auto;
+      padding: 0 20px;
+    }
+
+    /* ── MAIN CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    }
+
+    /* State-specific top border */
+    .card.state-approve::before {
+      background: linear-gradient(90deg, transparent, rgba(16,185,129,0.5), transparent);
+    }
+    .card.state-deny::before {
+      background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
+    }
+    .card.state-info::before {
+      background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent);
+    }
+
+    /* ── ICON CIRCLE ── */
+    .icon-wrap {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      position: relative;
+    }
+    .icon-wrap::after {
+      content: '';
+      position: absolute; inset: -6px;
+      border-radius: 50%;
+      opacity: 0.15;
+    }
+    .icon-wrap.success {
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: #34d399;
+    }
+    .icon-wrap.success::after { background: radial-gradient(circle, #10b981, transparent); }
+
+    .icon-wrap.danger {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+    }
+    .icon-wrap.danger::after { background: radial-gradient(circle, #ef4444, transparent); }
+
+    .icon-wrap.info {
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+    }
+    .icon-wrap.info::after { background: radial-gradient(circle, #6366f1, transparent); }
+
+    /* ── TEXT ── */
+    .card h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    /* ── FACT GRID ── */
+    .fact-grid {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 10px 16px;
+      text-align: left;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin-bottom: 28px;
+    }
+    .fact-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .fact-value {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .fact-value code {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #a5b4fc;
+    }
+
+    /* ── BUTTON ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+    }
+    .btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(99,102,241,0.45);
+    }
+    .btn:active { transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="header-brand" href="/admin" style="text-decoration:none;">
+      <div class="header-logo">
+        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
+      </div>
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>{{ cluster_name }}</span>
+      </div>
+    </a>
+    <div class="header-pill">
+      <span class="pulse-dot"></span>
+      God of Gateways
+    </div>
+  </header>
+
+  <div class="container">
+    {% if already_actioned %}
+    <div class="card state-info">
+      <div class="icon-wrap info">
+        <i data-lucide="info" style="width:32px;height:32px;"></i>
+      </div>
+      <h2>Already {{ current_phase }}</h2>
+      <p>This request has already been actioned ({{ current_phase }}). No changes were made.</p>
+
+    {% elif action == "approve" %}
+    <div class="card state-approve">
+      <div class="icon-wrap success">
+        <i data-lucide="shield-check" style="width:32px;height:32px;"></i>
+      </div>
+      <h2 style="color:#34d399;">Access Approved</h2>
+      <p>The engineer has been granted temporary pod access. The token will be available in the web UI.</p>
+
+    {% else %}
+    <div class="card state-deny">
+      <div class="icon-wrap danger">
+        <i data-lucide="shield-x" style="width:32px;height:32px;"></i>
+      </div>
+      <h2 style="color:#f87171;">Access Denied</h2>
+      <p>The access request has been denied. The engineer will be notified.</p>
+
+    {% endif %}
+
+      {% if spec %}
+      <div class="fact-grid">
+        <span class="fact-label">
+          <i data-lucide="hash" style="width:11px;height:11px;"></i>
+          Request ID
+        </span>
+        <span class="fact-value" style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#a5b4fc;">{{ name }}</span>
+
+        <span class="fact-label">
+          <i data-lucide="user" style="width:11px;height:11px;"></i>
+          Requester
+        </span>
+        <span class="fact-value">{{ spec.get("requester", "—") }}</span>
+
+        <span class="fact-label">
+          <i data-lucide="server" style="width:11px;height:11px;"></i>
+          Cluster
+        </span>
+        <span class="fact-value"><code>{{ spec.get("cluster", "—") }}</code></span>
+
+        <span class="fact-label">
+          <i data-lucide="layers" style="width:11px;height:11px;"></i>
+          Namespace
+        </span>
+        <span class="fact-value"><code>{{ spec.get("namespace", "—") }}</code></span>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <a class="btn" href="/status/{{ spec.get('cluster', '') }}/{{ name }}"
+           style="background:var(--surface-2);border:1px solid var(--border);box-shadow:none;color:var(--text-muted);">
+          <i data-lucide="file-search" style="width:15px;height:15px;"></i>
+          View request status
+        </a>
+        <a class="btn" href="/admin">
+          <i data-lucide="layout-dashboard" style="width:15px;height:15px;"></i>
+          Back to admin
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

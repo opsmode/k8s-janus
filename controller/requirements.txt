@@ -1,0 +1,5 @@
+kopf==1.43.0
+kubernetes==35.0.0
+pyyaml==6.0.3
+sqlalchemy==2.0.47
+psycopg2-binary==2.9.11

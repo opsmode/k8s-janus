@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --info:        #3b82f6;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .header-logo svg { color: #fff; }
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .header-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px 4px 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .pulse-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 960px; margin: 40px auto; padding: 0 20px; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .card-icon {
+      width: 32px; height: 32px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+    .card-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── FORM ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select, textarea {
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 0.875rem;
+      font-family: 'Inter', sans-serif;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-dim); }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    select option { background: var(--surface-2); color: var(--text); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .submit-btn {
+      margin-top: 8px;
+      padding: 11px 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+    }
+    .submit-btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(99,102,241,0.45);
+    }
+    .submit-btn:active { transform: translateY(0); }
+
+    /* ── ERROR ── */
+    .error-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: #fca5a5;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .table-wrap::-webkit-scrollbar { width: 8px; }
+    .table-wrap::-webkit-scrollbar-track { background: var(--surface-2); border-radius: 4px; }
+    .table-wrap::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+    .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface);
+    }
+    thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      padding: 10px 14px;
+      color: var(--text-dim);
+      font-weight: 500;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: left;
+      white-space: nowrap;
+      background: var(--surface);
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr {
+      transition: background 0.15s;
+    }
+    tbody tr:hover td {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    tbody tr:hover td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    tbody tr:hover td:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+    td a {
+      color: var(--accent);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    td a:hover { text-decoration: underline; }
+
+    td code {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #a5b4fc;
+    }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    .badge-pending  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .badge-pending .badge-dot  { background: #fbbf24; box-shadow: 0 0 6px #f59e0b; animation: pulse 1.5s infinite; }
+
+    .badge-approved { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+    .badge-approved .badge-dot { background: #34d399; }
+
+    .badge-active   { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+    .badge-active .badge-dot   { background: #818cf8; box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+
+    .badge-denied   { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-denied .badge-dot   { background: #f87171; }
+
+    .badge-expired  { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
+    .badge-expired .badge-dot  { background: #64748b; }
+
+    .badge-revoked  { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-revoked .badge-dot  { background: #f87171; }
+    .badge-failed   { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
+    .badge-failed .badge-dot   { background: #ef4444; }
+
+    /* ── REVOKE BUTTON ── */
+    .revoke-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: 1px solid rgba(239,68,68,0.35);
+      color: #f87171;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .revoke-btn:hover {
+      background: rgba(239,68,68,0.15);
+      border-color: rgba(239,68,68,0.6);
+      color: #fca5a5;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 48px 24px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+    .empty svg { color: var(--border-light); }
+
+    /* ── MISC ── */
+    .section-meta {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="header-brand" href="/" style="text-decoration:none;">
+      <div class="header-logo">
+        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
+      </div>
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>God of Gateways</span>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
+         style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
+         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
+        <i data-lucide="github" style="width:17px;height:17px;"></i>
+      </a>
+      <a href="{{ '/admin' if not is_admin else '/' }}"
+         style="font-size:0.78rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;transition:color 0.15s,border-color 0.15s;"
+         onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-light)'"
+         onmouseout="this.style.color='var(--text-dim)';this.style.borderColor='var(--border)'">
+        <i data-lucide="{{ 'layout-dashboard' if is_admin else 'shield' }}" style="width:13px;height:13px;"></i>
+        {{ 'My Requests' if is_admin else 'Admin' }}
+      </a>
+      <div class="header-pill">
+        <span class="pulse-dot"></span>
+        {% if user_name %}{{ user_name }}{% else %}God of Gateways{% endif %}
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    {% if error %}
+    <div class="error-bar">
+      <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">
+          <i data-lucide="key-round" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>Request Pod Access</h2>
+      </div>
+
+      <form method="POST" action="/request">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="requester">Your email</label>
+            <input type="email" id="requester" name="requester" value="{{ user_email }}" required placeholder="your.email@example.com" />
+          </div>
+          <div class="form-group">
+            <label for="cluster">Target cluster</label>
+            <select id="cluster" name="cluster" required onchange="loadNamespaces(this.value)">
+              <option value="" disabled selected>Select a cluster…</option>
+              {% for c in clusters %}
+              <option value="{{ c.name }}">
+                {{ c.displayName if c.displayName else c.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="namespace">Target namespace</label>
+            <select id="namespace" name="namespace" required size="1" onchange="loadPods(); _setSubmitEnabled()">
+              <option value="" disabled selected>— select cluster first —</option>
+            </select>
+          </div>
+          <div class="form-group full" id="pod-preview" style="display:none;">
+            <label>Available Pods in this Namespace</label>
+            <div id="pod-list" style="max-height:150px;overflow-y:auto;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;">
+              <div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Select a namespace to see pods</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ttl_hours">Duration</label>
+            <select id="ttl_hours" name="ttl_hours">
+              <option value="1" {% if default_ttl == 1 %}selected{% endif %}>1 hour</option>
+              <option value="2" {% if default_ttl == 2 %}selected{% endif %}>2 hours</option>
+              <option value="4">4 hours</option>
+              <option value="8">8 hours</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="reason">Business justification</label>
+            <textarea id="reason" name="reason" placeholder="Describe why you need access to this pod…" required maxlength="500"></textarea>
+          </div>
+        </div>
+        <button type="submit" id="submit-btn" class="submit-btn" disabled title="Select a cluster and namespace first">
+          <i data-lucide="send" style="width:15px;height:15px;"></i>
+          Submit Request
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">
+          <i data-lucide="list" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>{{ 'All Requests' if is_admin else 'My Requests' }}</h2>
+        {% if access_requests %}
+        <div class="section-meta">
+          <i data-lucide="layers" style="width:13px;height:13px;"></i>
+          {{ access_requests | length }} request{{ 's' if access_requests | length != 1 else '' }}
+        </div>
+        {% endif %}
+      </div>
+
+      {% if access_requests %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Requester</th>
+              <th>Cluster</th>
+              <th>Namespace</th>
+              <th>Duration</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ar in access_requests %}
+            {% set spec = ar.get("spec", {}) %}
+            {% set st = ar.get("status", {}) %}
+            {% set phase = st.get("phase", "Pending") %}
+            {% set ttl = spec.get("ttlSeconds", 3600) %}
+            {% set ar_cluster = ar.get("_cluster", "") %}
+            {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
+            <tr>
+              <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
+              <td>{{ spec.get("requester", "—") }}</td>
+              <td><code>{{ ar_cluster_display }}</code></td>
+              <td><code>{{ spec.get("namespace", "—") }}</code></td>
+              <td>
+                {% if phase == "Active" and st.get("expiresAt") %}
+                  <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
+                {% else %}
+                  {{ (ttl // 3600) }}h {{ ((ttl % 3600) // 60) }}m
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge badge-{{ phase | lower }}">
+                  <span class="badge-dot"></span>
+                  {{ phase }}
+                </span>
+              </td>
+              <td>{{ ar.metadata.creationTimestamp | to_berlin }}</td>
+              <td>
+                {% if phase in ("Active", "Approved", "Pending") and is_admin %}
+                {% set requester = spec.get("requester", "") %}
+                <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
+                  onsubmit="return confirm('Revoke access for {{ requester }}?')">
+                  <button type="submit" class="revoke-btn">
+                    <i data-lucide="shield-off" style="width:12px;height:12px;"></i>
+                    Revoke
+                  </button>
+                </form>
+                {% else %}
+                <span style="color:var(--text-dim);">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty">
+        <i data-lucide="inbox" style="width:40px;height:40px;"></i>
+        <span>No access requests yet</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── REQUEST HISTORY ── -->
+    <div class="card" id="history-card" style="display:none;">
+      <div class="card-header">
+        <div class="card-icon">
+          <i data-lucide="history" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>Request History</h2>
+        <div class="section-meta" style="margin-left:auto;">
+          <button onclick="clearHistory()" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:0.72rem;padding:3px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:color 0.15s,border-color 0.15s;"
+            onmouseover="this.style.color='var(--danger)';this.style.borderColor='rgba(239,68,68,0.4)'"
+            onmouseout="this.style.color='var(--text-dim)';this.style.borderColor='var(--border)'">
+            <i data-lucide="trash-2" style="width:11px;height:11px;"></i>
+            Clear
+          </button>
+        </div>
+      </div>
+      <div id="history-list">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // TTL remaining countdown for Active requests
+    var _ttlInterval = null;
+    function updateTtlRemaining() {
+      var allExpired = true;
+      document.querySelectorAll('.ttl-remaining').forEach(el => {
+        var expires = new Date(el.dataset.expires);
+        var diff = Math.floor((expires - Date.now()) / 1000);
+        if (diff <= 0) {
+          el.textContent = 'Expired';
+          el.style.color = 'var(--danger)';
+        } else {
+          allExpired = false;
+          var h = Math.floor(diff / 3600);
+          var m = Math.floor((diff % 3600) / 60);
+          var s = diff % 60;
+          el.textContent = h > 0 ? h + 'h ' + m + 'm left' : m + 'm ' + s + 's left';
+          el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--success)';
+        }
+      });
+      if (allExpired && _ttlInterval) { clearInterval(_ttlInterval); _ttlInterval = null; }
+    }
+    if (document.querySelector('.ttl-remaining')) {
+      updateTtlRemaining();
+      _ttlInterval = setInterval(updateTtlRemaining, 1000);
+    }
+
+    function _setSubmitEnabled() {
+      const cluster = document.getElementById('cluster').value;
+      const ns = document.getElementById('namespace').value;
+      document.getElementById('submit-btn').disabled = !(cluster && ns);
+    }
+
+    async function loadNamespaces(clusterName) {
+      const sel = document.getElementById('namespace');
+      const podPreview = document.getElementById('pod-preview');
+      const submitBtn = document.getElementById('submit-btn');
+      podPreview.style.display = 'none';
+      submitBtn.disabled = true;
+      sel.innerHTML = '<option value="" disabled selected>Loading…</option>';
+      try {
+        const resp = await fetch('/namespaces/' + encodeURIComponent(clusterName));
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const namespaces = await resp.json();
+        if (!namespaces.length) {
+          sel.innerHTML = '<option value="" disabled selected>No namespaces available</option>';
+          return;
+        }
+        sel.innerHTML = '<option value="" disabled selected>Select a namespace…</option>';
+        namespaces.forEach(ns => {
+          const opt = document.createElement('option');
+          opt.value = ns;
+          opt.textContent = ns;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        sel.innerHTML = '<option value="" disabled selected>Failed to load — select cluster again</option>';
+      }
+    }
+
+    async function loadPods() {
+      const cluster = document.getElementById('cluster').value;
+      const namespace = document.getElementById('namespace').value;
+      const podPreview = document.getElementById('pod-preview');
+      const podList = document.getElementById('pod-list');
+
+      if (!cluster || !namespace) {
+        podPreview.style.display = 'none';
+        return;
+      }
+
+      podPreview.style.display = 'block';
+      podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Loading pods...</div>';
+
+      try {
+        const resp = await fetch(`/api/pods/${encodeURIComponent(cluster)}/${encodeURIComponent(namespace)}`);
+        const data = await resp.json();
+
+        if (data.error || data.pods.length === 0) {
+          podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">No pods found in this namespace</div>';
+          return;
+        }
+
+        let html = '<div style="display:grid;gap:4px;">';
+        data.pods.forEach(pod => {
+          const statusColor = pod.status === 'Running' ? 'var(--success)' : 'var(--text-dim)';
+          html += `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface-3);border-radius:4px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:${statusColor};"></div>
+              <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text);">${pod.name}</div>
+              <div style="font-size:0.7rem;color:var(--text-dim);">${pod.ready}/${pod.total}</div>
+            </div>
+          `;
+        });
+        html += '</div>';
+        html += `<div style="margin-top:8px;font-size:0.7rem;color:var(--text-dim);text-align:center;">${data.pods.length} pod${data.pods.length !== 1 ? 's' : ''} available</div>`;
+        podList.innerHTML = html;
+      } catch (e) {
+        podList.innerHTML = '<div style="color:var(--danger);font-size:0.8rem;padding:8px;">Failed to load pods</div>';
+      }
+    }
+
+    // ── Request history (localStorage) ──
+    const HISTORY_KEY_PREFIX = 'k8s_janus_history_';
+
+    function historyKey() {
+      const email = document.getElementById('requester').value.trim().toLowerCase();
+      return email ? HISTORY_KEY_PREFIX + email : null;
+    }
+
+    function loadHistory() {
+      const key = historyKey();
+      if (!key) return [];
+      try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+    }
+
+    function saveHistory(entries) {
+      const key = historyKey();
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify(entries.slice(0, 50)));
+    }
+
+    function recordRequest(name, cluster, clusterDisplay, namespace, phase) {
+      const entries = loadHistory();
+      // update if exists, else prepend
+      const idx = entries.findIndex(e => e.name === name && e.cluster === cluster);
+      const entry = { name, cluster, clusterDisplay, namespace, phase, ts: new Date().toISOString() };
+      if (idx >= 0) entries[idx] = entry; else entries.unshift(entry);
+      saveHistory(entries);
+    }
+
+    // Collect live CRD names from the current table
+    const _liveNames = new Set();
+    document.querySelectorAll('tbody td a').forEach(a => {
+      // href is /status/<cluster>/<name>
+      const parts = a.getAttribute('href').split('/');
+      if (parts.length >= 4) _liveNames.add(parts[2] + '/' + parts[3]);
+    });
+
+    function renderHistory() {
+      const entries = loadHistory();
+      const card = document.getElementById('history-card');
+      const list = document.getElementById('history-list');
+
+      // Only show entries not currently in the live table
+      const past = entries.filter(e => !_liveNames.has(e.cluster + '/' + e.name));
+      if (past.length === 0) { card.style.display = 'none'; return; }
+
+      card.style.display = '';
+
+      const phaseColors = {
+        Active: '#a5b4fc', Approved: '#34d399', Pending: '#fbbf24',
+        Denied: '#fca5a5', Expired: '#94a3b8', Revoked: '#fca5a5', Failed: '#fca5a5'
+      };
+
+      let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Cluster</th><th>Namespace</th><th>Last Status</th><th>Requested</th></tr></thead><tbody>';
+      past.forEach(e => {
+        const color = phaseColors[e.phase] || 'var(--text-dim)';
+        const dt = new Date(e.ts);
+        const dtStr = dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        html += `<tr>
+          <td><a href="/status/${e.cluster}/${e.name}" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;">${e.name}</a></td>
+          <td><code>${e.clusterDisplay || e.cluster}</code></td>
+          <td><code>${e.namespace}</code></td>
+          <td><span style="font-size:0.78rem;font-weight:600;color:${color};">${e.phase}</span></td>
+          <td style="font-size:0.78rem;color:var(--text-dim);white-space:nowrap;">${dtStr}</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+      list.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function clearHistory() {
+      const key = historyKey();
+      if (key) localStorage.removeItem(key);
+      document.getElementById('history-card').style.display = 'none';
+    }
+
+    // Record requests from the live table into history (updates phase for known entries)
+    {% for ar in access_requests %}
+    {% set spec = ar.get("spec", {}) %}
+    {% set st = ar.get("status", {}) %}
+    {% set ar_cluster = ar.get("_cluster", "") %}
+    {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
+    {% set phase = st.get("phase", "Pending") %}
+    // Only record if this email matches the current user
+    (function() {
+      const myEmail = {{ user_email | tojson }};
+      const requester = {{ spec.get("requester", "") | tojson }};
+      if (myEmail && requester && myEmail.toLowerCase() === requester.toLowerCase()) {
+        recordRequest({{ ar.metadata.name | tojson }}, {{ ar_cluster | tojson }}, {{ ar_cluster_display | tojson }}, {{ spec.get("namespace", "") | tojson }}, {{ phase | tojson }});
+      }
+    })();
+    {% endfor %}
+
+    // Save to history on form submit
+    document.querySelector('form[action="/request"]').addEventListener('submit', function() {
+      const email = document.getElementById('requester').value.trim().toLowerCase();
+      const cluster = document.getElementById('cluster').value;
+      const namespace = document.getElementById('namespace').value;
+      // We don't have the CRD name yet (assigned server-side), so store a pending marker
+      // The actual name will be recorded on next page load via the live table sync above
+      // Nothing to do here — the status page redirect will reload index on back-navigation
+    });
+
+    // Render on load (after email field may be pre-filled)
+    renderHistory();
+    // Re-render when email changes (switches user context)
+    document.getElementById('requester').addEventListener('change', renderHistory);
+    document.getElementById('requester').addEventListener('blur', renderHistory);
+  </script>
+</body>
+</html>
+
+
+

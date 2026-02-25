@@ -1,0 +1,187 @@
+name: CI - Build on Every Push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'controller/**'
+      - 'webui/**'
+
+permissions:
+  contents: write
+
+env:
+  IMAGE_PREFIX: opsmode/k8s-janus
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      controller: ${{ steps.filter.outputs.controller }}
+      webui: ${{ steps.filter.outputs.webui }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            controller:
+              - 'controller/**'
+            webui:
+              - 'webui/**'
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lint controller
+        working-directory: controller
+        run: |
+          pip install --quiet -r requirements.txt
+          python -c "import main" && echo "controller: import OK"
+
+      - name: Lint webui
+        working-directory: webui
+        run: |
+          pip install --quiet -r requirements.txt
+          APP_DIR=$(pwd) python -c "import main" && echo "webui: import OK"
+
+  build-controller:
+    needs: [detect-changes, lint]
+    if: needs.detect-changes.outputs.controller == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push controller
+        uses: docker/build-push-action@v5
+        with:
+          context: ./controller
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-controller:${{ steps.tag.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Scan controller image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}-controller:${{ steps.tag.outputs.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Scan controller image (SARIF for artifact)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}-controller:${{ steps.tag.outputs.sha }}
+          format: sarif
+          output: trivy-controller.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-controller-sarif
+          path: trivy-controller.sarif
+
+      - name: Update controller tag in values.yaml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+          yq -i '.image.controller.tag = "${{ steps.tag.outputs.sha }}"' helm/values.yaml
+          git add helm/values.yaml
+          git commit -m "ci: update controller image tag to ${{ steps.tag.outputs.sha }}"
+          git push origin main
+
+  build-webui:
+    needs: [detect-changes, lint]
+    if: needs.detect-changes.outputs.webui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push webui
+        uses: docker/build-push-action@v5
+        with:
+          context: ./webui
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-webui:${{ steps.tag.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Scan webui image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}-webui:${{ steps.tag.outputs.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Scan webui image (SARIF for artifact)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}-webui:${{ steps.tag.outputs.sha }}
+          format: sarif
+          output: trivy-webui.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-webui-sarif
+          path: trivy-webui.sarif
+
+      - name: Update webui tag in values.yaml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+          yq -i '.image.webui.tag = "${{ steps.tag.outputs.sha }}"' helm/values.yaml
+          git add helm/values.yaml
+          git commit -m "ci: update webui image tag to ${{ steps.tag.outputs.sha }}"
+          git push origin main

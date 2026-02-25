@@ -1,0 +1,150 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "janus.controller.name" . }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+rules:
+  # Manage AccessRequest CRDs
+  - apiGroups: ["k8s-janus.opsmode.io"]
+    resources: ["accessrequests", "accessrequests/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Watch kopf-required resources (scoped to what kopf actually needs)
+  - apiGroups: [""]
+    resources: ["namespaces", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Allow kopf to watch CRD definitions (needed to detect resource changes)
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  # Create/delete scoped ServiceAccounts for approved requests
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "create", "delete"]
+  # Issue time-limited tokens
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    verbs: ["create"]
+  # Manage token Secrets in JANUS namespace
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "delete"]
+  # Create/delete scoped RoleBindings for approved requests
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "create", "delete"]
+  # Reconcile janus-pod-exec ClusterRole on the local cluster
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["get", "create", "update", "patch", "delete"]
+  # escalate: required to CREATE a ClusterRole that grants permissions the SA doesn't hold
+  # (Kubernetes blocks creating ClusterRoles that would escalate privileges without this verb)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["escalate"]
+  # bind: scoped to janus-pod-exec only — only this ClusterRole is ever bound to users
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames: ["janus-pod-exec"]
+    verbs: ["bind"]
+  # Read pods for validation
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  # Post kopf events (audit trail)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "janus.controller.name" . }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "janus.controller.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "janus.controller.name" . }}
+    namespace: {{ .Values.janus.namespace }}
+
+---
+# Web UI: ClusterRole for cluster-wide resources only
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "janus.webui.name" . }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+rules:
+  # Read and create AccessRequests; patch status for approve/deny/revoke
+  - apiGroups: ["k8s-janus.opsmode.io"]
+    resources: ["accessrequests", "accessrequests/status"]
+    verbs: ["get", "list", "watch", "create", "patch"]
+  # List namespaces for the dropdown
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  # List pods for preview (read-only)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  # List events for pod details
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "janus.webui.name" . }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "janus.webui.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "janus.webui.name" . }}
+    namespace: {{ .Values.janus.namespace }}
+
+---
+# Web UI: namespaced Role for token Secrets — scoped to JANUS namespace only
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "janus.webui.name" . }}-secrets
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "janus.webui.name" . }}-secrets
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "janus.webui.name" . }}-secrets
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "janus.webui.name" . }}
+    namespace: {{ .Values.janus.namespace }}

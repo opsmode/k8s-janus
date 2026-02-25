@@ -1,0 +1,19 @@
+apiVersion: v2
+name: k8s-janus
+description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - k8s-janus
+  - rbac
+  - access-control
+  - security
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-blue.png
+home: https://github.com/opsmode/k8s-janus
+sources:
+  - https://github.com/opsmode/k8s-janus
+maintainers:
+  - name: OpsMode
+    email: devops@opsmode.io

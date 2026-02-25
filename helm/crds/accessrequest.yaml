@@ -1,0 +1,82 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: accessrequests.k8s-janus.opsmode.io
+spec:
+  group: k8s-janus.opsmode.io
+  names:
+    kind: AccessRequest
+    listKind: AccessRequestList
+    plural: accessrequests
+    singular: accessrequest
+    shortNames:
+      - ar
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: ["requester", "namespace", "reason", "ttlSeconds"]
+              properties:
+                requester:
+                  type: string
+                  description: "Email or username of the requester"
+                namespace:
+                  type: string
+                  description: "Target namespace to grant access to"
+                reason:
+                  type: string
+                  description: "Business justification for access"
+                ttlSeconds:
+                  type: integer
+                  description: "How long access should last in seconds"
+                  minimum: 600
+                  maximum: 28800
+                cluster:
+                  type: string
+                  description: "Target cluster name"
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: ["Pending", "Approved", "Denied", "Expired", "Active", "Revoked"]
+                approvedBy:
+                  type: string
+                approvedAt:
+                  type: string
+                expiresAt:
+                  type: string
+                revokedAt:
+                  type: string
+                serviceAccount:
+                  type: string
+                tokenSecret:
+                  type: string
+                  description: "Name of the Kubernetes Secret holding the time-limited token"
+                message:
+                  type: string
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Requester
+          type: string
+          jsonPath: .spec.requester
+        - name: Namespace
+          type: string
+          jsonPath: .spec.namespace
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Expires
+          type: string
+          jsonPath: .status.expiresAt
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

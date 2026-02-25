@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Terminal</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.84rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      transition: color 0.15s, background 0.15s;
+    }
+    .back-link:hover { color: var(--text-muted); background: var(--surface-3); }
+
+    /* ── MAIN LAYOUT ── */
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 320px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sidebar-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .sidebar-header p {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+    .sidebar-header code {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #a5b4fc;
+    }
+
+    .pod-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    .pod-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pod-item:hover {
+      background: var(--surface-3);
+      border-color: var(--accent);
+    }
+    .pod-item.selected {
+      background: rgba(99,102,241,0.1);
+      border-color: var(--accent);
+    }
+    .pod-item.pod-new {
+      animation: pod-new-pulse 3s ease-out;
+      border-color: var(--success);
+    }
+    @keyframes pod-new-pulse {
+      0% {
+        background: rgba(16,185,129,0.2);
+        box-shadow: 0 0 20px rgba(16,185,129,0.4);
+      }
+      100% {
+        background: var(--surface-2);
+        box-shadow: none;
+      }
+    }
+    .pod-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .pod-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .pod-name {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pod-status {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .pod-status.running {
+      color: var(--success);
+    }
+
+    .loading-pods {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    /* ── TERMINAL AREA ── */
+    .panes-wrapper {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .terminal-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+      position: relative;
+    }
+    .terminal-pane + .terminal-pane {
+      border-left: 2px solid var(--accent);
+    }
+    .terminal-pane.focused .pane-header {
+      border-bottom-color: var(--accent);
+    }
+    .pane-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      gap: 8px;
+    }
+    .pane-pod-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pane-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 3px 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .status-dot.connected {
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+      animation: pulse-anim 2s infinite;
+    }
+    @keyframes pulse-anim {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* global toolbar above all panes */
+    .terminal-toolbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .toolbar-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .toolbar-btn:hover { background: var(--surface-3); border-color: var(--accent); color: var(--text); }
+    .toolbar-btn.active { background: rgba(99,102,241,0.12); border-color: var(--accent); color: var(--accent); }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px 0;
+    }
+    .tab {
+      padding: 7px 14px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .tab:hover { color: var(--text-muted); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+    }
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .term-el {
+      flex: 1;
+      padding: 0;
+      background: #0a0e1a;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .xterm { padding: 10px; }
+
+    .log-view, .event-view {
+      flex: 1;
+      padding: 16px;
+      background: #0a0e1a;
+      overflow-y: auto;
+      overflow-x: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      line-height: 1.6;
+      min-width: 0;
+      word-wrap: break-word;
+    }
+    .log-line { padding: 2px 0; white-space: pre-wrap; word-break: break-all; }
+    .event-item {
+      padding: 10px;
+      margin-bottom: 6px;
+      background: var(--surface-2);
+      border-left: 3px solid var(--border);
+      border-radius: 4px;
+    }
+    .event-item.warning { border-left-color: var(--warning); }
+    .event-item.error   { border-left-color: var(--danger); }
+    .event-item.normal  { border-left-color: var(--success); }
+    .event-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.72rem; }
+    .event-type { font-weight: 600; color: var(--text); }
+    .event-time { color: var(--text-dim); }
+    .event-message { font-size: 0.78rem; color: var(--text-muted); }
+
+    .placeholder {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      gap: 12px;
+    }
+    .placeholder i { opacity: 0.3; }
+    .placeholder p { font-size: 0.9rem; }
+
+    /* ── QUICK COMMANDS SECTION ── */
+    .sidebar-section {
+      border-top: 1px solid var(--border);
+      padding: 12px;
+      flex-shrink: 0;
+    }
+    .sidebar-section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      padding: 0 2px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sidebar-section-title:hover { color: var(--text-muted); }
+    .sidebar-section-title .section-chevron {
+      transition: transform 0.2s;
+      opacity: 0.6;
+    }
+    .sidebar-section.collapsed .section-chevron { transform: rotate(-90deg); }
+    .sidebar-section.collapsed .quick-cmd-body { display: none; }
+    .quick-cmd-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      margin-bottom: 5px;
+    }
+    .quick-cmd-btn:hover {
+      background: var(--surface-3);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .quick-cmd-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .quick-cmd-btn i { flex-shrink: 0; }
+
+    /* ── BANNER TOASTS ── */
+    #banners {
+      position: fixed;
+      top: 84px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      min-width: 320px;
+      max-width: 640px;
+    }
+    .banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid;
+      font-size: 0.84rem;
+      pointer-events: all;
+      animation: banner-in 0.3s ease;
+    }
+    @keyframes banner-in {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .banner-warning {
+      background: rgba(245,158,11,0.12);
+      border-color: rgba(245,158,11,0.4);
+      color: #fbbf24;
+    }
+    .banner-danger {
+      background: rgba(239,68,68,0.12);
+      border-color: rgba(239,68,68,0.5);
+      color: #f87171;
+    }
+    .banner-info {
+      background: rgba(99,102,241,0.12);
+      border-color: rgba(99,102,241,0.4);
+      color: #a5b4fc;
+    }
+    .banner-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.7;
+      padding: 0;
+      line-height: 1;
+    }
+    .banner-close:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-brand">
+      <div class="header-logo">
+        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
+      </div>
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>{{ cluster_display }}</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
+         style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
+         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
+        <i data-lucide="github" style="width:17px;height:17px;"></i>
+      </a>
+      {% if expires_at %}
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;">
+        <i data-lucide="timer" style="width:13px;height:13px;color:var(--text-dim);flex-shrink:0;"></i>
+        <span id="terminal-countdown" data-expires="{{ expires_at }}"></span>
+      </div>
+      {% endif %}
+      <a class="back-link" href="/status/{{ cluster }}/{{ request_name }}">
+        <i data-lucide="arrow-left" style="width:15px;height:15px;"></i>
+        Back to request
+      </a>
+    </div>
+  </header>
+
+  <!-- Floating banners -->
+  <div id="banners"></div>
+
+  <div class="main-container">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>Pods in <code>{{ namespace }}</code></h2>
+        <p id="pod-count">Loading pods...</p>
+      </div>
+      <div class="pod-list" id="pod-list">
+        <div class="loading-pods">
+          <i data-lucide="loader" style="width:20px;height:20px;animation:spin 1s linear infinite;"></i>
+          <div style="margin-top:8px;">Loading pods...</div>
+        </div>
+      </div>
+
+      <!-- Quick Commands -->
+      <div class="sidebar-section" id="quick-cmd-section">
+        <div class="sidebar-section-title" onclick="toggleQuickCmds()">
+          <span>Quick Commands</span>
+          <i data-lucide="chevron-down" class="section-chevron" style="width:12px;height:12px;"></i>
+        </div>
+        <div class="quick-cmd-body">
+          <button class="quick-cmd-btn" id="qcmd-env" onclick="sendQuickCmd('env | sort\r')" disabled>
+            <i data-lucide="list" style="width:13px;height:13px;"></i>env | sort
+          </button>
+          <button class="quick-cmd-btn" id="qcmd-ps" onclick="sendQuickCmd('ps aux\r')" disabled>
+            <i data-lucide="cpu" style="width:13px;height:13px;"></i>ps aux
+          </button>
+          <button class="quick-cmd-btn" id="qcmd-df" onclick="sendQuickCmd('df -h\r')" disabled>
+            <i data-lucide="hard-drive" style="width:13px;height:13px;"></i>df -h
+          </button>
+          <button class="quick-cmd-btn" id="qcmd-net" onclick="sendQuickCmd('cat /etc/hosts\r')" disabled>
+            <i data-lucide="network" style="width:13px;height:13px;"></i>cat /etc/hosts
+          </button>
+          <button class="quick-cmd-btn" id="qcmd-curl" onclick="sendQuickCmd('for p in 8080 80 8000 3000; do r=$(curl -sf http://localhost:$p/healthz 2>/dev/null) && echo \":$p/healthz → $r\" && break; done || echo \"no healthz found\"\r')" disabled>
+            <i data-lucide="activity" style="width:13px;height:13px;"></i>curl /healthz
+          </button>
+          <button class="quick-cmd-btn" id="qcmd-exit" onclick="sendQuickCmd('exit\r')" disabled>
+            <i data-lucide="log-out" style="width:13px;height:13px;color:var(--danger);"></i>exit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+      <!-- Global toolbar -->
+      <div class="terminal-toolbar">
+        <button class="toolbar-btn" id="split-btn" onclick="toggleSplit()">
+          <i data-lucide="columns-2" style="width:13px;height:13px;"></i>
+          Split
+        </button>
+        <span style="flex:1;"></span>
+        <span id="active-pane-label" style="font-size:0.75rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;"></span>
+      </div>
+
+      <!-- Panes wrapper -->
+      <div class="panes-wrapper" id="panes-wrapper">
+
+        <!-- Pane A -->
+        <div class="terminal-pane focused" id="pane-a">
+          <div class="pane-header">
+            <span class="pane-pod-label" id="pane-a-pod">Select a pod</span>
+            <div class="pane-status">
+              <span class="status-dot" id="pane-a-dot"></span>
+              <span id="pane-a-status">Disconnected</span>
+            </div>
+          </div>
+          <div class="tabs" id="pane-a-tabs" style="display:none;">
+            <button class="tab active" onclick="paneTab('a','terminal')">
+              <i data-lucide="terminal" style="width:13px;height:13px;"></i>Terminal
+            </button>
+            <button class="tab" onclick="paneTab('a','logs')">
+              <i data-lucide="scroll-text" style="width:13px;height:13px;"></i>Logs
+            </button>
+            <button class="tab" onclick="paneTab('a','events')">
+              <i data-lucide="list" style="width:13px;height:13px;"></i>Events
+            </button>
+          </div>
+          <div class="tab-content active" id="pane-a-terminal-tab">
+            <div class="term-el" id="pane-a-term">
+              <div class="placeholder">
+                <i data-lucide="terminal" style="width:56px;height:56px;opacity:0.2;"></i>
+                <p style="font-size:0.88rem;">Select a pod from the sidebar</p>
+              </div>
+            </div>
+          </div>
+          <div class="tab-content" id="pane-a-logs-tab">
+            <div class="log-view" id="pane-a-logs">
+              <div class="placeholder"><i data-lucide="scroll-text" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod logs will appear here</p></div>
+            </div>
+          </div>
+          <div class="tab-content" id="pane-a-events-tab">
+            <div class="event-view" id="pane-a-events">
+              <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod events will appear here</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane B (hidden until split) -->
+        <div class="terminal-pane" id="pane-b" style="display:none;">
+          <div class="pane-header">
+            <span class="pane-pod-label" id="pane-b-pod">Select a pod</span>
+            <div class="pane-status">
+              <span class="status-dot" id="pane-b-dot"></span>
+              <span id="pane-b-status">Disconnected</span>
+            </div>
+            <button onclick="closeSplit()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
+          </div>
+          <div class="tabs" id="pane-b-tabs" style="display:none;">
+            <button class="tab active" onclick="paneTab('b','terminal')">
+              <i data-lucide="terminal" style="width:13px;height:13px;"></i>Terminal
+            </button>
+            <button class="tab" onclick="paneTab('b','logs')">
+              <i data-lucide="scroll-text" style="width:13px;height:13px;"></i>Logs
+            </button>
+            <button class="tab" onclick="paneTab('b','events')">
+              <i data-lucide="list" style="width:13px;height:13px;"></i>Events
+            </button>
+          </div>
+          <div class="tab-content active" id="pane-b-terminal-tab">
+            <div class="term-el" id="pane-b-term">
+              <div class="placeholder">
+                <i data-lucide="terminal" style="width:56px;height:56px;opacity:0.2;"></i>
+                <p style="font-size:0.88rem;">Select a pod from the sidebar</p>
+              </div>
+            </div>
+          </div>
+          <div class="tab-content" id="pane-b-logs-tab">
+            <div class="log-view" id="pane-b-logs">
+              <div class="placeholder"><i data-lucide="scroll-text" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod logs will appear here</p></div>
+            </div>
+          </div>
+          <div class="tab-content" id="pane-b-events-tab">
+            <div class="event-view" id="pane-b-events">
+              <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod events will appear here</p></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panes-wrapper -->
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // ── Constants ──
+    const cluster     = {{ cluster | tojson }};
+    const requestName = {{ request_name | tojson }};
+    const namespace   = {{ namespace | tojson }};
+    const WS_URL      = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal/${cluster}/${requestName}`;
+
+    // ── Utilities ──
+    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+    function showBanner(type, html, autoDismissMs) {
+      const div = document.createElement('div');
+      div.className = `banner banner-${type}`;
+      div.innerHTML = `<span style="flex:1;">${html}</span><button class="banner-close" onclick="this.parentElement.remove()">✕</button>`;
+      document.getElementById('banners').appendChild(div);
+      if (autoDismissMs) setTimeout(() => div.remove(), autoDismissMs);
+    }
+
+    // ── Expiry countdown ──
+    (function() {
+      const el = document.getElementById('terminal-countdown');
+      if (!el) return;
+      const expires = new Date(el.dataset.expires);
+      function tick() {
+        const diff = Math.floor((expires - Date.now()) / 1000);
+        if (diff <= 0) { el.textContent = 'Expired'; el.style.color = 'var(--danger)'; return; }
+        const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+        el.textContent = h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+        el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--text-muted)';
+        setTimeout(tick, 1000);
+      }
+      tick();
+    })();
+
+    // ========================================================================
+    // TermPane — one terminal pane (xterm + websocket + tabs)
+    // ========================================================================
+    class TermPane {
+      constructor(id) {
+        this.id        = id;       // 'a' or 'b'
+        this.term      = null;
+        this.fitAddon  = null;
+        this.ws        = null;
+        this.currentPod = null;
+        this.shellActive = false;  // true only when a shell is confirmed connected
+        this.noShellPods = new Set();
+        this._reconnectTimer = null;
+        this._activityTimer  = null;
+        this._opening = false;
+
+        // DOM refs
+        this.el         = document.getElementById(`pane-${id}`);
+        this.podLabel   = document.getElementById(`pane-${id}-pod`);
+        this.statusDot  = document.getElementById(`pane-${id}-dot`);
+        this.statusText = document.getElementById(`pane-${id}-status`);
+        this.tabBar     = document.getElementById(`pane-${id}-tabs`);
+        this.termEl     = document.getElementById(`pane-${id}-term`);
+
+        this._openWS();
+        this.el.addEventListener('click', () => setActivePane(this.id), { capture: true });
+      }
+
+      // ── WebSocket ──
+      _openWS() {
+        if (this._opening) return;
+        this._opening = true;
+        this._retryCount = this._retryCount || 0;
+        this.ws = new WebSocket(WS_URL);
+        this.ws.onopen  = () => {
+          this._opening = false;
+          this._retryCount = 0;
+          this._startHeartbeat();
+        };
+        this.ws.onclose = () => {
+          this._opening = false;
+          this.shellActive = false;
+          if (this.id === activePaneId) setQuickCmdsEnabled(false);
+          this._setStatus(false, 'Disconnected');
+          if (this.term) this.term.write('\r\n\x1b[31mSession closed\x1b[0m\r\n');
+          this._retryCount++;
+          if (this._retryCount > 10) {
+            this._setStatus(false, 'Reconnect failed');
+            if (this.term) this.term.write('\r\n\x1b[31mMax reconnect attempts reached. Reload to retry.\x1b[0m\r\n');
+            return;
+          }
+          const delay = Math.min(2000 * Math.pow(1.5, this._retryCount - 1), 30000);
+          this._reconnectTimer = setTimeout(() => this._openWS(), delay);
+        };
+        this.ws.onerror = () => {
+          if (this.term) this.term.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
+        };
+        this.ws.onmessage = (ev) => this._onMessage(ev);
+      }
+
+      _onMessage(ev) {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'connected') {
+            this.shellActive = true;
+            this._setStatus(true, 'Connected');
+            this.podLabel.textContent = `Connected to: ${msg.pod}`;
+            if (this.id === activePaneId) setQuickCmdsEnabled(true);
+            return;
+          }
+          if (msg.type === 'no_shell') {
+            this.shellActive = false;
+            this.noShellPods.add(msg.pod);
+            this._setStatus(false, 'No shell');
+            if (this.id === activePaneId) setQuickCmdsEnabled(false);
+            this.switchTab('logs');
+            this.loadLogs(msg.pod);
+            return;
+          }
+          if (msg.type === 'idle_warning') {
+            const m = Math.ceil(msg.seconds_left / 60);
+            showBanner('warning', `<strong>⏰ Idle warning:</strong> Session closes in ~${m}min due to inactivity.`, 30000);
+            return;
+          }
+          if (msg.type === 'idle_timeout') {
+            showBanner('danger', `<strong>🔒 Session expired</strong> — auto-revoked. <a href="/" style="color:inherit;text-decoration:underline;">Dashboard</a>`);
+            setQuickCmdsEnabled(false);
+            return;
+          }
+          if (msg.type === 'broadcast') {
+            showBanner('info', `<strong>📣 ${escapeHtml(msg.from || 'Admin')}:</strong> ${escapeHtml(msg.message)}`, 60000);
+            return;
+          }
+        } catch (_) {}
+        if (this.term) this.term.write(ev.data);
+      }
+
+      _setStatus(connected, text) {
+        connected ? this.statusDot.classList.add('connected') : this.statusDot.classList.remove('connected');
+        this.statusText.textContent = text;
+      }
+
+      _startHeartbeat() {
+        if (this._activityTimer) clearInterval(this._activityTimer);
+        this._activityTimer = setInterval(() => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN)
+            this.ws.send(JSON.stringify({type: 'activity'}));
+        }, 30000);
+      }
+
+      send(data) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(data);
+      }
+
+      // ── Select pod ──
+      selectPod(podName) {
+        this.currentPod = podName;
+        this.tabBar.style.display = 'flex';
+
+        const podData = (window._podData || []).find(p => p.name === podName);
+        if (this.noShellPods.has(podName) || (podData && podData.hasShell === false)) {
+          this._setStatus(false, 'No shell');
+          this.podLabel.textContent = `${podName} · logs only`;
+          if (this.id === activePaneId) setQuickCmdsEnabled(false);
+          this.switchTab('logs');
+          this.loadLogs(podName);
+          return;
+        }
+
+        // Init xterm if needed
+        if (!this.term) {
+          this.termEl.innerHTML = '';
+          this.term = new Terminal({
+            cursorBlink: true, fontSize: 13,
+            fontFamily: "'JetBrains Mono', monospace",
+            theme: { background: '#0a0e1a', foreground: '#e2e8f0', cursor: '#6366f1', selectionBackground: '#334155' },
+          });
+          this.fitAddon = new FitAddon.FitAddon();
+          this.term.loadAddon(this.fitAddon);
+          this.term.open(this.termEl);
+          this.term.onData((d) => this.send(d));
+          window.addEventListener('resize', () => this.fit());
+        }
+
+        this.switchTab('terminal');
+        this._setStatus(false, 'Connecting…');
+        this.podLabel.textContent = `Connecting to: ${podName}`;
+
+        const doSend = () => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'select_pod', pod: podName}));
+          } else {
+            // WS not ready yet — wait for onopen then send once
+            const prev = this.ws.onopen;
+            this.ws.onopen = (e) => {
+              if (prev) prev.call(this.ws, e);
+              this.ws.send(JSON.stringify({type: 'select_pod', pod: podName}));
+            };
+          }
+        };
+        doSend();
+      }
+
+      fit() {
+        if (this.fitAddon) requestAnimationFrame(() => this.fitAddon.fit());
+      }
+
+      focus() {
+        if (this.term) this.term.focus();
+      }
+
+      // ── Tabs ──
+      switchTab(name) {
+        const tabEl = this.tabBar;
+        tabEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        const btn = tabEl.querySelector(`.tab[onclick*="'${this.id}','${name}'"]`);
+        if (btn) btn.classList.add('active');
+        ['terminal','logs','events'].forEach(n => {
+          const tc = document.getElementById(`pane-${this.id}-${n}-tab`);
+          if (tc) tc.classList.toggle('active', n === name);
+        });
+        if (name === 'terminal') this.fit();
+        lucide.createIcons();
+      }
+
+      async loadLogs(podName) {
+        const el = document.getElementById(`pane-${this.id}-logs`);
+        el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">Loading logs…</div>';
+        try {
+          const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/logs`).then(r => r.json());
+          if (d.error) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">Error: ${d.error}</div>`; return; }
+          el.innerHTML = d.logs.split('\n').map(l => `<div class="log-line">${escapeHtml(l)}</div>`).join('');
+          el.scrollTop = el.scrollHeight;
+        } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">${e.message}</div>`; }
+      }
+
+      async loadEvents(podName) {
+        const el = document.getElementById(`pane-${this.id}-events`);
+        el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">Loading events…</div>';
+        try {
+          const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/events`).then(r => r.json());
+          if (d.error) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">Error: ${d.error}</div>`; return; }
+          if (d.forbidden) { el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">⚠️ Events not available.</div>'; return; }
+          if (!d.events.length) { el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">No events found.</div>'; return; }
+          el.innerHTML = d.events.map(e => `
+            <div class="event-item ${escapeHtml(e.type.toLowerCase())}">
+              <div class="event-header"><span class="event-type">${escapeHtml(e.reason||'')}</span><span class="event-time">${escapeHtml(e.lastTimestamp||'')}</span></div>
+              <div class="event-message">${escapeHtml(e.message||'')}</div>
+            </div>`).join('');
+        } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">${e.message}</div>`; }
+      }
+
+      destroy() {
+        clearInterval(this._activityTimer);
+        clearTimeout(this._reconnectTimer);
+        if (this.ws) { try { this.ws.close(); } catch(_){} }
+        if (this.term) { try { this.term.dispose(); } catch(_){} }
+      }
+    }
+
+    // ========================================================================
+    // Global pane management
+    // ========================================================================
+    let paneA = new TermPane('a');
+    let paneB = null;
+    let activePaneId = 'a';
+    let splitOpen = false;
+
+    function setActivePane(id) {
+      activePaneId = id;
+      document.getElementById('pane-a').classList.toggle('focused', id === 'a');
+      if (paneB) document.getElementById('pane-b').classList.toggle('focused', id === 'b');
+      const activePane = id === 'a' ? paneA : paneB;
+      setQuickCmdsEnabled(activePane ? activePane.shellActive : false);
+      const label = document.getElementById('active-pane-label');
+      if (label) label.textContent = splitOpen ? `Active: Pane ${id.toUpperCase()}` : '';
+    }
+
+    function toggleSplit() {
+      if (splitOpen) { closeSplit(); } else { openSplit(); }
+    }
+
+    function openSplit() {
+      splitOpen = true;
+      sessionStorage.setItem('k8s_janus_split', '1');
+      document.getElementById('pane-b').style.display = 'flex';
+      document.getElementById('split-btn').classList.add('active');
+      if (!paneB) paneB = new TermPane('b');
+      setActivePane('b');
+      paneA.fit();
+      lucide.createIcons();
+    }
+
+    function closeSplit() {
+      splitOpen = false;
+      sessionStorage.removeItem('k8s_janus_split');
+      document.getElementById('pane-b').style.display = 'none';
+      document.getElementById('split-btn').classList.remove('active');
+      if (paneB) { paneB.destroy(); paneB = null; }
+      setActivePane('a');
+      paneA.fit();
+      document.getElementById('active-pane-label').textContent = '';
+    }
+
+    // Restore split state from previous session
+    if (sessionStorage.getItem('k8s_janus_split')) openSplit();
+
+    // Called by tab buttons onclick="paneTab('a','terminal')"
+    function paneTab(id, name) {
+      const pane = id === 'a' ? paneA : paneB;
+      if (!pane) return;
+      pane.switchTab(name);
+      if (name === 'logs' && pane.currentPod) pane.loadLogs(pane.currentPod);
+      else if (name === 'events' && pane.currentPod) pane.loadEvents(pane.currentPod);
+      setActivePane(id);
+    }
+
+    // ── Quick commands → active pane ──
+    function sendQuickCmd(cmd) {
+      const pane = activePaneId === 'a' ? paneA : paneB;
+      if (pane) {
+        pane.send(cmd);
+        pane.switchTab('terminal');
+        pane.focus();
+      }
+    }
+    function setQuickCmdsEnabled(enabled) {
+      document.querySelectorAll('.quick-cmd-btn').forEach(b => b.disabled = !enabled);
+    }
+
+    function toggleQuickCmds() {
+      const section = document.getElementById('quick-cmd-section');
+      const collapsed = section.classList.toggle('collapsed');
+      sessionStorage.setItem('k8s_janus_qcmd_collapsed', collapsed ? '1' : '');
+      lucide.createIcons();
+    }
+    // Restore collapsed state
+    if (sessionStorage.getItem('k8s_janus_qcmd_collapsed')) {
+      document.getElementById('quick-cmd-section').classList.add('collapsed');
+    }
+
+    // ========================================================================
+    // Pod list (shared sidebar)
+    // ========================================================================
+    let knownPods = new Set();
+    let refreshInterval = null;
+
+    function loadPods() {
+      fetch(`/api/terminal/${cluster}/${requestName}/pods`)
+        .then(r => r.json())
+        .then(data => {
+          const podList  = document.getElementById('pod-list');
+          const podCount = document.getElementById('pod-count');
+          if (data.error) { podList.innerHTML = `<div class="loading-pods" style="color:var(--danger);">${data.error}</div>`; return; }
+          if (!data.pods.length) { podList.innerHTML = '<div class="loading-pods">No running pods found</div>'; podCount.textContent = '0 pods'; return; }
+
+          podCount.textContent = `${data.pods.length} pod${data.pods.length !== 1 ? 's' : ''}`;
+          window._podData = data.pods;
+
+          const nowPods = new Set(data.pods.map(p => p.name));
+          const newPods = [...nowPods].filter(n => !knownPods.has(n));
+          knownPods = nowPods;
+
+          const activeA = paneA.currentPod;
+          const activeB = paneB ? paneB.currentPod : null;
+
+          podList.innerHTML = '';
+          data.pods.forEach(pod => {
+            const noShell = pod.hasShell === false || paneA.noShellPods.has(pod.name);
+            const isNew   = newPods.includes(pod.name);
+            const selA    = activeA === pod.name;
+            const selB    = activeB === pod.name;
+
+            const item = document.createElement('div');
+            item.className = 'pod-item' + (selA || selB ? ' selected' : '');
+            item.dataset.pod = pod.name;
+            if (isNew) { item.classList.add('pod-new'); setTimeout(() => item.classList.remove('pod-new'), 3000); }
+
+            const paneTag = selA && selB ? ' <span style="color:var(--accent);font-size:0.65rem;">A+B</span>'
+                          : selA ? ' <span style="color:var(--accent);font-size:0.65rem;">A</span>'
+                          : selB ? ' <span style="color:var(--accent-2);font-size:0.65rem;">B</span>' : '';
+            const shellHint = noShell ? ' <span style="color:var(--warning);font-size:0.65rem;font-weight:600;">NO SHELL</span>' : '';
+            item.innerHTML = `
+              <div class="pod-icon">
+                <i data-lucide="${noShell ? 'terminal-square' : 'box'}" style="width:15px;height:15px;${noShell ? 'color:var(--warning);' : ''}"></i>
+              </div>
+              <div class="pod-info">
+                <div class="pod-name">${escapeHtml(pod.name)}${isNew ? ' <span style="color:var(--success);font-size:0.65rem;font-weight:600;">NEW</span>' : ''}${shellHint}${paneTag}</div>
+                <div class="pod-status ${escapeHtml(pod.status.toLowerCase())}">${noShell ? 'logs only' : escapeHtml(pod.status)}</div>
+              </div>
+            `;
+            item.onclick = () => {
+              const targetPane = (splitOpen && activePaneId === 'b') ? paneB : paneA;
+              document.querySelectorAll('.pod-item').forEach(e => e.classList.remove('selected'));
+              item.classList.add('selected');
+              setActivePane(targetPane.id);
+              targetPane.selectPod(pod.name);
+            };
+            podList.appendChild(item);
+          });
+          lucide.createIcons();
+        })
+        .catch(() => {
+          document.getElementById('pod-list').innerHTML = '<div class="loading-pods" style="color:var(--danger);">Failed to load pods</div>';
+        });
+    }
+
+    loadPods();
+    refreshInterval = setInterval(loadPods, 5000);
+
+    // ── Resize: re-fit all panes ──
+    window.addEventListener('resize', () => {
+      paneA.fit();
+      if (paneB) paneB.fit();
+    });
+
+    // ── Cleanup ──
+    window.addEventListener('beforeunload', () => {
+      clearInterval(refreshInterval);
+      paneA.destroy();
+      if (paneB) paneB.destroy();
+    });
+  </script>
+</body>
+</html>

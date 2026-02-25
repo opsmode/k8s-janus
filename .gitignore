@@ -1,0 +1,25 @@
+# Helm chart packaging
+*.tgz
+charts/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# macOS
+.DS_Store
+
+# Secrets / local overrides
+values.local.yaml
+override*.yaml
+secrets.yaml
+
+# Terraform runtime artifacts
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl

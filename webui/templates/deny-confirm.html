@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Deny</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .header-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px 4px 8px;
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+    .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success); box-shadow: 0 0 8px var(--success);
+      animation: pulse-anim 2s ease-in-out infinite;
+    }
+    @keyframes pulse-anim {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 0 20px;
+    }
+
+    /* ── MAIN CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
+    }
+
+    .card-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    }
+    .card-icon {
+      width: 40px; height: 40px;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #f87171;
+    }
+    .card-header h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ── FACT GRID ── */
+    .fact-grid {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 10px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin-bottom: 24px;
+    }
+    .fact-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .fact-value {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .fact-value code {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #a5b4fc;
+    }
+
+    /* ── FORM ── */
+    .form-group {
+      margin-bottom: 24px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+    .form-group textarea {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      color: var(--text);
+      resize: vertical;
+      min-height: 100px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+    .form-group textarea::placeholder {
+      color: var(--text-dim);
+    }
+
+    /* ── BUTTONS ── */
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-cancel {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .btn-cancel:hover {
+      background: var(--surface-3);
+      color: var(--text);
+    }
+    .btn-deny {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(239,68,68,0.3);
+    }
+    .btn-deny:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(239,68,68,0.45);
+    }
+    .btn-deny:active { transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="header-brand" href="/admin" style="text-decoration:none;">
+      <div class="header-logo">
+        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
+      </div>
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>{{ cluster_name }}</span>
+      </div>
+    </a>
+    <div class="header-pill">
+      <span class="pulse-dot"></span>
+      God of Gateways
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">
+          <i data-lucide="shield-x" style="width:20px;height:20px;"></i>
+        </div>
+        <h2>Deny Access Request</h2>
+      </div>
+
+      <div class="fact-grid">
+        <span class="fact-label">
+          <i data-lucide="hash" style="width:11px;height:11px;"></i>
+          Request ID
+        </span>
+        <span class="fact-value" style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#a5b4fc;">{{ name }}</span>
+
+        <span class="fact-label">
+          <i data-lucide="user" style="width:11px;height:11px;"></i>
+          Requester
+        </span>
+        <span class="fact-value">{{ spec.get("requester", "—") }}</span>
+
+        <span class="fact-label">
+          <i data-lucide="server" style="width:11px;height:11px;"></i>
+          Cluster
+        </span>
+        <span class="fact-value"><code>{{ spec.get("cluster", "—") }}</code></span>
+
+        <span class="fact-label">
+          <i data-lucide="layers" style="width:11px;height:11px;"></i>
+          Namespace
+        </span>
+        <span class="fact-value"><code>{{ spec.get("namespace", "—") }}</code></span>
+
+        <span class="fact-label">
+          <i data-lucide="message-square" style="width:11px;height:11px;"></i>
+          Reason
+        </span>
+        <span class="fact-value">{{ spec.get("reason", "—") }}</span>
+      </div>
+
+      <form method="POST" action="/deny-confirm">
+        <input type="hidden" name="name" value="{{ name }}">
+        <input type="hidden" name="cluster" value="{{ cluster }}">
+
+        <div class="form-group">
+          <label for="denial_reason">Denial Reason (optional)</label>
+          <textarea
+            id="denial_reason"
+            name="denial_reason"
+            placeholder="Explain why this request is being denied (e.g., insufficient justification, security concerns, alternative solution available)..."
+            maxlength="500"></textarea>
+        </div>
+
+        <div class="btn-group">
+          <a href="/" class="btn btn-cancel">
+            <i data-lucide="x" style="width:15px;height:15px;"></i>
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-deny">
+            <i data-lucide="shield-x" style="width:15px;height:15px;"></i>
+            Confirm Denial
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

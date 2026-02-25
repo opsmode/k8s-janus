@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "janus.configmap.name" . }}
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+data:
+  DEFAULT_TTL_SECONDS: {{ .Values.janus.defaultTtlSeconds | quote }}
+  MAX_TTL_SECONDS: {{ .Values.janus.maxTtlSeconds | quote }}
+  JANUS_NAMESPACE: {{ .Values.janus.namespace | quote }}
+  EXCLUDED_NAMESPACES: {{ .Values.janus.excludedNamespaces | join "," | quote }}
+  ADMIN_EMAILS: {{ .Values.janus.adminEmails | join "," | quote }}
+  WEBUI_BASE_URL: {{ .Values.webui.baseUrl | default "" | quote }}
+  CRD_RETENTION_SECONDS: {{ .Values.janus.crdRetentionSeconds | quote }}
+  CLUSTERS: {{ .Values.clusters | toJson | quote }}
+  IDLE_TIMEOUT_SECONDS: {{ .Values.janus.idleTimeoutSeconds | default 900 | quote }}
+  AUTH_ENABLED: {{ ternary "true" "false" (ne .Values.webui.authEnabled false) | quote }}
+  DISPLAY_TIMEZONE: {{ .Values.janus.displayTimezone | default "UTC" | quote }}

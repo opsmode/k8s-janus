@@ -1,0 +1,136 @@
+---
+# Number of replicas for both controller and webui deployments.
+# replicaCount > 1 also enables PodDisruptionBudget (pdb.yaml)
+replicaCount: 1
+# Extra labels added to all k8s resources (merged with the standard
+# app.kubernetes.io/* labels that are always applied automatically).
+# Example:
+#   labels:
+#     environment: production
+#     team: platform
+labels: {}
+# List of clusters Janus manages. The first entry is the management cluster —
+# controller and web UI run here. All AccessRequest CRDs and token Secrets are
+# stored here. Additional entries are remote targets for temporary pod access.
+# Run scripts/setup.sh to create kubeconfig Secrets in the k8s-janus namespace.
+# → templates: cluster-secrets.yaml (creates a kubeconfig Secret per entry)
+clusters:
+  - name: my-cluster
+    displayName: "My Cluster"
+    # Name of the kubeconfig Secret in the k8s-janus namespace
+    secretName: "my-cluster-kubeconfig"
+    # - name: second-cluster
+    #   displayName: "Second Cluster"
+    #   secretName: "second-cluster-kubeconfig"
+# Container image settings for both deployments.
+# Tags are updated automatically by CI on every push to main.
+# → templates: controller-deployment.yaml, webui-deployment.yaml
+image:
+  pullPolicy: IfNotPresent
+  controller:
+    repository: opsmode/k8s-janus-controller
+    tag: "e8c0482"
+  webui:
+    repository: opsmode/k8s-janus-webui
+    tag: "e8c0482"
+# Web UI service. LoadBalancer exposes the UI externally.
+# The callback URL for approvals is auto-derived from the LoadBalancer IP.
+# → templates: webui-service.yaml
+service:
+  type: LoadBalancer
+  port: 80
+# Ingress for the web UI. Disabled by default — LoadBalancer is used instead.
+# Enable and configure if you prefer an ingress controller + TLS termination.
+# → templates: webui-ingress.yaml (only rendered when enabled: true)
+ingress:
+  enabled: false
+  # ingressClass: nginx
+  # clusterIssuer: letsencrypt-prod
+  # host: janus.example.com
+  # oAuth2ProxyAuthUrl: https://oauth2-proxy.example.com/oauth2/auth
+  # oAuth2ProxyAuthSignInUrl: https://oauth2-proxy.example.com/oauth2/start
+  proxyReadTimeout: "3600" # nginx proxy-read-timeout in seconds
+# Core Janus configuration — passed to both deployments via ConfigMap.
+# → templates: configmap.yaml, namespace.yaml
+janus:
+  # Kubernetes namespace where Janus is deployed and stores token Secrets
+  namespace: "k8s-janus"
+  defaultTtlSeconds: 3600 # Default access duration in the request form (1h)
+  maxTtlSeconds: 28800 # Hard cap engineers cannot exceed (8h)
+  crdRetentionSeconds: 86400 # Delete expired/denied/revoked CRDs after (24h)
+  idleTimeoutSeconds: 900 # Terminate idle web terminal sessions (15m)
+  # IANA timezone for timestamps in the web UI (e.g. "Europe/Berlin",
+  # "America/New_York"). Affects all displayed request times. Default: UTC.
+  displayTimezone: "Europe/Berlin"
+  # Emails with admin access: can approve/deny/revoke all requests.
+  # Must be set before deploying — leave empty to disable admin access.
+  adminEmails: []
+  #  - admin@your-org.com
+  # Namespaces hidden from the request form and blocked from access requests.
+  # System and infrastructure namespaces should always be listed here.
+  excludedNamespaces:
+    - k8s-janus
+    - kube-system
+    - kube-public
+    - kube-node-lease
+    - kube-flannel
+    - default
+# → templates: controller-deployment.yaml
+controller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+# Web UI deployment settings.
+# baseUrl: public URL of this instance — used for approval callback links.
+#          Leave empty to auto-derive from the LoadBalancer IP.
+# authEnabled: true when an oauth2-proxy/SSO ingress sets X-Forwarded-Email.
+#              False for local dev or environments without an auth proxy.
+# containerPort: internal port the webui process listens on (do not change
+#                unless you build a custom image that uses a different port).
+# → templates: webui-deployment.yaml, webui-service.yaml
+webui:
+  baseUrl: ""
+  authEnabled: false
+  containerPort: 8000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+# External Secrets Operator integration. When enabled, kubeconfig Secrets and
+# the PostgreSQL password Secret are synced from an external secret store
+# (e.g. AWS Secrets Manager, GCP Secret Manager, Vault) instead of being
+# created manually.
+# → templates: cluster-secrets.yaml, postgresql-externalsecret.yaml
+# (postgresql-externalsecret only rendered when both flags are true)
+externalSecrets:
+  enabled: false
+  # secretStore: "my-secret-store"  # ClusterSecretStore name
+  # refreshInterval: "1h"
+# PostgreSQL backend for persistent request history (optional).
+# When disabled, Janus uses in-memory state — data is lost on pod restart.
+# Password must exist in Secret k8s-janus-postgresql (key: password).
+# Create it manually or use externalSecrets to sync it automatically.
+# → templates: controller-deployment.yaml, webui-deployment.yaml
+#              postgresql-externalsecret.yaml (when externalSecrets also true)
+# postgresql:
+#   enabled: true
+#   host: "postgres-host"
+#   port: 5432
+#   database: "k8s-janus"
+#   username: "k8s-janus"
+#   # secretKey: "K8S-JANUS-DB-PASSWORD"  # key in the external secret store
+postgresql:
+  enabled: false
+# PodDisruptionBudget — only rendered when replicaCount > 1.
+# minAvailable: minimum number of pods that must remain available during
+# voluntary disruptions (node drains, rolling updates).
+# → templates: pdb.yaml
+pdb:
+  minAvailable: 1
