@@ -58,10 +58,21 @@ def get_k8s_clients():
 
 
 def get_k8s_clients_for_cluster(cluster_name: str):
-    """Return (CoreV1Api, RbacAuthorizationV1Api) for any cluster via kubeconfig Secret."""
+    """Return (CoreV1Api, RbacAuthorizationV1Api) for any cluster.
+
+    Central cluster (CLUSTERS[0]): uses in-cluster config so the controller's
+    own ServiceAccount (janus-controller) is used — it has full CRD + RBAC
+    permissions on the central cluster.
+
+    Remote clusters: load the static kubeconfig from the cluster's Secret,
+    which authenticates as janus-remote SA on that cluster.
+    """
     cluster_cfg = next((c for c in CLUSTERS if c["name"] == cluster_name), None)
     if not cluster_cfg:
         raise ValueError(f"Unknown cluster: {cluster_name}")
+
+    if cluster_name == CLUSTERS[0]["name"]:
+        return get_k8s_clients()
 
     secret_name = cluster_cfg.get("secretName")
     if not secret_name:

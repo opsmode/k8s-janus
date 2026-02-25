@@ -70,7 +70,22 @@ def _get_central_core_v1() -> client.CoreV1Api:
 
 
 def _build_api_clients(cluster_cfg: dict) -> tuple:
-    """Build (CustomObjectsApi, CoreV1Api) from the cluster's kubeconfig Secret."""
+    """Build (CustomObjectsApi, CoreV1Api) for a cluster.
+
+    Central cluster (CLUSTERS[0]): uses in-cluster config so the webui's own
+    ServiceAccount (janus-webui) is used — it has CRD + namespace permissions.
+
+    Remote clusters: load the static kubeconfig from the cluster's Secret,
+    which authenticates as janus-remote SA on that cluster.
+    """
+    if cluster_cfg["name"] == CLUSTERS[0]["name"]:
+        try:
+            config.load_incluster_config()
+        except config.ConfigException:
+            config.load_kube_config()
+        api_client = client.ApiClient()
+        return client.CustomObjectsApi(api_client=api_client), client.CoreV1Api(api_client=api_client)
+
     secret_name = cluster_cfg.get("secretName")
     if not secret_name:
         raise ValueError(f"Cluster '{cluster_cfg['name']}' has no secretName configured")

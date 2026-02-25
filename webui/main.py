@@ -80,8 +80,11 @@ class Phase(str, Enum):
 # ---------------------------------------------------------------------------
 # Path parameter validation
 # ---------------------------------------------------------------------------
-_NAME_RE      = re.compile(r'^[a-z0-9][a-z0-9\-]{0,252}$')
-_NS_CLUSTER_RE = re.compile(r'^[a-z0-9][a-z0-9\-\.]{0,62}$')
+_NAME_RE    = re.compile(r'^[a-z0-9][a-z0-9\-]{0,252}$')
+_NS_RE      = re.compile(r'^[a-z0-9][a-z0-9\-\.]{0,62}$')
+# Cluster names can include underscores (e.g. GKE context names like
+# gke_project_region_cluster) and are validated against known CLUSTERS only.
+_CLUSTER_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_\-\.:/]{0,252}$')
 
 
 def _valid_name(s: str) -> bool:
@@ -89,7 +92,11 @@ def _valid_name(s: str) -> bool:
 
 
 def _valid_ns(s: str) -> bool:
-    return bool(s and _NS_CLUSTER_RE.match(s))
+    return bool(s and _NS_RE.match(s))
+
+
+def _valid_cluster(s: str) -> bool:
+    return bool(s and _CLUSTER_RE.match(s))
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -267,7 +274,7 @@ async def admin(request: Request):
 
 @app.get("/api/pods/{cluster}/{namespace}")
 async def preview_pods(cluster: str, namespace: str):
-    if not _valid_ns(cluster) or not _valid_ns(namespace):
+    if not _valid_cluster(cluster) or not _valid_ns(namespace):
         return JSONResponse({"error": "Invalid cluster or namespace", "pods": []}, status_code=400)
     try:
         _, core_v1 = get_api_clients(cluster)
@@ -289,7 +296,7 @@ async def preview_pods(cluster: str, namespace: str):
 
 @app.get("/namespaces/{cluster_name}", response_class=HTMLResponse)
 async def namespaces(cluster_name: str):
-    if not _valid_ns(cluster_name):
+    if not _valid_cluster(cluster_name):
         return JSONResponse([], status_code=400)
     logger.info(f"📡 API request: GET /namespaces/{cluster_name}")
     ns_list = get_allowed_namespaces(cluster_name)  # returns [] on error
@@ -654,7 +661,7 @@ async def terminal_websocket(websocket: WebSocket, cluster: str, name: str):
 
 @app.get("/api/terminal/{cluster}/{name}/pods")
 async def list_pods(cluster: str, name: str):
-    if not _valid_ns(cluster) or not _valid_name(name):
+    if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "pods": []}, status_code=400)
     core_v1, namespace = _token_client(name, cluster)
     if core_v1 is None:
@@ -675,7 +682,7 @@ async def list_pods(cluster: str, name: str):
 
 @app.get("/api/terminal/{cluster}/{name}/{pod}/logs")
 async def get_pod_logs(cluster: str, name: str, pod: str):
-    if not _valid_ns(cluster) or not _valid_name(name):
+    if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "logs": ""}, status_code=400)
     core_v1, namespace = _token_client(name, cluster)
     if core_v1 is None:
@@ -690,7 +697,7 @@ async def get_pod_logs(cluster: str, name: str, pod: str):
 
 @app.get("/api/terminal/{cluster}/{name}/{pod}/events")
 async def get_pod_events(cluster: str, name: str, pod: str):
-    if not _valid_ns(cluster) or not _valid_name(name):
+    if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "events": []}, status_code=400)
     core_v1, namespace = _token_client(name, cluster)
     if core_v1 is None:
