@@ -127,31 +127,24 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 
 ## 🚀 Quick Start
 
-**Prerequisites:** `kubectl`, `helm`, and optionally [`yq`](https://github.com/mikefarah/yq) (for auto-patching `values.yaml`).
+**Prerequisites:** `kubectl` and `helm`. Optionally [`yq`](https://github.com/mikefarah/yq) to auto-patch `values.yaml`.
 
-**1. Run the interactive setup script:**
+**Run the interactive setup script — it handles everything:**
 
 ```bash
 ./scripts/setup.sh
 ```
 
 The script will:
-- List all contexts from your local kubeconfig
-- Let you pick a **central cluster** (where Janus runs) and any number of **remote clusters** (where engineers get access)
-- Create the `k8s-janus` namespace on the central cluster (if it doesn't exist)
-- Export a minimal kubeconfig per cluster and store it as a `Secret` in `k8s-janus`
-- Auto-patch `helm/values.yaml` with the `clusters:` list (if `yq` is installed), or print the snippet to paste manually
+1. Ask you to pick a **central cluster** (where Janus runs) and any **remote clusters** (where engineers get access)
+2. Deploy the `helm-remote` agent to every selected cluster — creates the `janus-remote` ServiceAccount + RBAC
+3. Deploy the main `k8s-janus` chart to the central cluster
+4. Extract a static 1-year token from `janus-remote` on each cluster and store it as a kubeconfig `Secret` — no personal credentials, no cloud SDKs inside the pod
+5. Auto-patch `helm/values.yaml` with the `clusters:` list (if `yq` is installed)
 
-**2. Deploy with Helm:**
+No cloud-specific setup, no IAM bindings, no SDKs required.
 
-```bash
-helm upgrade --install k8s-janus ./helm \
-  --namespace k8s-janus --create-namespace
-```
-
-No cloud-specific setup, no IAM bindings, no SDKs. Any cluster with a kubeconfig works.
-
-**3. (Optional) Exclude namespaces from the request form:**
+**Optional — exclude namespaces from the request form:**
 
 Add to `helm/values.yaml` and redeploy with `--reuse-values`:
 

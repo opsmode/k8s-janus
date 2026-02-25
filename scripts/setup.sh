@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ⛩  K8s-Janus Setup — Interactive cluster onboarding
 # Reads your local kubeconfig(s), lets you pick a central cluster and remote
-# clusters, then creates the kubeconfig Secrets in the k8s-janus namespace.
+# clusters, deploys helm-remote to each, then creates static kubeconfig Secrets
+# in the k8s-janus namespace on the central cluster.
 
 set -euo pipefail
 
@@ -40,12 +41,18 @@ dim()     { echo -e "${DIM}$*${RESET}"; }
 # ==============================================================================
 banner
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HELM_CHART="${SCRIPT_DIR}/../helm"
+HELM_REMOTE_CHART="${SCRIPT_DIR}/../helm-remote"
+
 step "Checking prerequisites"
-if command -v kubectl &>/dev/null; then
-  ok "kubectl found"
-else
-  die "kubectl not found — please install it first"
-fi
+for bin in kubectl helm; do
+  if command -v "$bin" &>/dev/null; then
+    ok "$bin found"
+  else
+    die "$bin not found — please install it first"
+  fi
+done
 
 # ==============================================================================
 # Discover available contexts from kubeconfig
@@ -136,6 +143,34 @@ echo ""
 info "Selected ${#ALL_SELECTED[@]} cluster(s) total"
 
 # ==============================================================================
+# Deploy helm-remote to every selected cluster
+# ==============================================================================
+step "Deploying helm-remote agent to all clusters"
+echo ""
+echo -e "${DIM}  Creates the janus-remote ServiceAccount + RBAC on each cluster.${RESET}"
+echo -e "${DIM}  This is required for the static token extraction below.${RESET}"
+echo ""
+
+if [[ ! -d "$HELM_REMOTE_CHART" ]]; then
+  die "helm-remote chart not found at $HELM_REMOTE_CHART"
+fi
+
+for ctx in "${ALL_SELECTED[@]}"; do
+  echo -e "  ${BOLD}$ctx${RESET}"
+  if helm upgrade --install janus-remote "$HELM_REMOTE_CHART" \
+      --kube-context "$ctx" \
+      --namespace "$JANUS_NS" \
+      --create-namespace \
+      --wait \
+      --timeout 60s \
+      &>/dev/null; then
+    ok "helm-remote deployed on ${BOLD}$ctx${RESET}"
+  else
+    warn "helm-remote deploy failed on '$ctx' — skipping this cluster"
+  fi
+done
+
+# ==============================================================================
 # Switch to central cluster and ensure namespace exists
 # ==============================================================================
 step "Connecting to central cluster"
@@ -146,24 +181,86 @@ ok "Switched to context: $CENTRAL_CONTEXT"
 if kubectl get namespace "$JANUS_NS" &>/dev/null 2>&1; then
   ok "Namespace '$JANUS_NS' already exists"
 else
-  echo -ne "  ${YELLOW}Namespace '$JANUS_NS' not found. Create it?${RESET} [y/N] "
-  read -r yn
-  if [[ "$yn" =~ ^[Yy]$ ]]; then
-    kubectl create namespace "$JANUS_NS"
-    kubectl label namespace "$JANUS_NS" \
-      app.kubernetes.io/managed-by=Helm --overwrite &>/dev/null
-    kubectl annotate namespace "$JANUS_NS" \
-      meta.helm.sh/release-name=k8s-janus \
-      meta.helm.sh/release-namespace="$JANUS_NS" \
-      --overwrite &>/dev/null
-    ok "Created namespace '$JANUS_NS'"
-  else
-    die "Namespace '$JANUS_NS' is required — deploy k8s-janus first or re-run and create it"
-  fi
+  kubectl create namespace "$JANUS_NS" &>/dev/null
+  kubectl label namespace "$JANUS_NS" \
+    app.kubernetes.io/managed-by=Helm --overwrite &>/dev/null
+  kubectl annotate namespace "$JANUS_NS" \
+    meta.helm.sh/release-name=k8s-janus \
+    meta.helm.sh/release-namespace="$JANUS_NS" \
+    --overwrite &>/dev/null
+  ok "Created namespace '$JANUS_NS'"
 fi
 
 # ==============================================================================
-# Export kubeconfigs and create Secrets
+# Build cluster list for values.yaml (before installing main chart)
+# ==============================================================================
+build_clusters_json() {
+  local result="["
+  local first=1
+  for entry in "${ALL_SELECTED[@]}"; do
+    local sname display
+    sname="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
+    display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
+    [[ $first -eq 0 ]] && result+=","
+    result+="{\"name\":\"${entry}\",\"displayName\":\"${display}\",\"secretName\":\"${sname}\"}"
+    first=0
+  done
+  result+="]"
+  echo "$result"
+}
+
+build_clusters_yaml() {
+  for entry in "${ALL_SELECTED[@]}"; do
+    local sname display
+    sname="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
+    display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
+    echo "    - name: ${entry}"
+    echo "      displayName: \"${display}\""
+    echo "      secretName: \"${sname}\""
+  done
+}
+
+# ==============================================================================
+# Deploy main Janus chart to central cluster
+# ==============================================================================
+step "Deploying K8s-Janus to central cluster"
+echo ""
+echo -e "${DIM}  Installing (or upgrading) the k8s-janus Helm release.${RESET}"
+echo ""
+
+VALUES_FILE="${SCRIPT_DIR}/../helm/values.yaml"
+CLUSTERS_JSON="$(build_clusters_json)"
+
+if [[ -d "$HELM_CHART" ]]; then
+  # Apply the CRD first (Helm does not upgrade CRDs automatically)
+  if [[ -f "${HELM_CHART}/crds/accessrequest.yaml" ]]; then
+    kubectl apply -f "${HELM_CHART}/crds/accessrequest.yaml" &>/dev/null
+    ok "CRD applied"
+  fi
+
+  HELM_ARGS=(
+    upgrade --install k8s-janus "$HELM_CHART"
+    --kube-context "$CENTRAL_CONTEXT"
+    --namespace "$JANUS_NS"
+    --create-namespace
+    --set "clusters=${CLUSTERS_JSON}"
+    --reuse-values
+    --wait
+    --timeout 120s
+  )
+
+  if helm "${HELM_ARGS[@]}" &>/dev/null; then
+    ok "k8s-janus deployed on central cluster ${BOLD}$CENTRAL_CONTEXT${RESET}"
+  else
+    warn "Helm deploy failed — check 'helm status k8s-janus -n $JANUS_NS' for details"
+    warn "Continuing with kubeconfig Secret creation..."
+  fi
+else
+  warn "helm/ chart not found at $HELM_CHART — skipping main chart deploy"
+fi
+
+# ==============================================================================
+# Extract static tokens and create kubeconfig Secrets
 # ==============================================================================
 step "Creating kubeconfig Secrets in namespace '$JANUS_NS'"
 
@@ -172,7 +269,6 @@ TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 for ctx in "${ALL_SELECTED[@]}"; do
-  # Derive a clean secret name from the context
   secret_name="$(echo "$ctx" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
   kubeconfig_path="$TMP_DIR/${secret_name}.yaml"
 
@@ -188,19 +284,9 @@ for ctx in "${ALL_SELECTED[@]}"; do
   cluster_ca=$(kubectl config view --minify --flatten --context="$ctx" \
     -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' 2>/dev/null)
 
-  # Check janus-remote ServiceAccount exists (requires helm-remote chart deployed)
-  if ! kubectl --context="$ctx" get serviceaccount janus-remote \
-      -n "$JANUS_NS" &>/dev/null 2>&1; then
-    warn "ServiceAccount 'janus-remote' not found on cluster '$ctx'."
-    warn "Deploy helm-remote first: helm upgrade --install janus-remote ./helm-remote \\"
-    warn "  --kube-context $ctx --namespace $JANUS_NS --create-namespace"
-    warn "Then re-run this script."
-    continue
-  fi
-
-  # Issue a static token for the janus-remote ServiceAccount
+  # Issue a static token for the janus-remote ServiceAccount (1-year validity)
   cluster_token=$(kubectl --context="$ctx" create token janus-remote \
-    --namespace="$JANUS_NS" --duration=8760h 2>/dev/null)
+    --namespace="$JANUS_NS" --duration=8760h 2>/dev/null || true)
 
   if [[ -z "$cluster_server" || -z "$cluster_ca" || -z "$cluster_token" ]]; then
     warn "Could not generate static kubeconfig for context '$ctx' — skipping"
@@ -227,6 +313,7 @@ users:
     token: ${cluster_token}
 EOF
 
+  # Always recreate the Secret (override stale tokens)
   if kubectl get secret "$secret_name" -n "$JANUS_NS" &>/dev/null 2>&1; then
     kubectl delete secret "$secret_name" -n "$JANUS_NS" &>/dev/null
   fi
@@ -245,72 +332,34 @@ EOF
 done
 
 # ==============================================================================
-# Build clusters list
+# Patch values.yaml with cluster list
 # ==============================================================================
-build_clusters_yaml() {
-  for entry in "${ALL_SELECTED[@]}"; do
-    secret_name="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
-    display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
-    echo "    - name: ${entry}"
-    echo "      displayName: \"${display}\""
-    echo "      secretName: \"${secret_name}\""
-  done
-}
-
-# ==============================================================================
-# Patch values.yaml or print snippet
-# ==============================================================================
-step "Done! 🎉"
+step "Updating cluster list"
 echo ""
 
+VALUES_FILE="${SCRIPT_DIR}/../helm/values.yaml"
+
 if [[ ${#SECRETS_CREATED[@]} -gt 0 ]]; then
-
-  # Detect helm/values.yaml relative to the script location
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  VALUES_FILE="${SCRIPT_DIR}/../helm/values.yaml"
-
   if [[ -f "$VALUES_FILE" ]] && command -v yq &>/dev/null; then
-    echo -ne "  ${YELLOW}Auto-update helm/values.yaml with the cluster list?${RESET} [Y/n] "
-    read -r yn
-    if [[ ! "$yn" =~ ^[Nn]$ ]]; then
-      # Build a yq-compatible clusters array and replace the clusters key
-      NEW_CLUSTERS="["
-      first=1
-      for entry in "${ALL_SELECTED[@]}"; do
-        secret_name="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
-        display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
-        [[ $first -eq 0 ]] && NEW_CLUSTERS+=","
-        NEW_CLUSTERS+="{\"name\":\"${entry}\",\"displayName\":\"${display}\",\"secretName\":\"${secret_name}\"}"
-        first=0
-      done
-      NEW_CLUSTERS+="]"
-      yq -i ".clusters = ${NEW_CLUSTERS}" "$VALUES_FILE"
-      ok "Updated clusters in ${VALUES_FILE}"
-    else
-      echo -e "${BOLD}  Add this to your helm/values.yaml:${RESET}"
-      echo ""
-      echo -e "${GREEN}  clusters:"
-      build_clusters_yaml
-      echo -e "${RESET}"
-    fi
+    yq -i ".clusters = $(build_clusters_json)" "$VALUES_FILE"
+    ok "Updated clusters in ${VALUES_FILE}"
   else
-    # yq not available or values.yaml not found — just print
     echo -e "${BOLD}  Add this to your helm/values.yaml:${RESET}"
     echo ""
     echo -e "${GREEN}  clusters:"
     build_clusters_yaml
     echo -e "${RESET}"
-    [[ ! -f "$VALUES_FILE" ]] && warn "helm/values.yaml not found at expected path: ${VALUES_FILE}"
+    [[ ! -f "$VALUES_FILE" ]] && warn "helm/values.yaml not found at: ${VALUES_FILE}"
     command -v yq &>/dev/null || warn "Install yq to enable auto-update: https://github.com/mikefarah/yq"
   fi
 
-  echo -e "  Redeploy to apply:"
+  echo ""
+  echo -e "  Redeploy to apply the updated cluster list:"
   echo -e "${CYAN}"
   echo "    helm upgrade --install k8s-janus ./helm \\"
   echo "      --namespace $JANUS_NS --reuse-values"
   echo -e "${RESET}"
 fi
-
 
 echo -e "${MAGENTA}${BOLD}  ⛩  The gate is ready. Go govern it.${RESET}"
 echo ""
