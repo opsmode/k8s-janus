@@ -44,6 +44,8 @@ banner
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELM_CHART="${SCRIPT_DIR}/../helm"
 HELM_REMOTE_CHART="${SCRIPT_DIR}/../helm-remote"
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
 
 step "Checking prerequisites"
 for bin in kubectl helm; do
@@ -145,28 +147,26 @@ info "Selected ${#ALL_SELECTED[@]} cluster(s) total"
 # ==============================================================================
 # Deploy helm-remote to every selected cluster
 # ==============================================================================
-step "Deploying helm-remote agent to all clusters"
+step "Deploying helm-remote agent to remote clusters"
 echo ""
-echo -e "${DIM}  Creates the janus-remote ServiceAccount + RBAC on each cluster.${RESET}"
-echo -e "${DIM}  This is required for the static token extraction below.${RESET}"
+echo -e "${DIM}  Creates the janus-remote ServiceAccount + RBAC on each remote cluster.${RESET}"
+echo -e "${DIM}  The central cluster gets its janus-remote SA from the main helm chart.${RESET}"
 echo ""
 
 if [[ ! -d "$HELM_REMOTE_CHART" ]]; then
   die "helm-remote chart not found at $HELM_REMOTE_CHART"
 fi
 
-for ctx in "${ALL_SELECTED[@]}"; do
+for ctx in "${REMOTE_CONTEXTS[@]}"; do
   echo -e "  ${BOLD}$ctx${RESET}"
 
   # Safety: remove the main k8s-janus chart from remote clusters if present
-  if [[ "$ctx" != "$CENTRAL_CONTEXT" ]]; then
-    if helm status k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
-        &>/dev/null 2>&1; then
-      warn "Main k8s-janus chart found on remote cluster '$ctx' — removing it"
-      helm uninstall k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
-        &>/dev/null
-      ok "Removed k8s-janus from remote cluster ${BOLD}$ctx${RESET}"
-    fi
+  if helm status k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
+      &>/dev/null 2>&1; then
+    warn "Main k8s-janus chart found on remote cluster '$ctx' — removing it"
+    helm uninstall k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
+      &>/dev/null
+    ok "Removed k8s-janus from remote cluster ${BOLD}$ctx${RESET}"
   fi
 
   if helm upgrade --install janus-remote "$HELM_REMOTE_CHART" \
@@ -241,7 +241,6 @@ echo -e "${DIM}  Installing (or upgrading) the k8s-janus Helm release.${RESET}"
 echo ""
 
 VALUES_FILE="${SCRIPT_DIR}/../helm/values.yaml"
-CLUSTERS_JSON="$(build_clusters_json)"
 
 if [[ -d "$HELM_CHART" ]]; then
   # Apply the CRD first (Helm does not upgrade CRDs automatically)
@@ -250,18 +249,28 @@ if [[ -d "$HELM_CHART" ]]; then
     ok "CRD applied"
   fi
 
-  HELM_ARGS=(
-    upgrade --install k8s-janus "$HELM_CHART"
-    --kube-context "$CENTRAL_CONTEXT"
-    --namespace "$JANUS_NS"
-    --create-namespace
-    --set "clusters=${CLUSTERS_JSON}"
-    --reuse-values
-    --wait
-    --timeout 120s
-  )
+  # Write clusters to a temp values file — avoids quoting issues with --set JSON
+  CLUSTERS_VALUES="$TMP_DIR/clusters-override.yaml"
+  {
+    echo "clusters:"
+    for entry in "${ALL_SELECTED[@]}"; do
+      local_sname="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
+      local_display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
+      echo "  - name: ${entry}"
+      echo "    displayName: \"${local_display}\""
+      echo "    secretName: \"${local_sname}\""
+    done
+  } > "$CLUSTERS_VALUES"
 
-  if helm "${HELM_ARGS[@]}" &>/dev/null; then
+  if helm upgrade --install k8s-janus "$HELM_CHART" \
+      --kube-context "$CENTRAL_CONTEXT" \
+      --namespace "$JANUS_NS" \
+      --create-namespace \
+      --values "$CLUSTERS_VALUES" \
+      --reuse-values \
+      --wait \
+      --timeout 120s \
+      &>/dev/null; then
     ok "k8s-janus deployed on central cluster ${BOLD}$CENTRAL_CONTEXT${RESET}"
   else
     warn "Helm deploy failed — check 'helm status k8s-janus -n $JANUS_NS' for details"
@@ -277,8 +286,6 @@ fi
 step "Creating kubeconfig Secrets in namespace '$JANUS_NS'"
 
 SECRETS_CREATED=()
-TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
 
 for ctx in "${ALL_SELECTED[@]}"; do
   secret_name="$(echo "$ctx" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"

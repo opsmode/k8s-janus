@@ -119,6 +119,58 @@ subjects:
     namespace: {{ .Values.janus.namespace }}
 
 ---
+# janus-remote: ClusterRole for setup.sh to issue a static token for the
+# central cluster. Mirrors the ClusterRole in helm-remote for remote clusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: janus-remote
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    verbs: ["create"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "create", "delete"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["get", "create", "update", "patch", "delete", "escalate"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames: ["janus-pod-exec"]
+    verbs: ["bind"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "create", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: janus-remote
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: janus-remote
+subjects:
+  - kind: ServiceAccount
+    name: janus-remote
+    namespace: {{ .Values.janus.namespace }}
+
+---
 # Web UI: namespaced Role for token Secrets — scoped to JANUS namespace only
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
