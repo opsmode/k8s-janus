@@ -49,7 +49,11 @@ AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() not in ("false", "
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger("k8s-janus-webui")
 logger.setLevel(logging.INFO)
 
