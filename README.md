@@ -2,7 +2,7 @@
 
 <img src="webui/static/k8s-janus-logo-readme.png" width="120" alt="K8s-Janus logo" />
 
-# K8s-Janus
+# K8S-Janus
 
 ### *Just-in-Time Kubernetes Pod Access*
 
@@ -16,7 +16,8 @@
 **Engineers request temporary `kubectl exec` access through a web UI.**
 **Admins approve with one click. The token auto-expires. No permanent permissions. Ever.**
 
-> In Roman mythology, **Janus** was the god of doorways and transitions — watching every passage in both directions. He did not block the gate. He *governed* it.
+> In Roman mythology, **Janus** was the god of doorways and transitions — watching every passage in both directions.
+> He did not block the gate. He *governed* it.
 >
 > **⛩ The gate opens. Then it closes.**
 
