@@ -118,9 +118,9 @@ _SECURITY_HEADERS = [
     (b"content-security-policy", (
         b"default-src 'self'; "
         b"script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
-        b"style-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
-        b"font-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
-        b"img-src 'self' data:; "
+        b"style-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com 'unsafe-inline'; "
+        b"font-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.gstatic.com; "
+        b"img-src 'self' data: https://media.tenor.com https://media1.tenor.com https://media2.tenor.com https://media3.tenor.com https://media4.tenor.com https://media.giphy.com https://media0.giphy.com https://media1.giphy.com https://media2.giphy.com; "
         b"connect-src 'self' wss: ws:;"
     )),
 ]
