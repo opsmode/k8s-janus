@@ -471,11 +471,11 @@
       {% if status.get("phase") == "Pending" %}
       <div style="text-align:center;margin-top:16px;">
         <img src="https://media1.tenor.com/m/SIZkySt-3WEAAAAd/cat-funny-cats.gif"
-             alt="Waiting..." style="height:120px;border-radius:10px;opacity:0.85;">
+             alt="Waiting..." style="height:200px;border-radius:10px;opacity:0.85;">
       </div>
       <div class="alert alert-info" style="margin-top:12px;">
         <i data-lucide="loader" style="width:16px;height:16px;"></i>
-        <span>⏳ Waiting for admin approval. This page auto-refreshes every 5 seconds. Go get a coffee — or stare at it, we won't judge.</span>
+        <span>⏳ Waiting for admin approval. This page auto-refreshes every 5 seconds.<br>Go get a coffee — or stare at it, we won't judge.</span>
       </div>
       {% endif %}
 
@@ -507,7 +507,11 @@
       {% endif %}
 
       {% if status.get("phase") == "Revoked" %}
-      <div class="alert alert-danger">
+      <div style="text-align:center;margin-top:16px;">
+        <img src="https://media1.tenor.com/m/YVJahZlSzBYAAAAd/lethal-weapon.gif"
+             alt="Revoked!" style="height:110px;border-radius:10px;opacity:0.85;">
+      </div>
+      <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="shield-off" style="width:16px;height:16px;"></i>
         <span>🚫 This access was revoked by an admin. The god of gateways has spoken. Your token is now a pumpkin.</span>
       </div>

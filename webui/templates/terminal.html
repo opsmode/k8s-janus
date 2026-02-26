@@ -652,6 +652,8 @@
             <div class="term-el" id="pane-b-term">
               <div class="placeholder">
                 <i data-lucide="terminal" style="width:56px;height:56px;opacity:0.2;"></i>
+                <img src="https://media1.tenor.com/m/r5X-h1GcNnMAAAAC/i%27m-watching-you.gif"
+                     alt="I'm watching you" style="height:100px;border-radius:8px;opacity:0.75;margin-bottom:8px;">
                 <p style="font-size:0.88rem;">👈 Select a pod (the other pane is also judging your choices)</p>
               </div>
             </div>
@@ -702,7 +704,7 @@
         if (diff <= 0) { el.textContent = 'Expired'; el.style.color = 'var(--danger)'; return; }
         const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
         el.textContent = h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
-        el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--text-muted)';
+        el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--success)';
         setTimeout(tick, 1000);
       }
       tick();
@@ -1021,7 +1023,13 @@
         .then(data => {
           const podList  = document.getElementById('pod-list');
           const podCount = document.getElementById('pod-count');
-          if (data.error) { podList.innerHTML = `<div class="loading-pods" style="color:var(--danger);">${data.error}</div>`; return; }
+          if (data.error) {
+            podList.innerHTML = `<div class="loading-pods" style="color:var(--danger);flex-direction:column;gap:12px;">
+              <img src="https://media1.tenor.com/m/YVJahZlSzBYAAAAd/lethal-weapon.gif" style="height:100px;border-radius:8px;opacity:0.85;">
+              <span>${data.error}</span>
+            </div>`;
+            return;
+          }
           if (!data.pods.length) { podList.innerHTML = '<div class="loading-pods">No running pods found</div>'; podCount.textContent = '0 pods'; return; }
 
           podCount.textContent = `${data.pods.length} pod${data.pods.length !== 1 ? 's' : ''}`;
