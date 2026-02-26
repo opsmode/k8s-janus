@@ -33,7 +33,7 @@ image:
     tag: "v0.1.5"
   webui:
     repository: opsmode/k8s-janus-webui
-    tag: "a9c1d7f"
+    tag: "8b19fcb"
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.
 # → templates: webui-service.yaml
