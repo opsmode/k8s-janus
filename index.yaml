@@ -1,0 +1,34 @@
+apiVersion: v1
+entries:
+  k8s-janus:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial release
+    apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-02-27T00:21:12.056196+01:00"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: c04be14edecc7ac12eed58306d4fe562197adc7f4834c0f87b439fd83847be11
+    home: https://github.com/opsmode/k8s-janus
+    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    maintainers:
+    - email: devops@opsmode.io
+      name: OpsMode
+    name: k8s-janus
+    sources:
+    - https://github.com/opsmode/k8s-janus
+    type: application
+    urls:
+    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-02-27T00:21:12.055306+01:00"
