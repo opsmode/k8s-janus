@@ -391,10 +391,10 @@ if [[ ${#SECRETS_CREATED[@]} -gt 0 ]]; then
   fi
 
   echo ""
-  echo -e "  Redeploy to apply the updated cluster list:"
+  echo -e "  Re-run this script any time to refresh tokens or add clusters."
+  echo -e "  To upgrade manually (e.g. after editing values.yaml):"
   echo -e "${CYAN}"
-  echo "    helm upgrade --install k8s-janus ./helm \\"
-  echo "      --namespace $JANUS_NS --reuse-values"
+  echo "    helm upgrade k8s-janus ./helm --namespace $JANUS_NS --reuse-values"
   echo -e "${RESET}"
 fi
 

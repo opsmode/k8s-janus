@@ -144,19 +144,15 @@ The script will:
 
 No cloud-specific setup, no IAM bindings, no SDKs required.
 
-**Optional — exclude namespaces from the request form:**
+**Optional — exclude additional namespaces from the request form:**
 
-Add to `helm/values.yaml` and redeploy with `--reuse-values`:
+System and GKE namespaces are excluded by default. Add any others to `helm/values.yaml`:
 
 ```yaml
 janus:
   excludedNamespaces:
-    - k8s-janus
-    - kube-system
-    - kube-public
-    - kube-node-lease
-    - kube-flannel
-    - default
+    - k8s-janus        # always exclude — added by default
+    - kube-system      # always exclude — added by default
     - argocd
     - cert-manager
     - monitoring
@@ -164,7 +160,9 @@ janus:
     - ingress-nginx
 ```
 
-System namespaces are excluded by default. Add any others you want hidden from engineers.
+Then redeploy: `helm upgrade k8s-janus ./helm --namespace k8s-janus --reuse-values`
+
+> **Note:** kubeconfig Secrets created by `setup.sh` are annotated with `helm.sh/resource-policy: keep` — `helm upgrade` will never overwrite them. Re-run `setup.sh` to rotate tokens.
 
 ---
 
