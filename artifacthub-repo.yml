@@ -1,0 +1,4 @@
+repositoryID: <YOUR_REPOSITORY_ID_FROM_ARTIFACTHUB>
+owners:
+  - name: OpsMode
+    email: devops@opsmode.io
