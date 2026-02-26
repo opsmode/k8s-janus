@@ -20,6 +20,8 @@
 >
 > **⛩ The gate opens. Then it closes.**
 
+<video src="https://github.com/opsmode/k8s-janus/releases/download/v0.1.7/k8s-janus.mov" controls width="100%" style="border-radius:12px;"></video>
+
 </div>
 
 ---
