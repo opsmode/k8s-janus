@@ -345,7 +345,7 @@
       </div>
       <div class="brand-text">
         <h1>K8S-Janus</h1>
-        <span>{{ cluster_name }}</span>
+        <span>{{ cluster_name }} · Watching your every request 👁️</span>
       </div>
     </a>
     <div style="display:flex;align-items:center;gap:10px;">
@@ -469,14 +469,22 @@
       </div>
 
       {% if status.get("phase") == "Pending" %}
-      <div class="alert alert-info">
+      <div style="text-align:center;margin-top:16px;">
+        <img src="https://media1.tenor.com/m/kqu5mYFhzewAAAAC/im-waiting-tapping-fingers.gif"
+             alt="Waiting..." style="height:120px;border-radius:10px;opacity:0.85;">
+      </div>
+      <div class="alert alert-info" style="margin-top:12px;">
         <i data-lucide="loader" style="width:16px;height:16px;"></i>
-        <span>Waiting for admin approval. This page refreshes automatically every 5 seconds.</span>
+        <span>⏳ Waiting for admin approval. This page auto-refreshes every 5 seconds. Go get a coffee — or stare at it, we won't judge.</span>
       </div>
       {% endif %}
 
       {% if status.get("phase") == "Denied" %}
-      <div class="alert alert-danger">
+      <div style="text-align:center;margin-top:16px;">
+        <img src="https://media1.tenor.com/m/goLw05lGrtEAAAAC/denied-access.gif"
+             alt="Access Denied" style="height:110px;border-radius:10px;opacity:0.85;">
+      </div>
+      <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="x-circle" style="width:16px;height:16px;"></i>
         <div>
           <div style="margin-bottom:8px;">Your request was denied{% if status.get("approvedBy") %} by {{ status.get("approvedBy") }}{% endif %}.</div>
@@ -488,23 +496,27 @@
       {% endif %}
 
       {% if status.get("phase") == "Expired" %}
-      <div class="alert alert-danger">
+      <div style="text-align:center;margin-top:16px;">
+        <img src="https://media1.tenor.com/m/wwDpbSdP9fgAAAAC/cinderella-12.gif"
+             alt="Time's up!" style="height:110px;border-radius:10px;opacity:0.85;">
+      </div>
+      <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="timer-off" style="width:16px;height:16px;"></i>
-        <span>This access has expired. <a href="/">Submit a new request</a> if you still need access.</span>
+        <span>⌛ This access has expired. The gate has closed. <a href="/">Submit a new request</a> if you somehow still need it.</span>
       </div>
       {% endif %}
 
       {% if status.get("phase") == "Revoked" %}
       <div class="alert alert-danger">
         <i data-lucide="shield-off" style="width:16px;height:16px;"></i>
-        <span>This access was revoked by an admin. Your token is no longer valid.</span>
+        <span>🚫 This access was revoked by an admin. The god of gateways has spoken. Your token is now a pumpkin.</span>
       </div>
       {% endif %}
 
       {% if status.get("phase") == "Failed" %}
       <div class="alert alert-danger">
         <i data-lucide="alert-circle" style="width:16px;height:16px;"></i>
-        <span>Access grant failed: {{ status.get("message", "unknown error") }}. Please contact the DevOps team.</span>
+        <span>💥 Access grant failed: {{ status.get("message", "unknown error") }}. Please contact the DevOps team (they're probably already crying about it).</span>
       </div>
       {% endif %}
     </div>
@@ -512,11 +524,15 @@
     <!-- ── ACCESS GRANTED CARD ── -->
     {% if status.get("phase") == "Active" and token %}
     <div class="token-card">
+      <div style="text-align:center;margin-bottom:16px;">
+        <img src="https://media1.tenor.com/m/ePBohNr3Ln4AAAAC/yes---full-access-granted.gif"
+             alt="Access Granted!" style="height:110px;border-radius:10px;opacity:0.9;">
+      </div>
       <div class="token-heading">
         <div class="card-icon" style="border-color:rgba(99,102,241,0.4);">
           <i data-lucide="terminal" style="width:16px;height:16px;"></i>
         </div>
-        <h2>Access Granted</h2>
+        <h2>Access Granted 🎉</h2>
       </div>
       <p class="token-sub">
         Scoped to <code>{{ spec.get("namespace") }}</code> only.
@@ -540,7 +556,7 @@
     {% if status.get("phase") == "Approved" %}
     <div class="alert alert-info">
       <i data-lucide="loader" style="width:16px;height:16px;"></i>
-      <span>Request approved — waiting for controller to create the RoleBinding. This page refreshes automatically.</span>
+      <span>✅ Approved! The controller is spinning up your RoleBinding as we speak. Please hold — this page refreshes automatically. No carrier pigeons were harmed.</span>
     </div>
     {% endif %}
 

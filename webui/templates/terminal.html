@@ -505,7 +505,7 @@
       </div>
       <div class="brand-text">
         <h1>K8S-Janus</h1>
-        <span>{{ cluster_display }}</span>
+        <span>{{ cluster_display }} · Don't rm -rf / — we're watching 👀</span>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
@@ -546,7 +546,7 @@
       <!-- Quick Commands -->
       <div class="sidebar-section" id="quick-cmd-section">
         <div class="sidebar-section-title" onclick="toggleQuickCmds()">
-          <span>Quick Commands</span>
+          <span>⚡ Quick Commands (for the impatient)</span>
           <i data-lucide="chevron-down" class="section-chevron" style="width:12px;height:12px;"></i>
         </div>
         <div class="quick-cmd-body">
@@ -609,19 +609,20 @@
           <div class="tab-content active" id="pane-a-terminal-tab">
             <div class="term-el" id="pane-a-term">
               <div class="placeholder">
-                <i data-lucide="terminal" style="width:56px;height:56px;opacity:0.2;"></i>
-                <p style="font-size:0.88rem;">Select a pod from the sidebar</p>
+                <img src="https://media1.tenor.com/m/lIMtjiAYuT8AAAAC/breezy-hacker.gif"
+                     alt="I'm in!" style="height:120px;border-radius:10px;opacity:0.75;margin-bottom:8px;">
+                <p style="font-size:0.88rem;">👈 Select a pod from the sidebar to begin your adventure</p>
               </div>
             </div>
           </div>
           <div class="tab-content" id="pane-a-logs-tab">
             <div class="log-view" id="pane-a-logs">
-              <div class="placeholder"><i data-lucide="scroll-text" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod logs will appear here</p></div>
+              <div class="placeholder"><i data-lucide="scroll-text" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">📜 Pod logs will appear here (brace yourself)</p></div>
             </div>
           </div>
           <div class="tab-content" id="pane-a-events-tab">
             <div class="event-view" id="pane-a-events">
-              <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod events will appear here</p></div>
+              <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">🎭 Pod events will appear here (drama guaranteed)</p></div>
             </div>
           </div>
         </div>
@@ -651,18 +652,18 @@
             <div class="term-el" id="pane-b-term">
               <div class="placeholder">
                 <i data-lucide="terminal" style="width:56px;height:56px;opacity:0.2;"></i>
-                <p style="font-size:0.88rem;">Select a pod from the sidebar</p>
+                <p style="font-size:0.88rem;">👈 Select a pod (the other pane is also judging your choices)</p>
               </div>
             </div>
           </div>
           <div class="tab-content" id="pane-b-logs-tab">
             <div class="log-view" id="pane-b-logs">
-              <div class="placeholder"><i data-lucide="scroll-text" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod logs will appear here</p></div>
+              <div class="placeholder"><i data-lucide="scroll-text" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">📜 Pod logs will appear here (still scrolling...)</p></div>
             </div>
           </div>
           <div class="tab-content" id="pane-b-events-tab">
             <div class="event-view" id="pane-b-events">
-              <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">Pod events will appear here</p></div>
+              <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">🎭 Pod events will appear here (same drama, different pane)</p></div>
             </div>
           </div>
         </div>

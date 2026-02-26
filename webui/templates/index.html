@@ -380,7 +380,7 @@
       </div>
       <div class="brand-text">
         <h1>K8S-Janus</h1>
-        <span>God of Gateways</span>
+        <span>The gatekeeper who never sleeps (unlike your on-call engineer)</span>
       </div>
     </a>
     <div style="display:flex;align-items:center;gap:10px;">
@@ -416,7 +416,7 @@
         <div class="card-icon">
           <i data-lucide="key-round" style="width:16px;height:16px;"></i>
         </div>
-        <h2>Request Pod Access</h2>
+        <h2>Request Pod Access 🚪</h2>
       </div>
 
       <form method="POST" action="/request">
@@ -458,8 +458,8 @@
             </select>
           </div>
           <div class="form-group full">
-            <label for="reason">Business justification</label>
-            <textarea id="reason" name="reason" placeholder="Describe why you need access to this pod…" required maxlength="500"></textarea>
+            <label for="reason">Business justification (or a really convincing lie)</label>
+            <textarea id="reason" name="reason" placeholder="Describe why you need access to this pod… (no, 'just vibing' is not a valid reason)" required maxlength="500"></textarea>
           </div>
         </div>
         <button type="submit" id="submit-btn" class="submit-btn" disabled title="Select a cluster and namespace first">
@@ -547,7 +547,7 @@
       {% else %}
       <div class="empty">
         <i data-lucide="inbox" style="width:40px;height:40px;"></i>
-        <span>No access requests yet</span>
+        <span>No access requests yet 🦗 So peaceful. Enjoy it while it lasts.</span>
       </div>
       {% endif %}
     </div>
