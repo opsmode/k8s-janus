@@ -14,9 +14,11 @@
 ![License](https://img.shields.io/badge/License-AGPL_v3-blue)
 
 **Engineers request temporary `kubectl exec` access through a web UI.**
-**Admins approve with one click. The token auto-expires. No permanent permissions. Ever.**
+**Admins approve with one click. The token auto-expires.**
+**No permanent permissions. Ever.**
 
 > In Roman mythology, **Janus** was the god of doorways and transitions — watching every passage in both directions.
+>
 > He did not block the gate. He *governed* it.
 >
 > **⛩ The gate opens. Then it closes.**
@@ -139,7 +141,7 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 ```
 
 The script will:
-1. Ask you to pick a **central cluster** (where Janus runs) and any **remote clusters** (where engineers get access)
+1. Ask you to pick a **central cluster** (where Janus runs) and any **additional clusters** to manage — engineers can request access to any of them, including the central cluster
 2. Deploy the `helm-remote` agent to every selected cluster — creates the `janus-remote` ServiceAccount + RBAC
 3. Deploy the main `k8s-janus` chart to the central cluster
 4. Extract a static 1-year token from `janus-remote` on each cluster and store it as a kubeconfig `Secret` — no personal credentials, no cloud SDKs inside the pod
@@ -154,8 +156,8 @@ System and GKE namespaces are excluded by default. Add any others to `helm/value
 ```yaml
 janus:
   excludedNamespaces:
-    - k8s-janus        # always exclude — added by default
-    - kube-system      # always exclude — added by default
+    - k8s-janus
+    - kube-system
     - argocd
     - cert-manager
     - monitoring
