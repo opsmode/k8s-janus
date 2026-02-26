@@ -7,6 +7,7 @@
 ### *Just-in-Time Kubernetes Pod Access*
 
 [![CI](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml/badge.svg)](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/search?repo=k8s-janus)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Operator-326CE5?logo=kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)
