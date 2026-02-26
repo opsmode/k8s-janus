@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="webui/static/k8s-janus-logo-blue.png" width="120" alt="K8s-Janus logo" />
+<img src="webui/static/k8s-janus-logo-readme.png" width="120" alt="K8s-Janus logo" />
 
 # K8s-Janus
 
