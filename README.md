@@ -168,6 +168,64 @@ Then redeploy: `helm upgrade k8s-janus ./helm --namespace k8s-janus --reuse-valu
 
 ---
 
+## 📋 Observability
+
+Janus logs everything — startup, every access request lifecycle event, cleanup, and WebSocket sessions. No black boxes.
+
+### Controller
+
+```
+[INFO] 🚀 k8s-janus controller starting up on cluster=gke_project_region_cluster
+[INFO] DB initialised (SQLite (ephemeral))
+[INFO] 🧹 periodic CRD cleanup started (retention=86400s, phases={'Expired', 'Denied', 'Revoked'})
+[INFO] ✅ k8s-janus controller ready on cluster=gke_project_region_cluster
+[INFO] 🛡️  updated janus-pod-exec ClusterRole on cluster=gke_project_region_cluster
+
+# Engineer submits a request
+[INFO] 📥 New AccessRequest [alice-debug-api] from alice@example.com → cluster=prod ns=default
+
+# Admin approves → credentials provisioned automatically
+[INFO] 🔄 [alice-debug-api] phase transition: Pending → Approved  (cluster=prod ns=default)
+[INFO] 🔑 [alice-debug-api] granting access for alice@example.com on cluster=prod ns=default
+[INFO] 👤 [alice-debug-api] created ServiceAccount=janus-alice-debug-api in cluster=prod ns=default
+[INFO] 🔗 [alice-debug-api] created RoleBinding=janus-alice-debug-api in cluster=prod ns=default
+[INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s, expires=2026-02-26T22:08:56Z
+[INFO] 🔐 [alice-debug-api] stored token Secret=janus-token-alice-debug-api in ns=k8s-janus
+[INFO] ✅ [alice-debug-api] access GRANTED — requester=alice@example.com cluster=prod ns=default expires=2026-02-26T22:08:56Z
+
+# TTL expires → automatic cleanup, no manual action needed
+[INFO] 🧹 [alice-debug-api] starting cleanup (TTL expired) on cluster=prod ns=default
+[INFO] 🗑️  [alice-debug-api] deleted RoleBinding=janus-alice-debug-api from cluster=prod ns=default
+[INFO] 🗑️  [alice-debug-api] deleted ServiceAccount=janus-alice-debug-api from cluster=prod ns=default
+[INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api from ns=k8s-janus
+[INFO] 💀 [alice-debug-api] marked as Expired — all credentials removed from cluster=prod ns=default
+
+# Admin revokes an active session
+[INFO] 🚫 [alice-debug-api] revoked by admin — triggering immediate cleanup on cluster=prod ns=default
+[INFO] 🔒 Revoke signal sent to 1 terminal session(s) for alice-debug-api
+
+# Hourly cleanup of old CRDs
+[INFO] ✨ [periodic] cleanup done — no stale CRDs found
+[INFO] 🧹 [periodic] cleanup done — deleted 3 stale terminal CRDs
+```
+
+### Web UI
+
+```
+[INFO] DB initialised (SQLite (ephemeral))
+[WARNING] 🔓 K8s-Janus WebUI started in OPEN MODE — AUTH_ENABLED=false
+INFO:     Uvicorn running on http://0.0.0.0:8000
+
+# Engineer opens the terminal — kubeconfig loaded, exec session started
+[INFO] 🔧 Building client for cluster: gke_project_region_cluster
+INFO:     10.0.0.1:54321 - "GET /terminal/prod/alice-debug-api HTTP/1.1" 200 OK
+
+# Session ends (TTL expired or admin revoke)
+[INFO] 🔒 Revoke signal sent to 1 terminal session(s) for alice-debug-api
+```
+
+---
+
 <div align="center">
 
 GNU AGPL v3 License · Built with ☕ by [opsmode](https://github.com/opsmode)
