@@ -170,6 +170,6 @@ Then redeploy: `helm upgrade k8s-janus ./helm --namespace k8s-janus --reuse-valu
 
 <div align="center">
 
-MIT License · Built with ☕ by [opsmode](https://github.com/opsmode)
+GNU AGPL v3 License · Built with ☕ by [opsmode](https://github.com/opsmode)
 
 </div>
