@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
 
 env:
   IMAGE_PREFIX: opsmode/k8s-janus
