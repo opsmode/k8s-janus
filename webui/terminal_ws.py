@@ -72,6 +72,23 @@ async def broadcast_to_all(message: str, sender: str) -> int:
     return count
 
 
+async def notify_revoked(name: str, revoked_by: str) -> int:
+    """Send a revoked signal to all WebSocket sessions for a specific request."""
+    payload = json.dumps({"type": "revoked", "revoked_by": revoked_by})
+    async with _sessions_lock:
+        sessions = list(_active_sessions.get(name, set()))
+    count = 0
+    for ws in sessions:
+        try:
+            await ws.send_text(payload)
+            count += 1
+        except Exception as e:
+            logger.debug(f"📭 Revoke notify failed for session: {e}")
+    if count:
+        logger.info(f"🔒 Revoke signal sent to {count} terminal session(s) for {name}")
+    return count
+
+
 # ---------------------------------------------------------------------------
 # Shell helpers
 # ---------------------------------------------------------------------------

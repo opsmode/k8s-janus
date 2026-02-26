@@ -803,6 +803,13 @@
             showBanner('info', `<strong>📣 ${escapeHtml(msg.from || 'Admin')}:</strong> ${escapeHtml(msg.message)}`, 60000);
             return;
           }
+          if (msg.type === 'revoked') {
+            const by = msg.revoked_by ? ` by ${escapeHtml(msg.revoked_by)}` : '';
+            showBanner('danger', `<strong>🚫 Access revoked${by}</strong> — your session has been terminated. <a href="/status/{{ cluster }}/{{ request_name }}" style="color:inherit;text-decoration:underline;">View status</a>`);
+            setQuickCmdsEnabled(false);
+            setTimeout(() => { window.location.href = '/status/{{ cluster }}/{{ request_name }}'; }, 4000);
+            return;
+          }
         } catch (_) {}
         if (this.term) this.term.write(ev.data);
       }

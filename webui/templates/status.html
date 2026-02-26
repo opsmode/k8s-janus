@@ -19,6 +19,20 @@
       }
       scheduleReload();
     }
+    if (_phase === 'Active') {
+      // Poll for revoke/expire so the page auto-reloads without needing a WS connection
+      (function pollPhase() {
+        setTimeout(function() {
+          fetch('/api/status/{{ cluster }}/{{ name }}')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d.phase && d.phase !== 'Active') { location.reload(); }
+              else { pollPhase(); }
+            })
+            .catch(function() { pollPhase(); });
+        }, 5000);
+      })();
+    }
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

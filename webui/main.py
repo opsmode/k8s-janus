@@ -23,7 +23,7 @@ from k8s import (
     get_access_request, list_access_requests, read_token_secret,
     CLUSTERS, CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
 )
-from terminal_ws import terminal_websocket_handler, broadcast_to_all
+from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_revoked
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -625,6 +625,7 @@ async def revoke(request: Request, cluster: str, name: str):
                        requester=ar.get("spec", {}).get("requester", ""),
                        ttl_seconds=ar.get("spec", {}).get("ttlSeconds", 3600), created_at=_now())
         log_audit(name, "access.revoked", actor=caller, detail=f"cluster={cluster} was {current_phase}")
+        await notify_revoked(name, revoked_by=caller)
     except ApiException as e:
         logger.error(f"💥 Failed to revoke AccessRequest {name}: {e}")
         return HTMLResponse(f"<h2>Error revoking request: {e}</h2>", status_code=500)
@@ -766,6 +767,21 @@ async def commands_for_request(request: Request, name: str):
     if user_email.lower() != requester and not _is_admin(user_email):
         return JSONResponse({"error": "Forbidden"}, status_code=403)
     return JSONResponse(get_session_commands(name))
+
+
+# ---------------------------------------------------------------------------
+# Phase polling (for status page auto-redirect on revoke/expire)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/status/{cluster}/{name}")
+async def api_request_phase(cluster: str, name: str):
+    """Lightweight endpoint returning just the current phase of an access request."""
+    if not _valid_name(name):
+        return JSONResponse({"error": "Invalid name"}, status_code=400)
+    ar = get_access_request(name, cluster)
+    if not ar:
+        return JSONResponse({"phase": "NotFound"})
+    return JSONResponse({"phase": ar.get("status", {}).get("phase", "Pending")})
 
 
 # ---------------------------------------------------------------------------
