@@ -134,6 +134,17 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 
 **Prerequisites:** `kubectl` and `helm`. Optionally [`yq`](https://github.com/mikefarah/yq) to auto-patch `values.yaml`.
 
+### Install via Helm
+
+```bash
+helm repo add k8s-janus https://opsmode.github.io/k8s-janus
+helm repo update
+helm upgrade --install k8s-janus k8s-janus/k8s-janus \
+  --namespace k8s-janus --create-namespace
+```
+
+### Or clone and run the interactive setup script
+
 **Run the interactive setup script — it handles everything:**
 
 ```bash

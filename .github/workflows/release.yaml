@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 env:
   IMAGE_PREFIX: opsmode/k8s-janus
@@ -147,8 +148,48 @@ jobs:
           git diff --cached --quiet || git commit -m "ci: update webui image tag to ${{ steps.version.outputs.tag }}"
           git push origin main
 
+  publish-helm:
+    needs: [build-controller, build-webui]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package Helm chart
+        run: helm package helm/ --destination .deploy/
+
+      - name: Checkout gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages 2>/dev/null || true
+          git worktree add gh-pages-dir gh-pages 2>/dev/null || \
+            (git worktree add gh-pages-dir --orphan gh-pages && \
+             git -C gh-pages-dir rm -rf . 2>/dev/null || true)
+
+      - name: Update Helm repo index
+        run: |
+          cp .deploy/*.tgz gh-pages-dir/
+          helm repo index gh-pages-dir/ \
+            --url https://opsmode.github.io/k8s-janus/ \
+            --merge gh-pages-dir/index.yaml 2>/dev/null || \
+          helm repo index gh-pages-dir/ \
+            --url https://opsmode.github.io/k8s-janus/
+
+      - name: Push to gh-pages
+        run: |
+          cd gh-pages-dir
+          git add .
+          git diff --cached --quiet || git commit -m "helm: release ${{ github.ref_name }}"
+          git push origin gh-pages
+
   release:
-    needs: [detect-changes, build-controller, build-webui]
+    needs: [detect-changes, build-controller, build-webui, publish-helm]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -168,9 +209,11 @@ jobs:
             opsmode/k8s-janus-webui:${{ github.ref_name }}
             ```
 
-            ## Deploy
+            ## Deploy via Helm
 
             ```bash
-            helm upgrade --install k8s-janus ./helm \
+            helm repo add k8s-janus https://opsmode.github.io/k8s-janus
+            helm repo update
+            helm upgrade --install k8s-janus k8s-janus/k8s-janus \
               --namespace k8s-janus --create-namespace
             ```
