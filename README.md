@@ -11,7 +11,7 @@
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Operator-326CE5?logo=kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![License](https://img.shields.io/badge/License-AGPL_v3-blue)
 
 **Engineers request temporary `kubectl exec` access through a web UI.**
 **Admins approve with one click. The token auto-expires. No permanent permissions. Ever.**
