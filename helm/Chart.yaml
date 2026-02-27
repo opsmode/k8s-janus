@@ -2,8 +2,8 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 0.1.20
-appVersion: "0.1.20"
+version: 0.1.21
+appVersion: "0.1.21"
 annotations:
   artifacthub.io/changes: |
     - kind: added
