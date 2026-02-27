@@ -164,6 +164,11 @@ jobs:
           echo "${{ secrets.HELM_GPG_KEY }}" | gpg --batch --import
           gpg --export-secret-keys --output ~/.gnupg/secring.gpg
 
+      - name: Regenerate values schema
+        run: |
+          pip install pyyaml -q
+          python3 scripts/gen-schema.py
+
       - name: Package and sign Helm chart
         run: |
           helm package helm/ \
