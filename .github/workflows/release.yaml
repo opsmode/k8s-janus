@@ -5,9 +5,6 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-
 env:
   IMAGE_PREFIX: opsmode/k8s-janus
 
@@ -43,6 +40,8 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.controller == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -97,6 +96,8 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.webui == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -151,6 +152,8 @@ jobs:
     needs: [build-controller, build-webui]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -207,6 +210,8 @@ jobs:
     needs: [detect-changes, build-controller, build-webui, publish-helm]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 

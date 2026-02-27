@@ -8,9 +8,6 @@ on:
       - 'controller/**'
       - 'webui/**'
 
-permissions:
-  contents: write
-
 env:
   IMAGE_PREFIX: opsmode/k8s-janus
 
@@ -56,6 +53,8 @@ jobs:
     needs: [detect-changes, lint]
     if: needs.detect-changes.outputs.controller == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -91,6 +90,7 @@ jobs:
 
       - name: Scan controller image (SARIF for artifact)
         if: always()
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}-controller:${{ steps.tag.outputs.sha }}
@@ -123,6 +123,8 @@ jobs:
     needs: [detect-changes, lint]
     if: needs.detect-changes.outputs.webui == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -158,6 +160,7 @@ jobs:
 
       - name: Scan webui image (SARIF for artifact)
         if: always()
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}-webui:${{ steps.tag.outputs.sha }}
