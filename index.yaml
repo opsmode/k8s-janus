@@ -15,7 +15,7 @@ entries:
           description: "update controller image tag to a3fea54"
     apiVersion: v2
     appVersion: 0.1.12
-    created: "2026-02-27T17:39:54.189056653Z"
+    created: "2026-02-27T20:29:31.545995+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 90ca19f9011a42ca65c967bc3a9ad45792cd6b4aad31b8b2cf16aba152e8a302
@@ -99,7 +99,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.10
-    created: "2026-02-27T17:39:54.187669583Z"
+    created: "2026-02-27T20:29:31.545367+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 91069c337f57fd741f49271b0d0648af298b67391c22b48645232734f0bd523f
@@ -137,7 +137,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.9
-    created: "2026-02-27T17:39:54.190351479Z"
+    created: "2026-02-27T20:29:31.547102+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: aedf930d524ad4bce1f2dcacfbbf99529585bb25ebb0baef437b6ce78929ca5d
@@ -175,7 +175,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.8
-    created: "2026-02-27T17:39:54.189695264Z"
+    created: "2026-02-27T20:29:31.546594+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 7525e7d67aa4fc9e43933c908b298d032f543150989f831142fd9f7e243fa92e
@@ -205,7 +205,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-02-27T17:39:54.186941663Z"
+    created: "2026-02-27T20:29:31.544819+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: faa6944d943bbc0c515b11bd7c6678002ccd0ad6b2e3496ec03754eff20f2633
@@ -229,4 +229,4 @@ entries:
     urls:
     - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.0.tgz
     version: 0.1.0
-generated: "2026-02-27T17:39:54.186118905Z"
+generated: "2026-02-27T20:29:31.542718+01:00"
