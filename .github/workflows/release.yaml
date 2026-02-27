@@ -179,6 +179,8 @@ jobs:
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/Chart.yaml
 
       - name: Generate changelog for Artifact Hub
+        env:
+          PREV_TAG: ${{ github.ref_name }}
         run: |
           PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
           if [ -z "$PREV_TAG" ]; then
@@ -187,38 +189,55 @@ jobs:
             RANGE="${PREV_TAG}..${GITHUB_REF_NAME}"
           fi
 
-          # Build YAML list from commit messages
-          CHANGES=""
-          while IFS= read -r msg; do
-            if echo "$msg" | grep -qE '^feat(\(.+\))?!?:'; then
-              kind="added"
-            elif echo "$msg" | grep -qE '^fix(\(.+\))?!?:'; then
-              kind="fixed"
-            elif echo "$msg" | grep -qE '^(refactor|perf)(\(.+\))?!?:'; then
-              kind="changed"
-            elif echo "$msg" | grep -qE '^(security|sec)(\(.+\))?!?:'; then
-              kind="security"
-            elif echo "$msg" | grep -qE '^(remove|deprecate)(\(.+\))?!?:'; then
-              kind="removed"
-            else
-              kind="changed"
-            fi
-            desc=$(echo "$msg" | sed -E 's/^[a-z]+\([^)]+\)!?: //' | sed -E 's/^[a-z]+!?: //')
-            CHANGES="${CHANGES}    - kind: ${kind}\n      description: \"${desc}\"\n"
-          done < <(git log "$RANGE" --pretty=format:"%s")
+          # Dump commits to a temp file — one per line
+          git log "$RANGE" --pretty=format:"%s" > /tmp/commits.txt
 
-          if [ -z "$CHANGES" ]; then
-            CHANGES="    - kind: changed\n      description: \"Release ${GITHUB_REF_NAME}\"\n"
-          fi
-
-          # Write the annotation block into Chart.yaml via Python (avoids sed multiline issues)
-          python3 -c "
+          python3 - /tmp/commits.txt helm/Chart.yaml "${GITHUB_REF_NAME}" <<'PYEOF'
           import re, sys
-          content = open('helm/Chart.yaml').read()
-          block = 'artifacthub.io/changes: |\n' + sys.argv[1]
-          content = re.sub(r'artifacthub\.io/changes: \|[^\n]*\n(    -[^\n]*\n)*', block, content)
-          open('helm/Chart.yaml', 'w').write(content)
-          " "$(printf '%b' "$CHANGES")"
+
+          commits_file, chart_file, tag = sys.argv[1], sys.argv[2], sys.argv[3]
+
+          kind_map = [
+              (r'^feat(\(.+\))?!?:', 'added'),
+              (r'^fix(\(.+\))?!?:', 'fixed'),
+              (r'^(refactor|perf)(\(.+\))?!?:', 'changed'),
+              (r'^(security|sec)(\(.+\))?!?:', 'security'),
+              (r'^(remove|deprecate)(\(.+\))?!?:', 'removed'),
+          ]
+
+          lines = open(commits_file).read().splitlines()
+          entries = []
+          for msg in lines:
+              msg = msg.strip()
+              if not msg:
+                  continue
+              kind = 'changed'
+              for pattern, k in kind_map:
+                  if re.match(pattern, msg):
+                      kind = k
+                      break
+              # Strip conventional commit prefix
+              desc = re.sub(r'^[a-z]+(\([^)]+\))?!?: ', '', msg)
+              # Escape any double quotes in description
+              desc = desc.replace('"', '\\"')
+              entries.append(f'    - kind: {kind}\n      description: "{desc}"')
+
+          if not entries:
+              entries = [f'    - kind: changed\n      description: "Release {tag}"']
+
+          block = 'artifacthub.io/changes: |\n' + '\n'.join(entries) + '\n'
+
+          content = open(chart_file).read()
+          # Replace the entire annotation value (block scalar) - matches until next non-indented key
+          content = re.sub(
+              r'artifacthub\.io/changes: \|.*?(?=\n\S|\Z)',
+              block.rstrip(),
+              content,
+              flags=re.DOTALL
+          )
+          open(chart_file, 'w').write(content)
+          print(f"Generated {len(entries)} changelog entries for {tag}")
+          PYEOF
 
       - name: Package and sign Helm chart
         run: |
