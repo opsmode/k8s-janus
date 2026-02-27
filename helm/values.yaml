@@ -30,7 +30,7 @@ image:
   pullPolicy: IfNotPresent
   controller:
     repository: opsmode/k8s-janus-controller
-    tag: "b5d60a4"
+    tag: "v0.1.9"
   webui:
     repository: opsmode/k8s-janus-webui
     tag: "b5d60a4"
