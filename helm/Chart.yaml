@@ -17,9 +17,14 @@ keywords:
   - jit
   - zero-trust
 icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-home: https://github.com/opsmode/k8s-janus
+home: https://opsmode.github.io/k8s-janus
 sources:
   - https://github.com/opsmode/k8s-janus
+links:
+  - name: GitHub
+    url: https://github.com/opsmode/k8s-janus
+  - name: Helm Repository
+    url: https://opsmode.github.io/k8s-janus
 maintainers:
   - name: OpsMode
     email: devops@opsmode.io
