@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "K8s-Janus Values",
+  "description": "Helm values for K8s-Janus — Just-in-Time Kubernetes pod access",
+  "type": "object",
+  "properties": {
+    "replicaCount": {
+      "description": "Number of replicas for controller and webui deployments",
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "labels": {
+      "description": "Extra labels added to all Kubernetes resources",
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "clusters": {
+      "description": "List of clusters Janus manages. First entry is the management cluster.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "displayName", "secretName"],
+        "properties": {
+          "name":        { "type": "string", "description": "Cluster identifier (used internally)" },
+          "displayName": { "type": "string", "description": "Human-readable name shown in the UI" },
+          "secretName":  { "type": "string", "description": "Name of the kubeconfig Secret in k8s-janus namespace" }
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        },
+        "controller": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string", "default": "opsmode/k8s-janus-controller" },
+            "tag":        { "type": "string" }
+          }
+        },
+        "webui": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string", "default": "opsmode/k8s-janus-webui" },
+            "tag":        { "type": "string" }
+          }
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "LoadBalancer", "NodePort"],
+          "default": "LoadBalancer"
+        },
+        "port": { "type": "integer", "default": 80 }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled":             { "type": "boolean", "default": false },
+        "ingressClass":        { "type": "string" },
+        "clusterIssuer":       { "type": "string" },
+        "host":                { "type": "string" },
+        "proxyReadTimeout":    { "type": "string", "default": "3600" },
+        "oAuth2ProxyAuthUrl":         { "type": "string" },
+        "oAuth2ProxyAuthSignInUrl":   { "type": "string" }
+      }
+    },
+    "janus": {
+      "type": "object",
+      "properties": {
+        "namespace":            { "type": "string", "default": "k8s-janus" },
+        "defaultTtlSeconds":    { "type": "integer", "minimum": 600, "maximum": 28800, "default": 3600 },
+        "maxTtlSeconds":        { "type": "integer", "minimum": 600, "maximum": 28800, "default": 28800 },
+        "crdRetentionSeconds":  { "type": "integer", "default": 86400 },
+        "idleTimeoutSeconds":   { "type": "integer", "default": 900 },
+        "displayTimezone":      { "type": "string", "default": "Europe/Berlin" },
+        "adminEmails": {
+          "type": "array",
+          "items": { "type": "string", "format": "email" }
+        },
+        "excludedNamespaces": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "properties": {
+        "resources": { "type": "object" }
+      }
+    },
+    "webui": {
+      "type": "object",
+      "properties": {
+        "baseUrl":       { "type": "string", "default": "" },
+        "authEnabled":   { "type": "boolean", "default": false },
+        "containerPort": { "type": "integer", "default": 8000 },
+        "resources":     { "type": "object" }
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "properties": {
+        "enabled":         { "type": "boolean", "default": false },
+        "secretStore":     { "type": "string" },
+        "refreshInterval": { "type": "string" }
+      }
+    },
+    "postgresql": {
+      "type": "object",
+      "properties": {
+        "enabled":   { "type": "boolean", "default": false },
+        "host":      { "type": "string" },
+        "port":      { "type": "integer", "default": 5432 },
+        "database":  { "type": "string" },
+        "username":  { "type": "string" }
+      }
+    },
+    "pdb": {
+      "type": "object",
+      "properties": {
+        "minAvailable": { "type": "integer", "default": 1 }
+      }
+    }
+  }
+}
