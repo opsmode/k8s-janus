@@ -19,9 +19,10 @@ COPY webui/ webui/
 # Supervisord config
 COPY supervisord.conf /etc/supervisor/conf.d/k8s-janus.conf
 
-# Run as non-root
-RUN addgroup -S k8s-janus && adduser -S -G k8s-janus -H -s /sbin/nologin k8s-janus
+# Run as non-root — pin UID/GID to 1000 to match Helm securityContext
+RUN addgroup -g 1000 -S k8s-janus && \
+    adduser -u 1000 -S -G k8s-janus -H -s /sbin/nologin k8s-janus
 
-USER k8s-janus
+USER 1000
 
 CMD ["sh", "-c", "mkdir -p /tmp/supervisor && exec supervisord -c /etc/supervisor/conf.d/k8s-janus.conf -n"]
