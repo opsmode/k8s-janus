@@ -16,6 +16,14 @@ keywords:
   - security
   - jit
   - zero-trust
+  - kubectl
+  - operator
+  - multi-cluster
+  - devops
+  - platform-engineering
+  - audit
+  - terminal
+  - pod-access
 icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
 home: https://opsmode.github.io/k8s-janus
 sources:
