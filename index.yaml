@@ -4,10 +4,48 @@ entries:
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
+          description: "Release v0.1.17"
+    apiVersion: v2
+    appVersion: 0.1.17
+    created: "2026-02-27T23:31:16.786132523Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: 9e75aaa2a19558b1ae16dce8708eead4d8fd7f4ad1118528b68de966df1b3c36
+    home: https://opsmode.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@opsmode.io
+      name: OpsMode
+    name: k8s-janus
+    sources:
+    - https://github.com/opsmode/k8s-janus
+    type: application
+    urls:
+    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.17.tgz
+    version: 0.1.17
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Release v0.1.15"
     apiVersion: v2
     appVersion: 0.1.15
-    created: "2026-02-27T23:09:14.750282097Z"
+    created: "2026-02-27T23:31:16.785444413Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: bcd60651304e6150e0f2a24cc6fc3f390caa1b37584dd2999de87ec5ac42f149
@@ -45,7 +83,7 @@ entries:
           description: "Release v0.1.14"
     apiVersion: v2
     appVersion: 0.1.14
-    created: "2026-02-27T23:09:14.749557647Z"
+    created: "2026-02-27T23:31:16.784737819Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: efe0f213cb554c30376cc268799e34bc7c0957a73593fdfcaa5b84207d1716eb
@@ -83,7 +121,7 @@ entries:
           description: "Release v0.1.13"
     apiVersion: v2
     appVersion: 0.1.13
-    created: "2026-02-27T23:09:14.748839255Z"
+    created: "2026-02-27T23:31:16.784048055Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: cd858b8cc7f9a7c50c70b69a4d754e50a1ea0f3a548041091ff711231571a399
@@ -129,7 +167,7 @@ entries:
           description: "update controller image tag to a3fea54"
     apiVersion: v2
     appVersion: 0.1.12
-    created: "2026-02-27T23:09:14.748176909Z"
+    created: "2026-02-27T23:31:16.783341892Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 90ca19f9011a42ca65c967bc3a9ad45792cd6b4aad31b8b2cf16aba152e8a302
@@ -175,7 +213,7 @@ entries:
           description: "update webui image tag to 80a5601"
     apiVersion: v2
     appVersion: 0.1.11
-    created: "2026-02-27T23:09:14.747263665Z"
+    created: "2026-02-27T23:31:16.782623535Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 114981628338f9e4e3adb908aac4df172b8b52c0f76aeaded4a5adf145ffc4f1
@@ -213,7 +251,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.10
-    created: "2026-02-27T23:09:14.745904866Z"
+    created: "2026-02-27T23:31:16.780902096Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 91069c337f57fd741f49271b0d0648af298b67391c22b48645232734f0bd523f
@@ -251,7 +289,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.9
-    created: "2026-02-27T23:09:14.751568088Z"
+    created: "2026-02-27T23:31:16.787437381Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: aedf930d524ad4bce1f2dcacfbbf99529585bb25ebb0baef437b6ce78929ca5d
@@ -289,7 +327,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.8
-    created: "2026-02-27T23:09:14.750913752Z"
+    created: "2026-02-27T23:31:16.786783885Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 7525e7d67aa4fc9e43933c908b298d032f543150989f831142fd9f7e243fa92e
@@ -319,7 +357,7 @@ entries:
           description: Initial release
     apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-02-27T23:09:14.745193905Z"
+    created: "2026-02-27T23:31:16.780120021Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: faa6944d943bbc0c515b11bd7c6678002ccd0ad6b2e3496ec03754eff20f2633
@@ -343,4 +381,4 @@ entries:
     urls:
     - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.0.tgz
     version: 0.1.0
-generated: "2026-02-27T23:09:14.744347501Z"
+generated: "2026-02-27T23:31:16.779316927Z"
