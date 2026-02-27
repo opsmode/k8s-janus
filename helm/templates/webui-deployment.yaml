@@ -39,6 +39,7 @@ spec:
         - name: webui
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["uvicorn", "main:app", "--app-dir", "/app/webui", "--host", "0.0.0.0", "--port", "8000"]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -52,6 +53,8 @@ spec:
             - configMapRef:
                 name: {{ include "janus.configmap.name" . }}
           env:
+            - name: APP_DIR
+              value: /app/webui
             {{- if .Values.postgresql.enabled }}
             - name: DB_HOST
               value: {{ .Values.postgresql.host | quote }}

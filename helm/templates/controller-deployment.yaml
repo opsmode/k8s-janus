@@ -39,6 +39,7 @@ spec:
         - name: controller
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["kopf", "run", "/app/controller/main.py", "--all-namespaces", "--liveness=http://0.0.0.0:8080/healthz"]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
