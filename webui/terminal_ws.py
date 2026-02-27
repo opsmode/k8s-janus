@@ -217,6 +217,12 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
         await _unregister_ws(name, websocket)
         return
 
+    from db import log_audit
+    requester = ar.get("spec", {}).get("requester", "unknown")
+    log_audit(name, "session.opened", actor=requester,
+              detail=f"cluster={cluster} ns={namespace}")
+    logger.info(f"🖥️  [{name}] terminal session opened — requester={requester} cluster={cluster} ns={namespace}")
+
     loop = asyncio.get_event_loop()
 
     resp      = None
@@ -234,6 +240,9 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
             remaining = int(IDLE_TIMEOUT_SECONDS - idle)
             if remaining <= 0:
                 await websocket.send_text(json.dumps({"type": "idle_timeout"}))
+                logger.info(f"💤 [{name}] idle timeout reached ({IDLE_TIMEOUT_SECONDS}s) — auto-revoking")
+                log_audit(name, "session.idle_timeout", actor="system",
+                          detail=f"idle>{IDLE_TIMEOUT_SECONDS}s cluster={cluster}")
                 # Auto-revoke the AccessRequest — awaited directly so errors surface
                 try:
                     await _auto_revoke(name, cluster)
@@ -355,6 +364,9 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
         except Exception:
             pass
         await _unregister_ws(name, websocket)
+        log_audit(name, "session.closed", actor=requester,
+                  detail=f"cluster={cluster} ns={namespace}")
+        logger.info(f"📴 [{name}] terminal session closed — requester={requester} cluster={cluster}")
 
 
 async def _auto_revoke(name: str, cluster: str):
