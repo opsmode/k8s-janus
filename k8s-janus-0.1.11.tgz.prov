@@ -1,0 +1,67 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: fixed
+      description: "upgrade pip to resolve CVE-2025-8869 and CVE-2026-1703"
+    - kind: changed
+      description: "auto-generate artifacthub.io/changes from git log on release"
+    - kind: changed
+      description: "update controller image tag to v0.1.10"
+    - kind: changed
+      description: "update webui image tag to v0.1.10"
+    - kind: changed
+      description: "update webui image tag to 80a5601"      description: Initial release
+apiVersion: v2
+appVersion: 0.1.11
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.io
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.1.11
+
+...
+files:
+  k8s-janus-0.1.11.tgz: sha256:1bc178ffd067972a0e67ed9d7472e73c113b7231c68836533367ba9d43649597
+
+-----BEGIN PGP SIGNATURE-----
+
+wsG5BAEBCgBtBYJpodL/CRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3JnQvKNt4BqnN2KkF12NvCZnSJATsAw+A+DWaZmuo0snGUW
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAAm7gP/RbJL+hioJj78GRRMDoBhDsmTzH3
+sIeRxoOmeK8fRw0+sHtwPd0M8M9qMhIQo/vVSLgtNUqgnLPB4WJ+HlTJjy1UFBaU
+drq3d6RTYz25JOSZODP8S5XWt0Wk1XNby/W3ckfMr9REUm/g2iWvA/VPVGGoqeoP
+450H+mwr7zJ3gy9prewJApoHm1N8EdV2WdYb7Is6KTjQXVmWnobpGVPR0EGNdE5c
+BtRvM1NFIWmE8YdvnSTqk0S1rnQXLipEvv1apE27HNxx/4WfdN4eUVjRxF/+eUpu
+iL4qJv3Ia0oup+wzg8iGRYs+Fv6zivrpJ0Dyom5Oerh963qMHcvSviX4tEurUxNJ
+PPE809z3smls3NDFlwqk/A/SFvwAKeDkJLYpBNdkMoflQS3ik5iajOBfKLP1h7jr
+7TkHQE5i8n9iZo6+9OqsvxiBtB9Jv97i7gzlrigTFgmQmNgJ6PPjkExj33s95VlG
+Y1Aiddtgb6Yoe56I0GcnyvFFJpzNbw1IjH3Yc8XXjCm/35wyMHtioHWis8EQ2lBP
+7zu7nbgXPN/+CdJK/4m0rqxYDL5eO6owPQdw5vyIkemKPkzePp6LJOrtVHsjdMFJ
+c4wewNpdiIaXJUieALuyZB1V38BT6Z/AADIM2fWSKemP5qFjOlOaPIWdsimxZZgJ
+nro4ndXI4ksO6d77
+-----END PGP SIGNATURE-----
