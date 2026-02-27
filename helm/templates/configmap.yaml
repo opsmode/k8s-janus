@@ -1,3 +1,4 @@
+{{- if not .Values.remote.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,3 +18,4 @@ data:
   IDLE_TIMEOUT_SECONDS: {{ .Values.janus.idleTimeoutSeconds | default 900 | quote }}
   AUTH_ENABLED: {{ ternary "true" "false" (ne .Values.webui.authEnabled false) | quote }}
   DISPLAY_TIMEZONE: {{ .Values.janus.displayTimezone | default "UTC" | quote }}
+{{- end }}

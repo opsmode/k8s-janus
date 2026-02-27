@@ -149,8 +149,6 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           sed -i "s/^version:.*/version: ${VERSION}/" helm/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/Chart.yaml
-          sed -i "s/^version:.*/version: ${VERSION}/" helm-remote/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm-remote/Chart.yaml
 
       - name: Generate changelog for Artifact Hub
         env:
@@ -260,9 +258,7 @@ jobs:
           yq -i '.image.webui.tag = "'$VERSION'"' helm/values.yaml
           sed -i "s/^version:.*/version: ${VERSION_NUM}/" helm/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION_NUM}\"/" helm/Chart.yaml
-          sed -i "s/^version:.*/version: ${VERSION_NUM}/" helm-remote/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${VERSION_NUM}\"/" helm-remote/Chart.yaml
-          git add helm/values.yaml helm/Chart.yaml helm-remote/Chart.yaml
+          git add helm/values.yaml helm/Chart.yaml
           git diff --cached --quiet || git commit -m "ci: bump chart to ${VERSION}"
           git push origin main
 

@@ -1,3 +1,12 @@
+{{- if .Values.remote.enabled -}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.remote.serviceAccountName }}
+  namespace: {{ .Values.remote.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
 ---
 # ClusterRole with the exact permissions the central Janus controller
 # needs on this remote cluster to provision temporary pod access.
@@ -6,8 +15,7 @@ kind: ClusterRole
 metadata:
   name: janus-remote
   labels:
-    app.kubernetes.io/name: k8s-janus-remote
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "janus.labels" . | nindent 4 }}
 rules:
   # List namespaces for the request form dropdown
   - apiGroups: [""]
@@ -46,20 +54,19 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["get", "list", "create", "patch", "update"]
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: janus-remote
   labels:
-    app.kubernetes.io/name: k8s-janus-remote
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "janus.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: janus-remote
 subjects:
   - kind: ServiceAccount
-    name: {{ .Values.serviceAccountName }}
-    namespace: {{ .Values.namespace }}
+    name: {{ .Values.remote.serviceAccountName }}
+    namespace: {{ .Values.remote.namespace }}
+{{- end }}

@@ -147,3 +147,16 @@ pdb:
 # → templates: networkpolicy.yaml
 networkPolicy:
   enabled: true
+# Remote agent mode — deploy this chart on a target cluster to grant the
+# central Janus controller access. When enabled, only the ServiceAccount,
+# ClusterRole, and ClusterRoleBinding are created (no controller/webui).
+# Run scripts/setup.sh afterwards to extract the token and register the cluster.
+# → templates: remote-rbac.yaml (only rendered when remote.enabled: true)
+remote:
+  enabled: false
+  # Namespace created on the remote cluster for the Janus agent resources.
+  namespace: "k8s-janus"
+  # Name of the ServiceAccount the central controller uses to authenticate.
+  serviceAccountName: janus-remote
+  # Token lifetime for the static kubeconfig Secret (re-run setup.sh to refresh).
+  tokenDuration: "8760h"

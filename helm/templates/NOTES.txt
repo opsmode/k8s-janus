@@ -4,6 +4,18 @@
   Namespace: {{ .Values.janus.namespace }}
   Version:   {{ .Chart.AppVersion }}
 
+{{- if .Values.remote.enabled }}
+
+  Remote agent mode — ServiceAccount {{ .Values.remote.serviceAccountName }}
+  is ready in namespace {{ .Values.remote.namespace }}.
+
+  Now run setup.sh on your central cluster to extract the token
+  and register this cluster:
+
+    ./scripts/setup.sh
+
+{{- else }}
+
 {{- if eq .Values.service.type "LoadBalancer" }}
 
   Waiting for LoadBalancer IP...
@@ -40,3 +52,5 @@
 
     kubectl logs -f deploy/{{ include "janus.controller.name" . }} -n {{ .Values.janus.namespace }}
     kubectl logs -f deploy/{{ include "janus.webui.name" . }} -n {{ .Values.janus.namespace }}
+
+{{- end }}
