@@ -29,11 +29,13 @@ jobs:
 
       - name: Lint controller
         working-directory: controller
-        run: python -c "import main" && echo "controller: import OK"
+        run: |
+          python -c "import main" && echo "controller: import OK"
 
       - name: Lint webui
         working-directory: webui
-        run: APP_DIR=$(pwd) python -c "import main" && echo "webui: import OK"
+        run: |
+          APP_DIR=$(pwd) python -c "import main" && echo "webui: import OK"
 
   build:
     needs: lint
