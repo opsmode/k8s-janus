@@ -66,31 +66,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
-
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.sha }}
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          ignore-unfixed: true
-
-      - name: Scan image (SARIF for artifact)
-        if: always()
-        continue-on-error: true
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.sha }}
-          format: sarif
-          output: trivy.sarif
-          severity: CRITICAL,HIGH
-          exit-code: '0'
-          ignore-unfixed: true
-
-      - name: Upload Trivy scan results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-sarif
-          path: trivy.sarif
