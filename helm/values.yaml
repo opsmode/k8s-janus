@@ -142,3 +142,8 @@ postgresql:
 # → templates: pdb.yaml
 pdb:
   minAvailable: 1
+# NetworkPolicy — restricts ingress/egress for controller and webui pods.
+# Egress is limited to Kubernetes API (443/6443) and DNS (53).
+# → templates: networkpolicy.yaml
+networkPolicy:
+  enabled: true
