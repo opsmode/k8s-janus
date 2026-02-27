@@ -189,8 +189,10 @@ jobs:
             RANGE="${PREV_TAG}..${GITHUB_REF_NAME}"
           fi
 
-          # Dump commits to a temp file — one per line
-          git log "$RANGE" --pretty=format:"%s" > /tmp/commits.txt
+          # Dump commits to a temp file — skip CI bot commits (image tag updates, helm releases)
+          git log "$RANGE" --pretty=format:"%an|%s" | \
+            grep -v "^github-actions\[bot\]|" | \
+            sed 's/^[^|]*|//' > /tmp/commits.txt
 
           python3 - /tmp/commits.txt helm/Chart.yaml "${GITHUB_REF_NAME}" <<'PYEOF'
           import re, sys
