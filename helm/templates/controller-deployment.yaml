@@ -17,6 +17,17 @@ spec:
         {{- include "janus.controller.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "janus.controller.name" . }}
+      {{- if gt (int .Values.replicaCount) 1 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "janus.controller.selectorLabels" . | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+      {{- end }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

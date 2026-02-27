@@ -17,6 +17,17 @@ spec:
         {{- include "janus.webui.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "janus.webui.name" . }}
+      {{- if gt (int .Values.replicaCount) 1 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "janus.webui.selectorLabels" . | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+      {{- end }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -57,18 +68,23 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.webui.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30  # up to 150s for startup
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8000
-            initialDelaySeconds: 15
             periodSeconds: 30
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /healthz
               port: 8000
-            initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
           volumeMounts:
