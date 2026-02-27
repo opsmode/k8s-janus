@@ -178,6 +178,48 @@ jobs:
           sed -i "s/^version:.*/version: ${VERSION}/" helm/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/Chart.yaml
 
+      - name: Generate changelog for Artifact Hub
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..${GITHUB_REF_NAME}"
+          fi
+
+          # Build YAML list from commit messages
+          CHANGES=""
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qE '^feat(\(.+\))?!?:'; then
+              kind="added"
+            elif echo "$msg" | grep -qE '^fix(\(.+\))?!?:'; then
+              kind="fixed"
+            elif echo "$msg" | grep -qE '^(refactor|perf)(\(.+\))?!?:'; then
+              kind="changed"
+            elif echo "$msg" | grep -qE '^(security|sec)(\(.+\))?!?:'; then
+              kind="security"
+            elif echo "$msg" | grep -qE '^(remove|deprecate)(\(.+\))?!?:'; then
+              kind="removed"
+            else
+              kind="changed"
+            fi
+            desc=$(echo "$msg" | sed -E 's/^[a-z]+\([^)]+\)!?: //' | sed -E 's/^[a-z]+!?: //')
+            CHANGES="${CHANGES}    - kind: ${kind}\n      description: \"${desc}\"\n"
+          done < <(git log "$RANGE" --pretty=format:"%s")
+
+          if [ -z "$CHANGES" ]; then
+            CHANGES="    - kind: changed\n      description: \"Release ${GITHUB_REF_NAME}\"\n"
+          fi
+
+          # Write the annotation block into Chart.yaml via Python (avoids sed multiline issues)
+          python3 -c "
+          import re, sys
+          content = open('helm/Chart.yaml').read()
+          block = 'artifacthub.io/changes: |\n' + sys.argv[1]
+          content = re.sub(r'artifacthub\.io/changes: \|[^\n]*\n(    -[^\n]*\n)*', block, content)
+          open('helm/Chart.yaml', 'w').write(content)
+          " "$(printf '%b' "$CHANGES")"
+
       - name: Package and sign Helm chart
         run: |
           helm package helm/ \
