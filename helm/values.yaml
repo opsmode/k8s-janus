@@ -30,10 +30,10 @@ image:
   pullPolicy: IfNotPresent
   controller:
     repository: opsmode/k8s-janus-controller
-    tag: "v0.1.14"
+    tag: "v0.1.15"
   webui:
     repository: opsmode/k8s-janus-webui
-    tag: "v0.1.14"
+    tag: "v0.1.15"
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.
 # → templates: webui-service.yaml
