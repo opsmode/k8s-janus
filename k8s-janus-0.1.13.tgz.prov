@@ -1,0 +1,59 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "Release v0.1.13"
+apiVersion: v2
+appVersion: 0.1.13
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.io
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.1.13
+
+...
+files:
+  k8s-janus-0.1.13.tgz: sha256:cd858b8cc7f9a7c50c70b69a4d754e50a1ea0f3a548041091ff711231571a399
+
+-----BEGIN PGP SIGNATURE-----
+
+wsG5BAEBCgBtBYJpoheUCRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3JnUMUN/NrE/6zeWj3ks1GWomT7FvcxYjZsQ/6vccGpS/4W
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAACW0QAI8IWdo0Q63ThhIKI4qOtdUsD4OK
+elaq7Ujyyu3dUCl4EGIuP6CA0JvWOyagEZYG2IcFKS9yhrTCgns3Woq8/RsSu4mN
+6+PPoQq/5aK/WbyKR2DaWKdiXn5ahFN3AAKk+O8zMy/azSQRJ4kr2GcVGj1MzPc1
+MwL4glCMcTThLfiYbUTsjc1BTBoa1CdcJvVvsU3Dlk3K/TJJnli4NirLboRJK/Oq
+w/U+CLpHy42eNfyamUiIxoV+RrbkywPNvGZ7c+MNnLMvNdxbSFctVJqfjdcMH539
+rE+z/Rh2iKiwWxrQgw7HgQ5FrCO+MX4Dx7KPGWl3Mn1mao0sVfKAWc5uPSi0SAwx
+Xhf/8Tfpj9dBOcSAIgQFkzsuGUsoNNaK03ciBr3c6FYvmffCBgRuo9NTsYRZcraE
+eqVFY1MxahgL0lYeMOUaW0jWJDULHwkEmeP9jOQrgbl6uZjGDtUFKhBAtE7pYimq
+6zxMtOc8GtVGWRYu42rnQ/j6Q84ryB+XvE+y5olYPwLH9H6uaf7TBKBRMYKObafm
+2g/HO1TWlvbL6jVviI3OSpYoszxmaZTIi4TVYxaRoQUcxoNd+nxMlstaSiNr2C8g
+XmWpwUpUxoYjXQ5jGlR3hlUkn78GQUef6T8U4LZWnEdN5pD3/CT2UIscerrzEsgG
+Ip5IjQ7wldg+9wvZ
+-----END PGP SIGNATURE-----
