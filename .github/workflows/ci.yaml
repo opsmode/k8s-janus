@@ -10,6 +10,7 @@ on:
       - 'requirements.txt'
       - 'controller/**'
       - 'webui/**'
+      - '.github/workflows/ci.yaml'
 
 env:
   IMAGE: opsmode/k8s-janus
