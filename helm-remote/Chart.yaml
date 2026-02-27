@@ -2,8 +2,8 @@ apiVersion: v2
 name: k8s-janus-remote
 description: "K8s-Janus remote agent — deploys to target clusters to grant the central controller access."
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.14
+appVersion: "0.1.14"
 home: https://github.com/opsmode/k8s-janus
 sources:
   - https://github.com/opsmode/k8s-janus
