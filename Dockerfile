@@ -20,9 +20,8 @@ COPY webui/ webui/
 COPY supervisord.conf /etc/supervisor/conf.d/k8s-janus.conf
 
 # Run as non-root
-RUN addgroup -S k8s-janus && adduser -S -G k8s-janus -H -s /sbin/nologin k8s-janus && \
-    mkdir -p /tmp/supervisor && chown k8s-janus:k8s-janus /tmp/supervisor
+RUN addgroup -S k8s-janus && adduser -S -G k8s-janus -H -s /sbin/nologin k8s-janus
 
 USER k8s-janus
 
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/k8s-janus.conf", "-n"]
+CMD ["sh", "-c", "mkdir -p /tmp/supervisor && exec supervisord -c /etc/supervisor/conf.d/k8s-janus.conf -n"]
