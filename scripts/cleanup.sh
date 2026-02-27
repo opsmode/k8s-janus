@@ -28,8 +28,8 @@ cleanup_context() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   section "Namespaces"
-  NS_LIST=$(kubectl --context "$ctx" get namespaces --no-headers 2>/dev/null \
-    | awk '{print $1}' \
+  NS_LIST=$(kubectl --context "$ctx" get namespaces -o name 2>/dev/null \
+    | sed 's|namespace/||' \
     | grep -E "^${NAMESPACE}$|^test-" || true)
   if [ -n "$NS_LIST" ]; then
     for ns in $NS_LIST; do
@@ -46,7 +46,7 @@ cleanup_context() {
     | grep -E "${CRD_GROUP}|janus" || true)
   if [ -n "$CRD_LIST" ]; then
     for crd in $CRD_LIST; do
-      kubectl --context "$ctx" delete "$crd" 2>/dev/null \
+      kubectl --context "$ctx" delete "$crd" --grace-period=0 --force 2>/dev/null \
         && info "Deleted $crd" \
         || warn "Could not delete $crd"
     done
@@ -55,11 +55,12 @@ cleanup_context() {
   fi
 
   section "ClusterRoles"
-  CR_LIST=$(kubectl --context "$ctx" get clusterroles --no-headers 2>/dev/null \
-    | awk '{print $1}' | grep "janus" || true)
+  CR_LIST=$(kubectl --context "$ctx" get clusterroles -o name 2>/dev/null \
+    | sed 's|clusterrole.rbac.authorization.k8s.io/||' \
+    | grep "janus" || true)
   if [ -n "$CR_LIST" ]; then
     for cr in $CR_LIST; do
-      kubectl --context "$ctx" delete clusterrole "$cr" 2>/dev/null \
+      kubectl --context "$ctx" delete clusterrole "$cr" --grace-period=0 --force 2>/dev/null \
         && info "Deleted ClusterRole: $cr" \
         || warn "Could not delete ClusterRole: $cr"
     done
@@ -68,11 +69,12 @@ cleanup_context() {
   fi
 
   section "ClusterRoleBindings"
-  CRB_LIST=$(kubectl --context "$ctx" get clusterrolebindings --no-headers 2>/dev/null \
-    | awk '{print $1}' | grep "janus" || true)
+  CRB_LIST=$(kubectl --context "$ctx" get clusterrolebindings -o name 2>/dev/null \
+    | sed 's|clusterrolebinding.rbac.authorization.k8s.io/||' \
+    | grep "janus" || true)
   if [ -n "$CRB_LIST" ]; then
     for crb in $CRB_LIST; do
-      kubectl --context "$ctx" delete clusterrolebinding "$crb" 2>/dev/null \
+      kubectl --context "$ctx" delete clusterrolebinding "$crb" --grace-period=0 --force 2>/dev/null \
         && info "Deleted ClusterRoleBinding: $crb" \
         || warn "Could not delete ClusterRoleBinding: $crb"
     done
