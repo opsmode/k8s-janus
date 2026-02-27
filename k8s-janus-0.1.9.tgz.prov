@@ -19,6 +19,14 @@ keywords:
 - - security
 - - jit
 - - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
 maintainers:
 - - email: devops@opsmode.io
   name: OpsMode
@@ -30,22 +38,22 @@ version: 0.1.9
 
 ...
 files:
-  k8s-janus-0.1.9.tgz: sha256:ce6ca9823c9b48a9d838a8f7771f2d094fbee09840b1b2933108e32c5742e191
+  k8s-janus-0.1.9.tgz: sha256:aedf930d524ad4bce1f2dcacfbbf99529585bb25ebb0baef437b6ce78929ca5d
 
 -----BEGIN PGP SIGNATURE-----
 
-wsG5BAEBCgBtBYJpoX2KCRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
-cy5vcGVucGdwanMub3JnruxN2FDvgVhLLycSCFfJVF/Scd42+WqE3jPk+fyUgYIW
-IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAA2eAQAIym2vzAc1cTpMrNvFeNeh9Ebalu
-DxROr7gF0uLjSQHl/Y5fL7LP8uD+JunCcPsAcc1lXFUlGqTMImJuT41Xr4YOMqFi
-t33VnCiHaZgcQ0nPGFPcnL7mCDCRH4g7NyCM/uT4rJurY/xjgOp0GDRZvkXPVUn3
-INK/vraeZXl537dT434xNwtYi0rRCFxN/5K9p3uqaYex+9Onj7qRhTfb1+6wJt5j
-Wy1Iw5A/kHXx6w38HYd2w2cDp2XB/lk2TWp6Z0aNmM1uPov6B5fNYMYy0ptpytWx
-P07YSpO3snUJo8XFlYt9NhbsByoOBMfnePS2akmSuX6MAGm668E9m3az7Ti6WQLQ
-ZbMULSWZjHcgJswraKGrkbTUPpIC+KZgu+jFyoJa0+ad84nqUnqMLsD4MJmJxeNu
-ReviU844hrrEOBndd990yPuhYY91ZcQu3dHoRn2ppoAOQP7/vDVgaWiYa3QXWpAD
-OGxA8XTxiE8Qp6KeY1xelMGp5wQQoqAe/wUOdRcb5PJE7BPJKoqr32kYb7aLaBGr
-HnrHa0x5y/Muzgl2DCfGdjJP7f0vA+2gSGkV8EqJfTuyLWW+HHXtTooPPzArcN7+
-gls4Ng95q3oT46+vkyPXaq7hvk73igOvbnsUeq2xUGPzTvTV9SaxRS6UoIv5BrQj
-xzIaNYnWQW0l8ftJ
+wsG5BAEBCgBtBYJpoYL1CRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3JnsFVhWSbkk6PRB8OGlqQCof8PBWNt/PPxzxm+czYL0QQW
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAA6EwP/39qRddleHQINNL0Z1CvuKNMd2bH
+OWVqUBigHXWjYX1W2/KDxRO9S9ZtWW9QAKSxld6Yxsh3IpjG3Sz1G9okHGlZwx4y
+BRDJsS4o2StQkhGeIGsitxjXsUuBGNPuU8NU1WLpPdTfmQK4Z94IHUPd8rHoYq3k
+psT2bwuFXYB6I/SulDCJeJrUIOooRMEvsai3HgSSdREbf5OEZRGLlUPA9OggeM92
+lVqW5GcKdhd2m+gBvYncmYfPmUoK75OjLAIvjQdk4K+PhIwH9CJw1Fg78ZzOLr8x
+rBEoLu3jDszmXnKoA0uvst2V4V3DQZyTq4eU/VTv1pAt0+zcLgYzNT++6IrBU0bk
+hmOxoypSjnPmfr/S4yNmFM6ovhF43W/isS8qFx4rn9hPAAE4T+DuJxmDaSYc3kHP
+LURsA1hwvjNSsY42/kPxbtHtUUp8moAImL3nzUrv6KRrblYDg7+3VpQGYl2aGt2k
+fHSa5gQ3JhQdeukuvlyq4DnsaDfxzmSn9ukkXSOUF/Cy7axC64T+3xcE31DN2Hb1
+MmsrBdhBS7IT3NbUPcqeBcFDoq9DmlUr5303RAhWlOj121aAGgLUnUXcJGxO3h1U
+bB7WSzHhxgl9Q050cszpBMV18VN//hb+O53VryIHJIli0kDP3Pns6pGhc12aSEQQ
+KT3BWQhbJNW0iACN
 -----END PGP SIGNATURE-----
