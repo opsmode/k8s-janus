@@ -1,0 +1,67 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: fixed
+      description: "rewrite AH changelog generation to handle multiline YAML correctly"
+    - kind: changed
+      description: "update controller image tag to v0.1.11"
+    - kind: changed
+      description: "update webui image tag to v0.1.11"
+    - kind: changed
+      description: "update webui image tag to a3fea54"
+    - kind: changed
+      description: "update controller image tag to a3fea54"
+apiVersion: v2
+appVersion: 0.1.12
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.io
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.1.12
+
+...
+files:
+  k8s-janus-0.1.12.tgz: sha256:90ca19f9011a42ca65c967bc3a9ad45792cd6b4aad31b8b2cf16aba152e8a302
+
+-----BEGIN PGP SIGNATURE-----
+
+wsG5BAEBCgBtBYJpodbpCRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3JnnB/8vD9r6/Xj+NrWwC4XTSR8uav/qn/RbOZa0uo+PTUW
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAAPXMP/1Ve7vnir90wMCrIRGpvIMv/riaH
+y6WFzIY3VoHsTU1XzEOlXU/qZb2/lyks0snTHGmqZrrj8S5siVWA8hOlCiYghsMh
+3KYRPiLhh4xOeiofQXFQ3L/hxHqWr0MBYQn0lfeyEHF+gUQySBesT7xz1Xdi4Q1U
+XbGnCrabFKbr9J/GyOkzvl5AG380gKXjGvA9LpImyCxP31X0QxekKdcXY/fWVnLz
+kvVP8XEaVMfKRjojCAixISZDEHn+I6kx+kobzNZpNtb2FCIkIlI0zf65Xonc4vmv
+wGLaJsf/Fczr8nGLE8dS+injWQKAWCBA6ZKcd1ZmVfIxRztc26r55ovOjBAaoujg
+vv2EYIwr5SWBNeJ6Wq9mp1DSEAx7AWbZe6bcimX++TuO4t80Bxo7/UznScaDcLr4
+D7wNXNiXPwzVAn6BVjh0iqb8dTriG4z3DMxDp0yk6xvsD0Reh/1slxC12R0stz1y
+/WMbm7HbH6hHDHvhqR086qkYaSNbJaq8VEZHPDw+m4kMQxb9kwIRq97hDQ62NXXA
+os3lA2KK6Qq4F9jEea7sWRrZ/CqQXJp7oME1oEnAhoRpZ68W3IEvQhIF9cSgrppr
+N0ul52H30YMFMTM61mqaRUupEkEIbjFTcFHWwM0IStA2VkKpsUyTjfoETn4HqUr4
+fd2lbl+coFxRCyR8
+-----END PGP SIGNATURE-----
