@@ -126,8 +126,10 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 | 👤 Non-root | `runAsUser: 1000`, `runAsNonRoot: true` |
 | 📁 Immutable FS | `readOnlyRootFilesystem: true` |
 | 🚫 No capabilities | `capabilities.drop: [ALL]` |
-| 🌐 Network isolation | NetworkPolicy: egress only to K8s API |
+| 🌐 Network isolation | NetworkPolicy: egress restricted to K8s API (443/6443) and DNS only |
 | ⏰ TTL enforcement | Min 10 min · Max 8 hours · Enforced server-side |
+| 🔏 Signed images | Helm chart signed with GPG — verify with `helm install --verify` |
+| 📋 Full audit trail | Every session open, close, command, idle timeout, and revocation logged |
 
 ---
 
