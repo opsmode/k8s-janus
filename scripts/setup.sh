@@ -43,7 +43,7 @@ banner
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELM_CHART="${SCRIPT_DIR}/../helm"
-HELM_REMOTE_CHART="${SCRIPT_DIR}/../helm-remote"
+HELM_CHART="${SCRIPT_DIR}/../helm"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -145,47 +145,48 @@ echo ""
 info "Selected ${#ALL_SELECTED[@]} cluster(s) total"
 
 # ==============================================================================
-# Deploy helm-remote to every selected cluster
+# Deploy remote agent to every selected cluster
 # ==============================================================================
-step "Deploying helm-remote agent to remote clusters"
+step "Deploying remote agent to remote clusters"
 echo ""
-echo -e "${DIM}  Creates the janus-remote ServiceAccount + RBAC on each remote cluster.${RESET}"
-echo -e "${DIM}  The central cluster gets its janus-remote SA from the main helm chart.${RESET}"
+echo -e "${DIM}  Installs the janus-remote ServiceAccount + RBAC on each remote cluster${RESET}"
+echo -e "${DIM}  using the main chart with --set remote.enabled=true.${RESET}"
 echo ""
 
-if [[ ! -d "$HELM_REMOTE_CHART" ]]; then
-  die "helm-remote chart not found at $HELM_REMOTE_CHART"
+if [[ ! -d "$HELM_CHART" ]]; then
+  die "Helm chart not found at $HELM_CHART"
 fi
 
 for ctx in "${REMOTE_CONTEXTS[@]}"; do
   echo -e "  ${BOLD}$ctx${RESET}"
 
-  # Safety: remove the main k8s-janus chart from remote clusters if present
-  if helm status k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
+  # If old janus-remote release exists, uninstall it first
+  if helm status janus-remote --kube-context "$ctx" --namespace "$JANUS_NS" \
       &>/dev/null 2>&1; then
-    warn "Main k8s-janus chart found on remote cluster '$ctx' — removing it"
-    helm uninstall k8s-janus --kube-context "$ctx" --namespace "$JANUS_NS" \
+    warn "Old janus-remote release found on '$ctx' — removing it"
+    helm uninstall janus-remote --kube-context "$ctx" --namespace "$JANUS_NS" \
       &>/dev/null
-    ok "Removed k8s-janus from remote cluster ${BOLD}$ctx${RESET}"
+    ok "Removed old janus-remote release from ${BOLD}$ctx${RESET}"
   fi
 
-  if helm upgrade --install janus-remote "$HELM_REMOTE_CHART" \
+  if helm upgrade --install k8s-janus "$HELM_CHART" \
       --kube-context "$ctx" \
       --namespace "$JANUS_NS" \
       --create-namespace \
+      --set remote.enabled=true \
       --wait \
       --timeout 60s \
       &>/dev/null; then
     # Verify the SA actually exists after deploy
     if kubectl --context="$ctx" get serviceaccount janus-remote \
         -n "$JANUS_NS" &>/dev/null 2>&1; then
-      ok "helm-remote deployed on ${BOLD}$ctx${RESET}"
+      ok "Remote agent deployed on ${BOLD}$ctx${RESET}"
     else
-      warn "helm-remote deploy reported success but SA missing on '$ctx'"
-      warn "Try: helm uninstall janus-remote --kube-context $ctx -n $JANUS_NS && re-run setup.sh"
+      warn "Deploy reported success but SA missing on '$ctx'"
+      warn "Try: helm uninstall k8s-janus --kube-context $ctx -n $JANUS_NS && re-run setup.sh"
     fi
   else
-    warn "helm-remote deploy failed on '$ctx' — skipping this cluster"
+    warn "Remote agent deploy failed on '$ctx' — skipping this cluster"
   fi
 done
 
