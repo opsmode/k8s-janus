@@ -23,17 +23,13 @@ clusters:
 #   - name: second-cluster
 #     displayName: "Second Cluster"
 #     secretName: "second-cluster-kubeconfig"
-# Container image settings for both deployments.
-# Tags are updated automatically by CI on every push to main.
+# Container image used by both controller and webui deployments.
+# Tag is updated automatically by CI on every release.
 # → templates: controller-deployment.yaml, webui-deployment.yaml
 image:
+  repository: opsmode/k8s-janus
+  tag: "v0.1.11"
   pullPolicy: IfNotPresent
-  controller:
-    repository: opsmode/k8s-janus-controller
-    tag: "v0.1.15"
-  webui:
-    repository: opsmode/k8s-janus-webui
-    tag: "v0.1.15"
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.
 # → templates: webui-service.yaml

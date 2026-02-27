@@ -32,24 +32,12 @@
     "image": {
       "type": "object",
       "properties": {
+        "repository": { "type": "string", "default": "opsmode/k8s-janus" },
+        "tag":        { "type": "string" },
         "pullPolicy": {
           "type": "string",
           "enum": ["Always", "IfNotPresent", "Never"],
           "default": "IfNotPresent"
-        },
-        "controller": {
-          "type": "object",
-          "properties": {
-            "repository": { "type": "string", "default": "opsmode/k8s-janus-controller" },
-            "tag":        { "type": "string" }
-          }
-        },
-        "webui": {
-          "type": "object",
-          "properties": {
-            "repository": { "type": "string", "default": "opsmode/k8s-janus-webui" },
-            "tag":        { "type": "string" }
-          }
         }
       }
     },

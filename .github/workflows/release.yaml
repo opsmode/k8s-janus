@@ -6,39 +6,10 @@ on:
       - 'v*'
 
 env:
-  IMAGE_PREFIX: opsmode/k8s-janus
+  IMAGE: opsmode/k8s-janus
 
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      controller: ${{ steps.changes.outputs.controller }}
-      webui: ${{ steps.changes.outputs.webui }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect changed paths since previous tag
-        id: changes
-        run: |
-          # Find the previous tag to diff against
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
-          if [ -z "$PREV_TAG" ]; then
-            # No previous tag — treat everything as changed
-            echo "controller=true" >> $GITHUB_OUTPUT
-            echo "webui=true" >> $GITHUB_OUTPUT
-          else
-            echo "Diffing $PREV_TAG..${GITHUB_REF_NAME}"
-            CHANGED=$(git diff --name-only "$PREV_TAG" "${GITHUB_REF_NAME}")
-            echo "$CHANGED"
-            echo "controller=$(echo "$CHANGED" | grep -q '^controller/' && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "webui=$(echo "$CHANGED" | grep -q '^webui/' && echo true || echo false)" >> $GITHUB_OUTPUT
-          fi
-
-  build-controller:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.controller == 'true'
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -56,64 +27,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push controller
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./controller
+          context: .
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-controller:${{ steps.version.outputs.tag }}
-            ${{ env.IMAGE_PREFIX }}-controller:latest
+            ${{ env.IMAGE }}:${{ steps.version.outputs.tag }}
+            ${{ env.IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
-      - name: Scan controller image with Trivy
+      - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: ${{ env.IMAGE_PREFIX }}-controller:${{ steps.version.outputs.tag }}
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          ignore-unfixed: true
-
-
-  build-webui:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.webui == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract version
-        id: version
-        run: echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push webui
-        uses: docker/build-push-action@v5
-        with:
-          context: ./webui
-          push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}-webui:${{ steps.version.outputs.tag }}
-            ${{ env.IMAGE_PREFIX }}-webui:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-
-      - name: Scan webui image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ env.IMAGE_PREFIX }}-webui:${{ steps.version.outputs.tag }}
+          image-ref: ${{ env.IMAGE }}:${{ steps.version.outputs.tag }}
           format: table
           severity: CRITICAL,HIGH
           exit-code: '1'
@@ -121,8 +50,7 @@ jobs:
 
 
   publish-helm:
-    needs: [build-controller, build-webui]
-    if: always()
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -151,8 +79,6 @@ jobs:
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/Chart.yaml
 
       - name: Generate changelog for Artifact Hub
-        env:
-          PREV_TAG: ${{ github.ref_name }}
         run: |
           PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
           if [ -z "$PREV_TAG" ]; then
@@ -161,7 +87,7 @@ jobs:
             RANGE="${PREV_TAG}..${GITHUB_REF_NAME}"
           fi
 
-          # Dump commits to a temp file — skip CI bot commits (image tag updates, helm releases)
+          # Dump commits to a temp file — skip CI bot commits
           git log "$RANGE" --pretty=format:"%an|%s" | \
             grep -v "^github-actions\[bot\]|" | \
             sed 's/^[^|]*|//' > /tmp/commits.txt
@@ -190,9 +116,7 @@ jobs:
                   if re.match(pattern, msg):
                       kind = k
                       break
-              # Strip conventional commit prefix
               desc = re.sub(r'^[a-z]+(\([^)]+\))?!?: ', '', msg)
-              # Escape any double quotes in description
               desc = desc.replace('"', '\\"')
               entries.append(f'    - kind: {kind}\n      description: "{desc}"')
 
@@ -202,7 +126,6 @@ jobs:
           block = 'artifacthub.io/changes: |\n' + '\n'.join(entries) + '\n'
 
           content = open(chart_file).read()
-          # Replace the entire annotation value (block scalar) - matches until next non-indented key
           content = re.sub(
               r'artifacthub\.io/changes: \|.*?(?=\n\S|\Z)',
               block.rstrip(),
@@ -241,7 +164,7 @@ jobs:
           git diff --cached --quiet || git commit -m "helm: release ${{ github.ref_name }}"
           git push origin gh-pages
 
-      - name: Update image tags in values.yaml
+      - name: Update image tag in values.yaml
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -254,8 +177,7 @@ jobs:
           chmod +x /usr/local/bin/yq
           VERSION=${{ github.ref_name }}
           VERSION_NUM=${VERSION#v}
-          yq -i '.image.controller.tag = "'$VERSION'"' helm/values.yaml
-          yq -i '.image.webui.tag = "'$VERSION'"' helm/values.yaml
+          yq -i '.image.tag = "'$VERSION'"' helm/values.yaml
           sed -i "s/^version:.*/version: ${VERSION_NUM}/" helm/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION_NUM}\"/" helm/Chart.yaml
           git add helm/values.yaml helm/Chart.yaml
@@ -263,8 +185,7 @@ jobs:
           git push origin main
 
   release:
-    needs: [detect-changes, build-controller, build-webui, publish-helm]
-    if: always()
+    needs: [build, publish-helm]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -278,11 +199,10 @@ jobs:
           name: ${{ github.ref_name }}
           generate_release_notes: true
           body: |
-            ## Docker Images
+            ## Docker Image
 
             ```
-            opsmode/k8s-janus-controller:${{ github.ref_name }}
-            opsmode/k8s-janus-webui:${{ github.ref_name }}
+            opsmode/k8s-janus:${{ github.ref_name }}
             ```
 
             ## Deploy via Helm
