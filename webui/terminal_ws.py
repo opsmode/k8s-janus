@@ -20,7 +20,7 @@ import queue as _queue
 from fastapi import WebSocket, WebSocketDisconnect
 from kubernetes.stream import stream
 
-from k8s import get_api_clients, get_client_with_token, read_token_secret, CLUSTERS, JANUS_NAMESPACE
+from k8s import get_client_with_token, read_token_secret
 from db import log_command
 
 logger = logging.getLogger("k8s-janus-webui")
@@ -199,7 +199,6 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
     namespace   = ar.get("spec", {}).get("namespace", "")
     ar_status   = ar.get("status", {})
     secret_name = ar_status.get("tokenSecret", "")
-    expires_at  = ar_status.get("expiresAt", "")
 
     if not namespace or not secret_name:
         await websocket.send_text("Error: Missing namespace or token\r\n")
@@ -233,7 +232,7 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
     idle_warned                       = False
 
     async def _idle_checker():
-        nonlocal last_activity, idle_warned
+        nonlocal idle_warned
         while True:
             await asyncio.sleep(10)
             idle = time.monotonic() - last_activity
@@ -372,7 +371,6 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
 async def _auto_revoke(name: str, cluster: str):
     """Patch the AccessRequest to Revoked due to idle timeout."""
     from datetime import datetime, timezone
-    from kubernetes.client.rest import ApiException
     try:
         from k8s import get_api_clients, CLUSTERS, CRD_GROUP
         custom_api, _ = get_api_clients(CLUSTERS[0]["name"])
