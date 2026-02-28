@@ -32,11 +32,17 @@
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: 'Inter', -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
       background-image:
         radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
     }
@@ -51,8 +57,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
+      flex-shrink: 0;
       z-index: 100;
     }
     .header-brand {
@@ -109,7 +114,15 @@
     }
 
     /* ── LAYOUT ── */
-    .container { max-width: 960px; margin: 40px auto; padding: 0 20px; }
+    .page-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .page-scroll::-webkit-scrollbar { width: 6px; }
+    .page-scroll::-webkit-scrollbar-track { background: transparent; }
+    .page-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    .container { max-width: 960px; margin: 32px auto; padding: 0 20px; }
 
     /* ── CARDS ── */
     .card {
@@ -232,7 +245,6 @@
     /* ── TABLE ── */
     .table-wrap {
       overflow-x: auto;
-      max-height: 500px;
       overflow-y: auto;
     }
     .table-wrap::-webkit-scrollbar { width: 8px; }
@@ -403,6 +415,7 @@
     </div>
   </header>
 
+  <div class="page-scroll">
   <div class="container">
     {% if error %}
     <div class="error-bar">
@@ -573,6 +586,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /page-scroll -->
 
   <script>
     lucide.createIcons();
