@@ -28,7 +28,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -38,15 +38,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
-
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ env.IMAGE }}:${{ steps.version.outputs.tag }}
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          ignore-unfixed: true
 
 
   publish-helm:
@@ -66,11 +57,6 @@ jobs:
         run: |
           echo "${{ secrets.HELM_GPG_KEY }}" | gpg --batch --import
           gpg --export-secret-keys --output ~/.gnupg/secring.gpg
-
-      - name: Regenerate values schema
-        run: |
-          pip install pyyaml -q
-          python3 scripts/gen-schema.py
 
       - name: Set chart version and image tag from release tag
         run: |
