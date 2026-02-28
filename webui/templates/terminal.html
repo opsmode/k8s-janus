@@ -609,8 +609,8 @@
           <div class="tab-content active" id="pane-a-terminal-tab">
             <div class="term-el" id="pane-a-term">
               <div class="placeholder">
-                <img src="https://media1.tenor.com/m/3FcZbwizLcAAAAAd/hacker.gif"
-                     alt="I'm in!" style="height:240px;border-radius:10px;opacity:0.75;margin-bottom:8px;">
+                <img src="/static/hacker.gif"
+                     alt="I'm in!" style="height:140px;border-radius:10px;opacity:0.75;margin-bottom:8px;">
                 <p style="font-size:0.88rem;">👈 Select a pod from the sidebar to begin your adventure</p>
               </div>
             </div>
@@ -652,8 +652,8 @@
             <div class="term-el" id="pane-b-term">
               <div class="placeholder">
                 <i data-lucide="terminal" style="width:56px;height:56px;opacity:0.2;"></i>
-                <img src="https://media1.tenor.com/m/r5X-h1GcNnMAAAAC/i%27m-watching-you.gif"
-                     alt="I'm watching you" style="height:300px;border-radius:8px;opacity:0.75;margin-bottom:8px;">
+                <img src="/static/watching.gif"
+                     alt="I'm watching you" style="height:140px;border-radius:8px;opacity:0.75;margin-bottom:8px;">
                 <p style="font-size:0.88rem;">👈 Select a pod (the other pane is also judging your choices)</p>
               </div>
             </div>
@@ -1032,7 +1032,7 @@
           const podCount = document.getElementById('pod-count');
           if (data.error) {
             podList.innerHTML = `<div class="loading-pods" style="color:var(--danger);flex-direction:column;gap:12px;">
-              <img src="https://media1.tenor.com/m/YVJahZlSzBYAAAAd/lethal-weapon.gif" style="height:200px;border-radius:8px;opacity:0.85;">
+              <img src="/static/revoked.gif" style="height:140px;border-radius:8px;opacity:0.85;">
               <span>${data.error}</span>
             </div>`;
             return;

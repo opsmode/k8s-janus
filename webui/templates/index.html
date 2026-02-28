@@ -464,11 +464,11 @@
           <div class="form-group">
             <label for="ttl_hours">Duration</label>
             <select id="ttl_hours" name="ttl_hours">
-              <option value="1" {% if default_ttl == 1 %}selected{% endif %}>1 hour</option>
-              <option value="2" {% if default_ttl == 2 %}selected{% endif %}>2 hours</option>
-              <option value="4">4 hours</option>
-              <option value="8">8 hours</option>
+              {% for h in [1, 2, 4, 8] %}{% if h <= max_ttl %}
+              <option value="{{ h }}" {% if default_ttl == h %}selected{% endif %}>{{ h }} hour{{ 's' if h > 1 else '' }}</option>
+              {% endif %}{% endfor %}
             </select>
+            <small style="color:var(--text-muted,#94a3b8);font-size:0.78rem;">Max {{ max_ttl }} hour{{ 's' if max_ttl > 1 else '' }}</small>
           </div>
           <div class="form-group full">
             <label for="reason">Business justification (or a really convincing lie)</label>

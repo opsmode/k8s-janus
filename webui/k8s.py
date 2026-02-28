@@ -50,7 +50,7 @@ def _cleanup_tmp_files():
 # Client cache
 # ---------------------------------------------------------------------------
 _CLIENT_CACHE: dict[str, tuple] = {}
-_CLIENT_TTL = 300  # seconds
+_CLIENT_TTL = 3600  # seconds — kubeconfig Secrets rarely change
 
 
 def get_cluster_config(cluster_name: str) -> dict | None:
@@ -194,11 +194,12 @@ def read_token_secret(secret_name: str) -> tuple[str, str, str]:
     secret = core_v1.read_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE)
     token  = b64.b64decode(secret.data.get("token",  "")).decode("utf-8")
     server = b64.b64decode(secret.data.get("server", "")).decode("utf-8")
-    # ca is stored as base64(PEM) — decode the K8s envelope, then decode
-    # the inner base64 to get the raw PEM for use as an SSL CA cert file.
-    ca_b64 = b64.b64decode(secret.data.get("ca", ""))
+    # ca is stored as base64(base64(PEM)) by the controller:
+    #   K8s Secret envelope → outer b64decode → inner b64decode → raw PEM
+    ca_outer = b64.b64decode(secret.data.get("ca", ""))
     try:
-        ca = b64.b64decode(ca_b64).decode("utf-8")
+        ca = b64.b64decode(ca_outer).decode("utf-8")
     except Exception:
-        ca = ca_b64.decode("utf-8")
+        # Fallback: already raw PEM after single decode
+        ca = ca_outer.decode("utf-8")
     return token, server, ca

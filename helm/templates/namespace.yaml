@@ -4,3 +4,5 @@ metadata:
   name: {{ .Values.janus.namespace }}
   labels:
     {{- include "janus.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

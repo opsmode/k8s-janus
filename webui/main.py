@@ -125,7 +125,7 @@ _SECURITY_HEADERS = [
         b"script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
         b"style-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com 'unsafe-inline'; "
         b"font-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.gstatic.com; "
-        b"img-src 'self' data: https://media.tenor.com https://media1.tenor.com https://media2.tenor.com https://media3.tenor.com https://media4.tenor.com https://media.giphy.com https://media0.giphy.com https://media1.giphy.com https://media2.giphy.com; "
+        b"img-src 'self' data:; "
         b"connect-src 'self' wss: ws:;"
     )),
 ]
@@ -369,8 +369,22 @@ async def submit_request(
         },
     }
 
+    # Rate limit: max 10 pending/approved/active requests per user
+    all_requests = list_access_requests()
+    active_count = sum(
+        1 for ar in all_requests
+        if ar.get("spec", {}).get("requester") == requester
+        and ar.get("status", {}).get("phase", "") in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
+    )
+    if active_count >= 10:
+        ctx = _base_context(request)
+        ctx["error"] = "Too many active requests. Wait for existing requests to expire or be revoked."
+        ctx["access_requests"] = [ar for ar in all_requests if ar.get("spec", {}).get("requester", "").lower() == requester.lower()]
+        ctx["is_admin"] = False
+        return templates.TemplateResponse("index.html", ctx, status_code=429)
+
     # Block duplicate active/pending requests
-    for ar in list_access_requests():
+    for ar in all_requests:
         ar_spec  = ar.get("spec", {})
         ar_phase = ar.get("status", {}).get("phase", "")
         if (
@@ -401,7 +415,7 @@ async def submit_request(
         ctx = _base_context(request)
         ctx["error"] = "Failed to submit request. Please try again."
         ctx["access_requests"] = [
-            ar for ar in list_access_requests()
+            ar for ar in all_requests
             if ar.get("spec", {}).get("requester", "").lower() == requester.lower()
         ]
         ctx["is_admin"] = False

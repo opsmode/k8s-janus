@@ -7,27 +7,19 @@
   <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
   <script>
     var _phase = {{ status.get("phase", "Pending") | tojson }};
-    if (_phase === 'Pending' || _phase === 'Approved') {
-      function scheduleReload() {
-        setTimeout(function() {
-          if (document.visibilityState === 'hidden') {
-            document.addEventListener('visibilitychange', function() { location.reload(); }, { once: true });
-          } else {
-            location.reload();
-          }
-        }, 5000);
-      }
-      scheduleReload();
-    }
-    if (_phase === 'Active') {
-      // Poll for revoke/expire so the page auto-reloads without needing a WS connection
+    var _FINAL_PHASES = ['Denied', 'Expired', 'Revoked', 'Failed'];
+    // Poll only for non-final phases
+    if (_FINAL_PHASES.indexOf(_phase) === -1) {
       (function pollPhase() {
         setTimeout(function() {
           fetch('/api/status/{{ cluster }}/{{ name }}')
             .then(function(r) { return r.json(); })
             .then(function(d) {
-              if (d.phase && d.phase !== 'Active') { location.reload(); }
-              else { pollPhase(); }
+              if (d.phase && d.phase !== _phase) {
+                location.reload();
+              } else {
+                pollPhase();
+              }
             })
             .catch(function() { pollPhase(); });
         }, 5000);
@@ -498,8 +490,8 @@
 
       {% if status.get("phase") == "Pending" %}
       <div style="text-align:center;margin-top:16px;">
-        <img src="https://media1.tenor.com/m/SIZkySt-3WEAAAAd/cat-funny-cats.gif"
-             alt="Waiting..." style="height:320px;border-radius:10px;opacity:0.85;">
+        <img src="/static/pending.gif"
+             alt="Waiting..." style="height:160px;border-radius:10px;opacity:0.85;">
       </div>
       <div class="alert alert-info" style="margin-top:12px;">
         <i data-lucide="loader" style="width:16px;height:16px;"></i>
@@ -509,8 +501,8 @@
 
       {% if status.get("phase") == "Denied" %}
       <div style="text-align:center;margin-top:16px;">
-        <img src="https://media1.tenor.com/m/s0Mmgevkvl0AAAAC/request-denied-thumbs-down.gif"
-             alt="Access Denied" style="height:220px;border-radius:10px;opacity:0.85;">
+        <img src="/static/denied.gif"
+             alt="Access Denied" style="height:140px;border-radius:10px;opacity:0.85;">
       </div>
       <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="x-circle" style="width:16px;height:16px;"></i>
@@ -525,8 +517,8 @@
 
       {% if status.get("phase") == "Expired" %}
       <div style="text-align:center;margin-top:16px;">
-        <img src="https://media1.tenor.com/m/xoj8JLEbFzwAAAAC/chug-thin.gif"
-             alt="Time's up!" style="height:220px;border-radius:10px;opacity:0.85;">
+        <img src="/static/expired.gif"
+             alt="Time's up!" style="height:140px;border-radius:10px;opacity:0.85;">
       </div>
       <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="timer-off" style="width:16px;height:16px;"></i>
@@ -536,8 +528,8 @@
 
       {% if status.get("phase") == "Revoked" %}
       <div style="text-align:center;margin-top:16px;">
-        <img src="https://media1.tenor.com/m/YVJahZlSzBYAAAAd/lethal-weapon.gif"
-             alt="Revoked!" style="height:220px;border-radius:10px;opacity:0.85;">
+        <img src="/static/revoked.gif"
+             alt="Revoked!" style="height:140px;border-radius:10px;opacity:0.85;">
       </div>
       <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="shield-off" style="width:16px;height:16px;"></i>
@@ -557,8 +549,8 @@
     {% if status.get("phase") == "Active" and token %}
     <div class="token-card">
       <div style="text-align:center;margin-bottom:16px;">
-        <img src="https://media1.tenor.com/m/wDNoGBcFZmYAAAAC/permission-granted-lord-hood.gif"
-             alt="Access Granted!" style="height:220px;border-radius:10px;opacity:0.9;">
+        <img src="/static/approved.gif"
+             alt="Access Granted!" style="height:140px;border-radius:10px;opacity:0.9;">
       </div>
       <div class="token-heading">
         <div class="card-icon" style="border-color:rgba(99,102,241,0.4);">
