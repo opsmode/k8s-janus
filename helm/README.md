@@ -3,9 +3,24 @@
 **Just-in-Time `kubectl exec` access for Kubernetes.**
 Engineers request temporary pod access through a web UI. Admins approve with one click. The token auto-expires. No permanent permissions. Ever.
 
+## How it works
+
+K8s-Janus has two roles:
+
+- **Central cluster** — runs the controller, web UI, and CRDs. This is where admins approve requests and engineers open terminals.
+- **Remote cluster** — runs only a lightweight agent (ServiceAccount + RBAC). The central controller connects to it when access is granted.
+
+You need at least one central install. Add a remote agent on every additional cluster you want to manage.
+
+## Prerequisites
+
+- Kubernetes 1.24+
+- Helm 3.x
+- `kubectl` access to your cluster(s)
+
 ## Install
 
-### Central cluster
+### 1. Central cluster
 
 ```bash
 helm repo add k8s-janus https://opsmode.github.io/k8s-janus
@@ -14,9 +29,9 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
 ```
 
-### Remote cluster
+### 2. Remote clusters (optional)
 
-On each remote cluster, deploy only the agent (ServiceAccount + RBAC — no controller or webui):
+On each additional cluster, deploy only the agent — no controller or web UI:
 
 ```bash
 helm upgrade --install k8s-janus k8s-janus/k8s-janus \
@@ -24,71 +39,25 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --set remote.enabled=true
 ```
 
-Then run `setup.sh` (or enable `kubeconfigSync`) on the central cluster to register it. See [Cluster Setup](#cluster-setup) below.
+After deploying the agent, register the cluster with the central instance using one of the two options below.
 
-## Prerequisites
+## Registering remote clusters
 
-- Kubernetes 1.24+
-- Helm 3.x
-- `kubectl` access to your cluster(s)
+The central controller needs a kubeconfig Secret for each remote cluster, named `<cluster-name>-kubeconfig`, in the `k8s-janus` namespace.
 
-## Configuration
+### Option A — setup.sh (recommended for most setups)
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `replicaCount` | Replicas for controller and webui deployments | `1` |
-| `image.repository` | Container image (controller + webui combined) | `opsmode/k8s-janus` |
-| `image.tag` | Image tag | set by CI on release |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `clusters` | List of clusters to manage (first = central) | see values.yaml |
-| `clusters[].name` | Cluster identifier (used internally) | required |
-| `clusters[].displayName` | Human-readable name shown in the UI | required |
-| `clusters[].secretName` | Override kubeconfig Secret name (auto-derived as `<name>-kubeconfig`) | optional |
-| `janus.namespace` | Namespace Janus is deployed in | `k8s-janus` |
-| `janus.defaultTtlSeconds` | Default access TTL | `3600` |
-| `janus.maxTtlSeconds` | Maximum allowed TTL | `28800` |
-| `janus.idleTimeoutSeconds` | Idle terminal timeout | `900` |
-| `janus.displayTimezone` | Timezone for UI timestamps | `Europe/Berlin` |
-| `janus.adminEmails` | Emails with admin access | `[]` |
-| `janus.excludedNamespaces` | Namespaces hidden from request form | see values.yaml |
-| `service.type` | Web UI service type | `LoadBalancer` |
-| `service.port` | Web UI service port | `80` |
-| `ingress.enabled` | Enable ingress instead of LoadBalancer | `false` |
-| `webui.authEnabled` | Enable OAuth2 proxy auth | `false` |
-| `webui.baseUrl` | Public URL for callback links | `""` |
-| `kubeconfigSync.enabled` | Auto-sync kubeconfig Secrets from ArgoCD cluster Secrets | `false` |
-| `kubeconfigSync.argocdNamespace` | Namespace where ArgoCD stores cluster Secrets | `argocd` |
-| `externalSecrets.enabled` | Use External Secrets Operator | `false` |
-| `postgresql.enabled` | Use PostgreSQL for persistence | `false` |
-| `networkPolicy.enabled` | Deploy NetworkPolicy for controller and webui pods | `true` |
-| `remote.enabled` | Remote agent mode (ServiceAccount + RBAC only, no controller/webui) | `false` |
-| `pdb.minAvailable` | Minimum pods during voluntary disruptions (only when `replicaCount > 1`) | `1` |
-
-## Security
-
-By default the chart ships with a hardened security posture:
-
-- **Pod Security Standards** — `restricted` profile enforced at the namespace level
-- **RBAC least-privilege** — controller and remote agent ClusterRoles are scoped to named resources only (`janus-pod-exec`); no wildcard ClusterRole grants
-- **NetworkPolicy** — ingress limited to intra-namespace traffic; egress limited to the Kubernetes API server and (for the controller) remote cluster endpoints
-- **Non-root containers** — all pods run as non-root with a read-only root filesystem and dropped capabilities
-- **Failed phase** — access grants that error out surface as `Failed` on the CRD instead of silently freezing in `Approved`
-
-## Cluster Setup
-
-Each cluster in the `clusters:` list needs a kubeconfig Secret named `<name>-kubeconfig` in the `k8s-janus` namespace. There are two ways to provision these:
-
-### Option A — setup.sh (non-ArgoCD)
+Run the interactive script from the central cluster:
 
 ```bash
 ./scripts/setup.sh
 ```
 
-Interactive script that deploys the remote agent, extracts a static token, and creates the kubeconfig Secrets automatically.
+It deploys the remote agent, extracts a scoped token, and creates the kubeconfig Secret automatically.
 
-### Option B — kubeconfigSync (ArgoCD)
+### Option B — kubeconfigSync (ArgoCD users)
 
-If ArgoCD manages your remote clusters, enable the post-install Job:
+If ArgoCD already manages your remote clusters, skip the script entirely. Enable the post-install Job and it will create the kubeconfig Secrets from ArgoCD's existing cluster Secrets:
 
 ```yaml
 kubeconfigSync:
@@ -96,9 +65,73 @@ kubeconfigSync:
   argocdNamespace: argocd
 ```
 
-The Job reads ArgoCD's existing cluster Secrets and creates the kubeconfig Secrets automatically — no manual script run needed. Only clusters listed in `clusters:` are synced.
+> **Note:** The `name` field in each `clusters:` entry must exactly match the cluster name registered in ArgoCD. Verify with:
+> ```bash
+> kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster -o jsonpath='{.items[*].metadata.name}'
+> ```
 
-> **Important:** The `name` field in each `clusters:` entry must exactly match the cluster name as registered in ArgoCD (the value ArgoCD stores in its cluster Secret's `name` label / server entry). If they differ, the sync Job will not find the Secret and the kubeconfig will not be created. You can verify registered names with `kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster -o jsonpath='{.items[*].metadata.name}'`.
+## Configuration
+
+### Clusters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `clusters` | List of clusters to manage — first entry is always the central cluster | see values.yaml |
+| `clusters[].name` | Cluster identifier used internally and to find the kubeconfig Secret | required |
+| `clusters[].displayName` | Name shown in the web UI | required |
+| `clusters[].secretName` | Override kubeconfig Secret name (default: `<name>-kubeconfig`) | optional |
+
+### Access policy
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `janus.adminEmails` | Email addresses with admin (approve/deny) access | `[]` |
+| `janus.defaultTtlSeconds` | Default access duration | `3600` |
+| `janus.maxTtlSeconds` | Maximum access duration a user can request | `28800` |
+| `janus.idleTimeoutSeconds` | Auto-revoke terminal after this many seconds idle | `900` |
+| `janus.excludedNamespaces` | Namespaces hidden from the request form | see values.yaml |
+| `janus.displayTimezone` | Timezone for UI timestamps | `Europe/Berlin` |
+
+### Web UI
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `service.type` | Service type for the web UI | `LoadBalancer` |
+| `service.port` | Service port | `80` |
+| `ingress.enabled` | Use an Ingress instead of LoadBalancer | `false` |
+| `webui.authEnabled` | Enable OAuth2 proxy authentication | `false` |
+| `webui.baseUrl` | Public URL used in callback links | `""` |
+
+### Persistence
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `postgresql.enabled` | Use PostgreSQL for audit log persistence | `false` |
+| `externalSecrets.enabled` | Use External Secrets Operator for DB credentials | `false` |
+
+### Infrastructure
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `replicaCount` | Replicas for controller and webui | `1` |
+| `image.repository` | Container image | `opsmode/k8s-janus` |
+| `image.tag` | Image tag | set by CI on release |
+| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `networkPolicy.enabled` | Deploy NetworkPolicy for all pods | `true` |
+| `pdb.minAvailable` | Min available pods during disruptions (requires `replicaCount > 1`) | `1` |
+| `remote.enabled` | Deploy as remote agent only (no controller/webui) | `false` |
+| `kubeconfigSync.enabled` | Enable ArgoCD kubeconfig sync Job | `false` |
+| `kubeconfigSync.argocdNamespace` | Namespace where ArgoCD stores cluster Secrets | `argocd` |
+
+## Security
+
+The chart ships with a hardened default posture:
+
+- **Pod Security Standards** — `restricted` profile enforced at the namespace level
+- **RBAC least-privilege** — ClusterRoles scoped to named resources only (`janus-pod-exec`); no wildcard grants
+- **NetworkPolicy** — ingress limited to intra-namespace traffic; egress limited to the Kubernetes API server and remote cluster endpoints
+- **Non-root containers** — all pods run as non-root with a read-only root filesystem and dropped capabilities
+- **Failed phase** — access grants that error out surface as `Failed` on the CRD instead of silently freezing
 
 ## Links
 
