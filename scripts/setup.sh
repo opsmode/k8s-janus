@@ -21,6 +21,10 @@ RESET='\033[0m'
 
 JANUS_NS="k8s-janus"
 
+# Slugify a context name to a valid Kubernetes resource name
+# e.g. gke_project_region_cluster → gke-project-region-cluster
+slugify() { echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g'; }
+
 banner() {
   echo ""
   echo -e "${MAGENTA}${BOLD}"
@@ -218,10 +222,11 @@ build_clusters_json() {
   local result="["
   local first=1
   for entry in "${ALL_SELECTED[@]}"; do
-    local display
+    local slug display
+    slug="$(slugify "$entry")"
     display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
     [[ $first -eq 0 ]] && result+=","
-    result+="{\"name\":\"${entry}\",\"displayName\":\"${display}\"}"
+    result+="{\"name\":\"${slug}\",\"displayName\":\"${display}\"}"
     first=0
   done
   result+="]"
@@ -230,9 +235,10 @@ build_clusters_json() {
 
 build_clusters_yaml() {
   for entry in "${ALL_SELECTED[@]}"; do
-    local display
+    local slug display
+    slug="$(slugify "$entry")"
     display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
-    echo "    - name: ${entry}"
+    echo "    - name: ${slug}"
     echo "      displayName: \"${display}\""
   done
 }
@@ -259,8 +265,9 @@ if [[ -d "$HELM_CHART" ]]; then
   {
     echo "clusters:"
     for entry in "${ALL_SELECTED[@]}"; do
+      local_slug="$(slugify "$entry")"
       local_display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
-      echo "  - name: ${entry}"
+      echo "  - name: ${local_slug}"
       echo "    displayName: \"${local_display}\""
     done
   } > "$CLUSTERS_VALUES"
@@ -291,7 +298,8 @@ step "Creating kubeconfig Secrets in namespace '$JANUS_NS'"
 SECRETS_CREATED=()
 
 for ctx in "${ALL_SELECTED[@]}"; do
-  secret_name="$(echo "$ctx" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
+  slug="$(slugify "$ctx")"
+  secret_name="${slug}-kubeconfig"
   kubeconfig_path="$TMP_DIR/${secret_name}.yaml"
 
   echo ""
@@ -330,16 +338,16 @@ for ctx in "${ALL_SELECTED[@]}"; do
 apiVersion: v1
 kind: Config
 clusters:
-- name: ${ctx}
+- name: ${slug}
   cluster:
     server: ${cluster_server}
     certificate-authority-data: ${cluster_ca}
 contexts:
-- name: ${ctx}
+- name: ${slug}
   context:
-    cluster: ${ctx}
+    cluster: ${slug}
     user: janus-remote
-current-context: ${ctx}
+current-context: ${slug}
 users:
 - name: janus-remote
   user:
