@@ -77,10 +77,9 @@ jobs:
             RANGE="${PREV_TAG}..${GITHUB_REF_NAME}"
           fi
 
-          # Dump commits to a temp file — skip CI bot commits
-          git log "$RANGE" --pretty=format:"%an|%s" | \
-            grep -v "^github-actions\[bot\]|" | \
-            sed 's/^[^|]*|//' > /tmp/commits.txt
+          # Dump commits to a temp file — skip version-bump bot commits only
+          git log "$RANGE" --pretty=format:"%s" | \
+            grep -v "^ci: bump chart to" > /tmp/commits.txt
 
           python3 - /tmp/commits.txt helm/Chart.yaml "${GITHUB_REF_NAME}" <<'PYEOF'
           import re, sys
