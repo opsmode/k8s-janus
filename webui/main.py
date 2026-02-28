@@ -63,7 +63,12 @@ class _AccessLogFilter(logging.Filter):
 
     def filter(self, record):
         msg = record.getMessage()
-        return not any(s in msg for s in self._SUPPRESS)
+        if any(s in msg for s in self._SUPPRESS):
+            return False
+        # Drop 404s — scanner/bot noise hitting non-existent paths
+        if '" 404 ' in msg:
+            return False
+        return True
 
 
 logging.getLogger("uvicorn.access").addFilter(_AccessLogFilter())
