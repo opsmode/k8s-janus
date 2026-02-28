@@ -6,8 +6,14 @@ version: 0.1.30
 appVersion: "0.1.30"
 annotations:
   artifacthub.io/changes: |
-    - kind: added
-      description: Initial release
+    - kind: security
+      description: RBAC scoped to named resources only, Pod Security Standards enforced, NetworkPolicy hardened
+    - kind: fixed
+      description: Failed phase on access grant errors instead of freezing in Approved
+    - kind: fixed
+      description: Suppress status poll requests from access log
+    - kind: changed
+      description: Helm README restructured for clarity with security section added
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/opsmode/k8s-janus
