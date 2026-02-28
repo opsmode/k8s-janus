@@ -218,11 +218,10 @@ build_clusters_json() {
   local result="["
   local first=1
   for entry in "${ALL_SELECTED[@]}"; do
-    local sname display
-    sname="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
+    local display
     display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
     [[ $first -eq 0 ]] && result+=","
-    result+="{\"name\":\"${entry}\",\"displayName\":\"${display}\",\"secretName\":\"${sname}\"}"
+    result+="{\"name\":\"${entry}\",\"displayName\":\"${display}\"}"
     first=0
   done
   result+="]"
@@ -231,12 +230,10 @@ build_clusters_json() {
 
 build_clusters_yaml() {
   for entry in "${ALL_SELECTED[@]}"; do
-    local sname display
-    sname="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
+    local display
     display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
     echo "    - name: ${entry}"
     echo "      displayName: \"${display}\""
-    echo "      secretName: \"${sname}\""
   done
 }
 
@@ -262,11 +259,9 @@ if [[ -d "$HELM_CHART" ]]; then
   {
     echo "clusters:"
     for entry in "${ALL_SELECTED[@]}"; do
-      local_sname="$(echo "$entry" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')-kubeconfig"
       local_display="$(echo "$entry" | awk -F'[/_]' '{print $NF}')"
       echo "  - name: ${entry}"
       echo "    displayName: \"${local_display}\""
-      echo "    secretName: \"${local_sname}\""
     done
   } > "$CLUSTERS_VALUES"
 

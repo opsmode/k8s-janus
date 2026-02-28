@@ -113,7 +113,7 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 | **Controller** | Python · [kopf](https://kopf.readthedocs.io/) Kubernetes operator |
 | **Web UI** | Python · FastAPI · HTMX · xterm.js |
 | **Packaging** | Helm |
-| **CI/CD** | GitHub Actions · Docker · Trivy image scanning |
+| **CI/CD** | GitHub Actions · Docker |
 
 ---
 
@@ -146,7 +146,7 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
 ```
 
-### Or clone and run the interactive setup script
+### Option A — Interactive setup script (non-ArgoCD)
 
 **Run the interactive setup script — it handles everything:**
 
@@ -155,17 +155,31 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
 ```
 
 The script will:
-1. Ask you to pick a **central cluster** (where Janus runs) and any **additional clusters** to manage — engineers can request access to any of them, including the central cluster
-2. Deploy the `helm-remote` agent to every selected cluster — creates the `janus-remote` ServiceAccount + RBAC
+1. Ask you to pick a **central cluster** (where Janus runs) and any **additional clusters** to manage
+2. Deploy the remote agent (`remote.enabled=true`) to each remote cluster — creates the `janus-remote` ServiceAccount + RBAC
 3. Deploy the main `k8s-janus` chart to the central cluster
-4. Extract a static 1-year token from `janus-remote` on each cluster and store it as a kubeconfig `Secret` — no personal credentials, no cloud SDKs inside the pod
+4. Extract a static 1-year token from `janus-remote` on each cluster and store it as a kubeconfig Secret — no personal credentials, no cloud SDKs inside the pod
 5. Auto-patch `helm/values.yaml` with the `clusters:` list (if `yq` is installed)
 
 No cloud-specific setup, no IAM bindings, no SDKs required.
 
+> **Note:** kubeconfig Secrets are annotated with `helm.sh/resource-policy: keep` — `helm upgrade` will never overwrite them. Re-run `setup.sh` to rotate tokens.
+
+### Option B — ArgoCD with kubeconfigSync
+
+If ArgoCD already manages your remote clusters, skip `setup.sh` entirely. Enable the post-install/upgrade Job in your central cluster values:
+
+```yaml
+kubeconfigSync:
+  enabled: true          # reads ArgoCD cluster Secrets, creates kubeconfig Secrets automatically
+  argocdNamespace: argocd
+```
+
+The Job reads ArgoCD's existing cluster credentials and creates the `<cluster-name>-kubeconfig` Secrets in the `k8s-janus` namespace. Only clusters listed in `clusters:` are synced — other ArgoCD-registered clusters are ignored.
+
 **Optional — exclude additional namespaces from the request form:**
 
-System and GKE namespaces are excluded by default. Add any others to `helm/values.yaml`:
+System and GKE namespaces are excluded by default. Add any others to your values:
 
 ```yaml
 janus:
@@ -180,8 +194,6 @@ janus:
 ```
 
 Then redeploy: `helm upgrade k8s-janus ./helm --namespace k8s-janus --reuse-values`
-
-> **Note:** kubeconfig Secrets created by `setup.sh` are annotated with `helm.sh/resource-policy: keep` — `helm upgrade` will never overwrite them. Re-run `setup.sh` to rotate tokens.
 
 ---
 

@@ -21,11 +21,11 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "displayName", "secretName"],
+        "required": ["name", "displayName"],
         "properties": {
           "name":        { "type": "string", "description": "Cluster identifier (used internally)" },
           "displayName": { "type": "string", "description": "Human-readable name shown in the UI" },
-          "secretName":  { "type": "string", "description": "Name of the kubeconfig Secret in k8s-janus namespace" }
+          "secretName":  { "type": "string", "description": "Override kubeconfig Secret name — defaults to '<name>-kubeconfig'" }
         }
       }
     },

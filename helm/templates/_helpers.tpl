@@ -65,3 +65,12 @@ app.kubernetes.io/name: {{ include "janus.webui.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: webui
 {{- end }}
+
+{{/*
+Derive kubeconfig Secret name from cluster name.
+Uses secretName if explicitly set, otherwise falls back to "<name>-kubeconfig".
+Pass the cluster dict as . e.g: {{ include "janus.cluster.secretName" . }}
+*/}}
+{{- define "janus.cluster.secretName" -}}
+{{- .secretName | default (printf "%s-kubeconfig" .name) }}
+{{- end }}
