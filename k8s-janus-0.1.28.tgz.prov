@@ -1,0 +1,59 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: fixed
+      description: "use target_cluster (not undefined cluster_name) when deriving kubeconfig secret name"
+apiVersion: v2
+appVersion: 0.1.28
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.io
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.1.28
+
+...
+files:
+  k8s-janus-0.1.28.tgz: sha256:e840e10efe0660328872514a1817b04879eec2ae9df1f07695060c656d4b467b
+
+-----BEGIN PGP SIGNATURE-----
+
+wsG5BAEBCgBtBYJposPsCRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3Jnc6EQywlCPehb6eN9SnC6bUTNzls1hQc83WItWhDpxc0W
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAABBIP/26vxGbY0IB67i1muiyZszAGUyod
+qDNK6PJUnFNv4GIZ3mZCcXI6pFbII3R6Kg+dcNBs29kkc5K/trA4S5ozk4dRZrp6
+zJs8RHm0DZ2/SMxzQFG3ylHwhmUgH+fzrdyQeyobPrc4KIU8Qt2iRieiBOMp3Kui
+jqEMArAZayvmh4QH1hDf1mcc99nGvR8t6QUxumjd5fhMl4JGKJr2Xu9AJT/5zKH4
+NKL1rqUKU25zAE3Zt61wG4s5MUgAiGczuc1mFTSPr1w1hnV9kHI8dqvks05KJh57
+tXLAmAXWfKzLto1X8BFKBYdNNB/oX7FV3804uLnmv4nBICH+sJL+o+3wrCx6W6XT
+UUw8cvAb1uxQ+DIvsx1/P3nJQkzQ25tE1J+d1w34ak14Ac4b3mLSRVD8rI2NnVmn
+7+jy2g2DAo49DZE4J0C+yQNxEZ7XpL1mxY3tS9hboM+aAxtOil02oDPbdp2yIL4p
+EXc88Fq1x96upPqExxcbtuIyTOwNN8bWInbNLB0s86MP0Jt1eVRYH+CT4REq9L2Y
+7bKzzeLIyK6jak+3QiCvoQMeJPQJ5s5t9CtswYL3i0pGZ4mgAQwnc9sc8GHs2utY
+pr70MSZPxffTjk0fpzhkayY5tGY8kwJtq47ab0HPOTKoulrCQEAn2WN3/KC3kmGD
+rKB+ThFD/4AAvZAQ
+-----END PGP SIGNATURE-----
