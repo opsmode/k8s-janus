@@ -17,8 +17,7 @@ from datetime import datetime, timezone
 from contextlib import contextmanager
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime, Text, JSON,
-    UniqueConstraint, text,
+    create_engine, Column, Integer, String, DateTime, Text,
 )
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 

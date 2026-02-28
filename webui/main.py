@@ -1,15 +1,12 @@
 import os
 import re
-import json
 import logging
-import base64 as b64
-import yaml
 from datetime import datetime, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, Request, Form, WebSocket
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from kubernetes.client.rest import ApiException
@@ -21,7 +18,7 @@ from db import (
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
     get_access_request, list_access_requests, read_token_secret,
-    CLUSTERS, CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
+    CLUSTERS, CRD_GROUP, CRD_VERSION,
 )
 from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_revoked
 
@@ -569,7 +566,7 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
 
 @app.post("/approve/{cluster}/{name}")
 async def approve(request: Request, cluster: str, name: str):
-    if (err := _require_admin(request)):
+    if _require_admin(request):
         return JSONResponse({"ok": False, "error": "403 Forbidden"}, status_code=403)
     ar = get_access_request(name, cluster)
     if not ar:
@@ -599,7 +596,7 @@ async def approve(request: Request, cluster: str, name: str):
 
 @app.post("/deny/{cluster}/{name}")
 async def deny(request: Request, cluster: str, name: str, denial_reason: str = Form("")):
-    if (err := _require_admin(request)):
+    if _require_admin(request):
         return JSONResponse({"ok": False, "error": "403 Forbidden"}, status_code=403)
     ar = get_access_request(name, cluster)
     if not ar:

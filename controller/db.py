@@ -17,8 +17,7 @@ from datetime import datetime, timezone
 from contextlib import contextmanager
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime, Text, JSON,
-    UniqueConstraint, text,
+    create_engine, Column, Integer, String, DateTime, Text,
 )
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 
@@ -28,6 +27,7 @@ logger = logging.getLogger("k8s-janus.db")
 # Engine setup
 # ---------------------------------------------------------------------------
 
+
 def _build_url() -> str:
     host = os.environ.get("DB_HOST", "")
     if host:
@@ -35,7 +35,7 @@ def _build_url() -> str:
         port = os.environ.get("DB_PORT", "5432")
         name = os.environ.get("DB_NAME", "janus")
         user = quote_plus(os.environ.get("DB_USER", "janus"))
-        pw   = quote_plus(os.environ.get("DB_PASSWORD", ""))
+        pw = quote_plus(os.environ.get("DB_PASSWORD", ""))
         return f"postgresql://{user}:{pw}@{host}:{port}/{name}"
     # Fallback: SQLite on the emptyDir /tmp volume
     return "sqlite:////tmp/k8s-janus.db"
@@ -98,47 +98,47 @@ class Base(DeclarativeBase):
 class AccessRequestRecord(Base):
     __tablename__ = "access_requests"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    name         = Column(String(255), unique=True, nullable=False, index=True)
-    cluster      = Column(String(100), nullable=False, index=True)
-    namespace    = Column(String(255), nullable=False, index=True)
-    requester    = Column(String(255), nullable=False, index=True)
-    ttl_seconds  = Column(Integer, nullable=False)
-    reason       = Column(Text)
-    phase        = Column(String(50), nullable=False, index=True)
-    approved_by  = Column(String(255))
-    denial_reason= Column(Text)
-    created_at   = Column(DateTime(timezone=True), nullable=False, index=True)
-    approved_at  = Column(DateTime(timezone=True))
-    active_at    = Column(DateTime(timezone=True))
-    expired_at   = Column(DateTime(timezone=True))
-    denied_at    = Column(DateTime(timezone=True))
-    revoked_at   = Column(DateTime(timezone=True))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
+    cluster = Column(String(100), nullable=False, index=True)
+    namespace = Column(String(255), nullable=False, index=True)
+    requester = Column(String(255), nullable=False, index=True)
+    ttl_seconds = Column(Integer, nullable=False)
+    reason = Column(Text)
+    phase = Column(String(50), nullable=False, index=True)
+    approved_by = Column(String(255))
+    denial_reason = Column(Text)
+    created_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    approved_at = Column(DateTime(timezone=True))
+    active_at = Column(DateTime(timezone=True))
+    expired_at = Column(DateTime(timezone=True))
+    denied_at = Column(DateTime(timezone=True))
+    revoked_at = Column(DateTime(timezone=True))
     service_account = Column(String(255))
-    token_secret    = Column(String(255))
-    expires_at      = Column(DateTime(timezone=True))
+    token_secret = Column(String(255))
+    expires_at = Column(DateTime(timezone=True))
 
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     request_name = Column(String(255), nullable=False, index=True)
-    event        = Column(String(100), nullable=False, index=True)
-    actor        = Column(String(255))
-    timestamp    = Column(DateTime(timezone=True), nullable=False, index=True)
-    detail       = Column(Text)
+    event = Column(String(100), nullable=False, index=True)
+    actor = Column(String(255))
+    timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
+    detail = Column(Text)
 
 
 class TerminalCommand(Base):
     """Typed commands captured from terminal sessions (populated by webui)."""
     __tablename__ = "terminal_commands"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     request_name = Column(String(255), nullable=False, index=True)
-    pod          = Column(String(255), nullable=False)
-    command      = Column(Text, nullable=False)
-    timestamp    = Column(DateTime(timezone=True), nullable=False, index=True)
+    pod = Column(String(255), nullable=False)
+    command = Column(Text, nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
 
 
 # ---------------------------------------------------------------------------

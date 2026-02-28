@@ -34,9 +34,11 @@ except Exception as _clusters_err:
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("k8s-janus-audit")
 
+
 class _HealthzFilter(logging.Filter):
     def filter(self, record):
         return "GET /healthz" not in record.getMessage()
+
 
 logging.getLogger("aiohttp.access").addFilter(_HealthzFilter())
 
@@ -54,9 +56,11 @@ def audit(event: str, name: str, **kwargs):
         **kwargs,
     }))
 
+
 # ---------------------------------------------------------------------------
 # Kubernetes client helpers
 # ---------------------------------------------------------------------------
+
 
 def get_k8s_clients():
     """Return (CoreV1Api, RbacAuthorizationV1Api) for the central (local) cluster."""
@@ -494,7 +498,7 @@ async def _periodic_crd_cleanup_loop():
             if deleted:
                 logger.info(f"🧹 [periodic] cleanup done — deleted {deleted} stale terminal CRDs")
             else:
-                logger.info(f"✨ [periodic] cleanup done — no stale CRDs found")
+                logger.info("✨ [periodic] cleanup done — no stale CRDs found")
         except Exception as e:
             logger.error(f"💥 [periodic] CRD cleanup loop failed: {e}")
         await asyncio.sleep(3600)  # run every hour
