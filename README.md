@@ -14,6 +14,8 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![License](https://img.shields.io/badge/License-AGPL_v3-blue)
 
+<div class="artifacthub-widget" data-url="https://artifacthub.io/packages/helm/k8s-janus/k8s-janus" data-theme="dark" data-header="true" data-stars="true" data-responsive="false"><blockquote><p lang="en" dir="ltr"><b>k8s-janus</b>: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow.</p>&mdash; Open in <a href="https://artifacthub.io/packages/helm/k8s-janus/k8s-janus">Artifact Hub</a></blockquote></div><script async src="https://artifacthub.io/artifacthub-widget.js"></script>
+
 **Engineers request temporary `kubectl exec` access through a web UI.**
 **Admins approve with one click. The token auto-expires.**
 **No permanent permissions. Ever.**
