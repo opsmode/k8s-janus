@@ -7,14 +7,12 @@
 ### *Just-in-Time Kubernetes Pod Access*
 
 [![CI](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml/badge.svg)](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/search?repo=k8s-janus)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/helm/k8s-janus/k8s-janusf)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Operator-326CE5?logo=kubernetes&logoColor=white)
 [![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)](https://opsmode.github.io/k8s-janus)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![License](https://img.shields.io/badge/License-AGPL_v3-blue)
-
-<div class="artifacthub-widget" data-url="https://artifacthub.io/packages/helm/k8s-janus/k8s-janus" data-theme="dark" data-header="true" data-stars="true" data-responsive="false"><blockquote><p lang="en" dir="ltr"><b>k8s-janus</b>: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow.</p>&mdash; Open in <a href="https://artifacthub.io/packages/helm/k8s-janus/k8s-janus">Artifact Hub</a></blockquote></div><script async src="https://artifacthub.io/artifacthub-widget.js"></script>
 
 **Engineers request temporary `kubectl exec` access through a web UI.**
 **Admins approve with one click. The token auto-expires.**
