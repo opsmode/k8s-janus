@@ -74,9 +74,7 @@ def get_k8s_clients_for_cluster(cluster_name: str):
     if cluster_name == CLUSTERS[0]["name"]:
         return get_k8s_clients()
 
-    secret_name = cluster_cfg.get("secretName")
-    if not secret_name:
-        raise ValueError(f"Cluster '{cluster_name}' has no secretName configured")
+    secret_name = cluster_cfg.get("secretName") or f"{cluster_name}-kubeconfig"
 
     core_v1_central, _ = get_k8s_clients()
     secret = core_v1_central.read_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE)
@@ -276,7 +274,7 @@ async def grant_access(name: str, spec: dict, patch):
                         ca_data = base64.b64encode(f.read()).decode()
                 logger.info(f"🗺️  [{name}] resolved server URL for central cluster: {server_url}")
             else:
-                secret_name_cfg = cluster_cfg.get("secretName") if cluster_cfg else None
+                secret_name_cfg = (cluster_cfg.get("secretName") if cluster_cfg else None) or (f"{cluster_name}-kubeconfig" if cluster_cfg else None)
                 if secret_name_cfg:
                     core_v1_central, _ = get_k8s_clients()
                     kc_secret = core_v1_central.read_namespaced_secret(name=secret_name_cfg, namespace=JANUS_NAMESPACE)

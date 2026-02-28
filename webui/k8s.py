@@ -86,9 +86,7 @@ def _build_api_clients(cluster_cfg: dict) -> tuple:
         api_client = client.ApiClient()
         return client.CustomObjectsApi(api_client=api_client), client.CoreV1Api(api_client=api_client)
 
-    secret_name = cluster_cfg.get("secretName")
-    if not secret_name:
-        raise ValueError(f"Cluster '{cluster_cfg['name']}' has no secretName configured")
+    secret_name = cluster_cfg.get("secretName") or f"{cluster_cfg['name']}-kubeconfig"
 
     core_v1_central = _get_central_core_v1()
     secret = core_v1_central.read_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE)
