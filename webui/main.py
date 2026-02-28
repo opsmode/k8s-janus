@@ -62,7 +62,7 @@ logger.setLevel(logging.INFO)
 
 
 class _AccessLogFilter(logging.Filter):
-    _SUPPRESS = ("GET /healthz", "/api/terminal/", "/api/audit")
+    _SUPPRESS = ("GET /healthz", "/api/terminal/", "/api/audit", "/api/status/")
 
     def filter(self, record):
         msg = record.getMessage()
