@@ -177,6 +177,11 @@ kubeconfigSync:
 
 The Job reads ArgoCD's existing cluster credentials and creates the `<cluster-name>-kubeconfig` Secrets in the `k8s-janus` namespace. Only clusters listed in `clusters:` are synced — other ArgoCD-registered clusters are ignored.
 
+> **Important:** The `name` in each `clusters:` entry must match the cluster name as registered in ArgoCD exactly. ArgoCD stores cluster credentials keyed by the cluster name — if the names don't match, the sync Job won't find the credential. Verify with:
+> ```bash
+> kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+> ```
+
 **Optional — exclude additional namespaces from the request form:**
 
 System and GKE namespaces are excluded by default. Add any others to your values:

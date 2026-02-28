@@ -73,6 +73,8 @@ kubeconfigSync:
 
 The Job reads ArgoCD's existing cluster Secrets and creates the kubeconfig Secrets automatically — no manual script run needed. Only clusters listed in `clusters:` are synced.
 
+> **Important:** The `name` field in each `clusters:` entry must exactly match the cluster name as registered in ArgoCD (the value ArgoCD stores in its cluster Secret's `name` label / server entry). If they differ, the sync Job will not find the Secret and the kubeconfig will not be created. You can verify registered names with `kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster -o jsonpath='{.items[*].metadata.name}'`.
+
 ## Remote Agent Mode
 
 To register a remote cluster, deploy the chart with `remote.enabled=true`:
