@@ -50,6 +50,16 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
 | `remote.enabled` | Remote agent mode (ServiceAccount + RBAC only, no controller/webui) | `false` |
 | `pdb.minAvailable` | Minimum pods during voluntary disruptions (only when `replicaCount > 1`) | `1` |
 
+## Security
+
+By default the chart ships with a hardened security posture:
+
+- **Pod Security Standards** — `restricted` profile enforced at the namespace level
+- **RBAC least-privilege** — controller and remote agent ClusterRoles are scoped to named resources only (`janus-pod-exec`); no wildcard ClusterRole grants
+- **NetworkPolicy** — ingress limited to intra-namespace traffic; egress limited to the Kubernetes API server and (for the controller) remote cluster endpoints
+- **Non-root containers** — all pods run as non-root with a read-only root filesystem and dropped capabilities
+- **Failed phase** — access grants that error out surface as `Failed` on the CRD instead of silently freezing in `Approved`
+
 ## Cluster Setup
 
 Each cluster in the `clusters:` list needs a kubeconfig Secret named `<name>-kubeconfig` in the `k8s-janus` namespace. There are two ways to provision these:
