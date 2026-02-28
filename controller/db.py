@@ -130,6 +130,17 @@ class AuditLog(Base):
     detail       = Column(Text)
 
 
+class TerminalCommand(Base):
+    """Typed commands captured from terminal sessions (populated by webui)."""
+    __tablename__ = "terminal_commands"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    request_name = Column(String(255), nullable=False, index=True)
+    pod          = Column(String(255), nullable=False)
+    command      = Column(Text, nullable=False)
+    timestamp    = Column(DateTime(timezone=True), nullable=False, index=True)
+
+
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
@@ -237,3 +248,22 @@ def get_recent_audit_logs(limit: int = 200) -> list[dict]:
     except Exception as e:
         logger.error(f"get_recent_audit_logs() failed: {e}")
         return []
+
+
+def purge_old_records(days: int = 30) -> int:
+    """Delete terminal_commands and audit_logs older than N days. Returns total rows deleted."""
+    if not db_enabled:
+        return 0
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    deleted = 0
+    try:
+        with get_session() as session:
+            if session is None:
+                return 0
+            deleted += session.query(TerminalCommand).filter(TerminalCommand.timestamp < cutoff).delete()
+            deleted += session.query(AuditLog).filter(AuditLog.timestamp < cutoff).delete()
+        logger.info(f"🧹 Purged {deleted} old DB records older than {days} days")
+    except Exception as e:
+        logger.error(f"purge_old_records() failed: {e}")
+    return deleted

@@ -25,17 +25,19 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install --quiet -r requirements.txt
+        run: pip install --quiet -r requirements.txt flake8
 
       - name: Lint controller
         working-directory: controller
         run: |
           python -c "import main" && echo "controller: import OK"
+          flake8 . --max-line-length=120 --extend-ignore=E501,W503
 
       - name: Lint webui
         working-directory: webui
         run: |
           APP_DIR=$(pwd) python -c "import main" && echo "webui: import OK"
+          flake8 . --max-line-length=120 --extend-ignore=E501,W503
 
   helm-lint:
     runs-on: ubuntu-latest

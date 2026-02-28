@@ -19,7 +19,17 @@ JANUS_NAMESPACE = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
 MAX_TTL_SECONDS = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
 MIN_TTL_SECONDS = 600
 CRD_GROUP = "k8s-janus.opsmode.io"
-CLUSTERS: list[dict] = json.loads(os.environ.get("CLUSTERS", '[{"name":"local","displayName":"Local"}]'))
+try:
+    CLUSTERS: list[dict] = json.loads(os.environ.get("CLUSTERS", '[{"name":"local","displayName":"Local"}]'))
+    if not CLUSTERS:
+        raise ValueError("CLUSTERS list is empty")
+except Exception as _clusters_err:
+    import sys
+    logging.basicConfig()
+    logging.getLogger(__name__).critical(
+        f"💥 Failed to parse CLUSTERS env var: {_clusters_err} — cannot start"
+    )
+    sys.exit(1)
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("k8s-janus-audit")
@@ -360,8 +370,8 @@ async def grant_access(name: str, spec: dict, patch):
 
     except Exception as e:
         logger.error(f"💥 [{name}] FAILED to grant access on cluster={target_cluster} ns={namespace}: {type(e).__name__}: {e}")
-        # Keep current phase (likely "Approved"), set error message
-        patch.status["message"] = f"❌ Error: Access grant failed: {e}"
+        patch.status["phase"] = "Failed"
+        patch.status["message"] = "❌ Access grant failed — check controller logs"
         audit("access.failed", name, requester=requester, cluster=target_cluster, error=str(e))
 
 
@@ -546,8 +556,13 @@ async def _setup_remote_clusterroles():
 
 @kopf.on.startup()
 async def startup(**kwargs):
-    logger.info(f"🚀 k8s-janus controller starting up on cluster={CLUSTERS[0]["name"]}")
+    logger.info(f"🚀 k8s-janus controller starting up on cluster={CLUSTERS[0]['name']}")
     init_db()
+    try:
+        from db import purge_old_records
+        purge_old_records(days=30)
+    except Exception as e:
+        logger.warning(f"⚠️  Startup DB purge failed (non-fatal): {e}")
 
     # Fire-and-forget: don't block kopf startup (and its liveness HTTP server)
     # while connecting to remote clusters — probes would fail during slow connections
@@ -587,4 +602,4 @@ async def startup(**kwargs):
     # Start periodic CRD cleanup background task
     asyncio.create_task(_periodic_crd_cleanup_loop())
     logger.info(f"🧹 periodic CRD cleanup started (retention={CLEANUP_RETENTION_SECONDS}s, phases={CLEANUP_TERMINAL_PHASES})")
-    logger.info(f"✅ k8s-janus controller ready on cluster={CLUSTERS[0]["name"]}")
+    logger.info(f"✅ k8s-janus controller ready on cluster={CLUSTERS[0]['name']}")

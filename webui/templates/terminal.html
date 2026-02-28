@@ -358,6 +358,17 @@
       word-wrap: break-word;
     }
     .log-line { padding: 2px 0; white-space: pre-wrap; word-break: break-all; }
+    .log-section-break {
+      margin: 8px 0 4px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--text-muted, #64748b);
+      background: rgba(99,102,241,0.08);
+      border-left: 3px solid rgba(99,102,241,0.4);
+      border-radius: 2px;
+    }
     .event-item {
       padding: 10px;
       margin-bottom: 6px;
@@ -908,7 +919,21 @@
         try {
           const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/logs`).then(r => r.json());
           if (d.error) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">Error: ${d.error}</div>`; return; }
-          el.innerHTML = d.logs.split('\n').map(l => `<div class="log-line">${escapeHtml(l)}</div>`).join('');
+          // Add section breaks before lines that start with a timestamp (ISO-8601 or k8s log format)
+          const _tsRe = /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
+          let prev = null;
+          el.innerHTML = d.logs.split('\n').map(l => {
+            const m = l.match(_tsRe);
+            let out = '';
+            if (m) {
+              const day = m[1].slice(0, 10);
+              if (prev && prev !== day) {
+                out += `<div class="log-section-break">${escapeHtml(day)}</div>`;
+              }
+              prev = day;
+            }
+            return out + `<div class="log-line">${escapeHtml(l)}</div>`;
+          }).join('');
           el.scrollTop = el.scrollHeight;
         } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">${e.message}</div>`; }
       }

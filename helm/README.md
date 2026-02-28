@@ -48,6 +48,7 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
 | `postgresql.enabled` | Use PostgreSQL for persistence | `false` |
 | `networkPolicy.enabled` | Deploy NetworkPolicy for controller and webui pods | `true` |
 | `remote.enabled` | Remote agent mode (ServiceAccount + RBAC only, no controller/webui) | `false` |
+| `pdb.minAvailable` | Minimum pods during voluntary disruptions (only when `replicaCount > 1`) | `1` |
 
 ## Cluster Setup
 

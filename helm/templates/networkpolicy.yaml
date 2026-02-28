@@ -17,9 +17,21 @@ spec:
     - ports:
         - port: 8080  # healthz
   egress:
+    # Kubernetes API on central cluster — restrict to kube-system namespace
     - ports:
-        - port: 443   # Kubernetes API
-        - port: 6443  # Kubernetes API (alternate)
+        - port: 443
+        - port: 6443
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+    # Remote cluster Kubernetes APIs are external IPs — allow 443/6443 to any
+    # destination only when remote clusters are configured. If remote.enabled
+    # is false and you have no remote clusters, you can lock this down further
+    # by removing the second rule below and relying only on the kube-system rule.
+    - ports:
+        - port: 443
+        - port: 6443
     - ports:
         - port: 53    # DNS
           protocol: UDP
@@ -44,9 +56,18 @@ spec:
     - ports:
         - port: {{ .Values.webui.containerPort }}  # web UI
   egress:
+    # Kubernetes API on central cluster
     - ports:
-        - port: 443   # Kubernetes API
-        - port: 6443  # Kubernetes API (alternate)
+        - port: 443
+        - port: 6443
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+    # Remote cluster APIs (external IPs when multi-cluster is configured)
+    - ports:
+        - port: 443
+        - port: 6443
     - ports:
         - port: 53    # DNS
           protocol: UDP

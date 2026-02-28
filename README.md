@@ -77,8 +77,9 @@ Engineer             Web UI              Controller           Approver
 
 ```
 Pending ──▶ Approved ──▶ Active ──▶ Expired
-         ╲▶ Denied
+         ╲▶ Denied       │
          (any state) ──▶ Revoked
+         Approved ──▶ Failed  (grant error — check controller logs)
 ```
 
 ---
@@ -130,6 +131,8 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 | ⏰ TTL enforcement | Min 10 min · Max 8 hours · Enforced server-side |
 | 🔏 Signed images | Helm chart signed with GPG — verify with `helm install --verify` |
 | 📋 Full audit trail | Every session open, close, command, idle timeout, and revocation logged |
+| 🛡️ RBAC scoped | Controller ClusterRole restricted to `janus-pod-exec` by `resourceNames` — can't create arbitrary ClusterRoles |
+| 🔒 Pod Security Standards | `pod-security.kubernetes.io/enforce: restricted` on the `k8s-janus` namespace |
 
 ---
 

@@ -31,7 +31,13 @@ from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_rev
 DEFAULT_TTL_SECONDS = int(os.environ.get("DEFAULT_TTL_SECONDS", "3600"))
 MAX_TTL_SECONDS     = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
 _raw_admins  = os.environ.get("ADMIN_EMAILS", "")
-ADMIN_EMAILS = set(e.strip().lower() for e in _raw_admins.split(",") if e.strip())
+# Support both comma and semicolon delimiters; strip whitespace
+ADMIN_EMAILS = set(
+    e.strip().lower()
+    for sep in (",", ";")
+    for e in _raw_admins.replace(";", ",").split(",")
+    if e.strip()
+)
 
 _tz_name = os.environ.get("DISPLAY_TIMEZONE", "UTC")
 try:
@@ -147,6 +153,11 @@ async def on_startup():
         logger.info("🚀 K8s-Janus WebUI started — auth via ingress/oauth2-proxy (X-Forwarded-Email)")
     else:
         logger.warning("🔓 K8s-Janus WebUI started in OPEN MODE — AUTH_ENABLED=false, no authentication required")
+    from k8s import EXCLUDED_NAMESPACES
+    if EXCLUDED_NAMESPACES:
+        logger.info(f"🚫 Excluded namespaces: {sorted(EXCLUDED_NAMESPACES)}")
+    else:
+        logger.info("ℹ️  No namespaces excluded (EXCLUDED_NAMESPACES not set)")
     # Schedule periodic DB cleanup every 24h
     async def _db_cleanup_loop():
         while True:
@@ -335,7 +346,9 @@ async def submit_request(
 
     reason = reason.strip()[:500]
 
-    # Validate TTL and surface feedback
+    # Validate TTL — must be a positive number within bounds
+    if ttl_hours < 1:
+        return HTMLResponse("<h2>Invalid TTL: must be at least 1 hour.</h2>", status_code=400)
     ttl_seconds = ttl_hours * 3600
     if ttl_seconds > MAX_TTL_SECONDS:
         ttl_seconds = MAX_TTL_SECONDS
@@ -506,7 +519,7 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
         logger.info(f"✅ AccessRequest {name} on {cluster} Approved by {approver}")
     except ApiException as e:
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
-        return HTMLResponse(f"<h2>Error updating request: {e}</h2>", status_code=500)
+        return HTMLResponse("<h2>Error updating request. Please try again.</h2>", status_code=500)
 
     return templates.TemplateResponse("callback.html", {
         "request": request,
@@ -543,7 +556,7 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
         logger.info(f"🚫 AccessRequest {name} on {cluster} Denied by {approver}: {denial_reason or '(no reason)'}")
     except ApiException as e:
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
-        return HTMLResponse(f"<h2>Error updating request: {e}</h2>", status_code=500)
+        return HTMLResponse("<h2>Error updating request. Please try again.</h2>", status_code=500)
 
     return templates.TemplateResponse("callback.html", {
         "request": request,
@@ -580,7 +593,7 @@ async def approve(request: Request, cluster: str, name: str):
         log_audit(name, "request.approved", actor=approver, detail=f"cluster={cluster}")
     except ApiException as e:
         logger.error(f"💥 Failed to approve AccessRequest {name}: {e}")
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        return JSONResponse({"ok": False, "error": "Failed to approve request"}, status_code=500)
     return JSONResponse({"ok": True, "phase": Phase.APPROVED})
 
 
@@ -616,7 +629,7 @@ async def deny(request: Request, cluster: str, name: str, denial_reason: str = F
                   detail=denial_reason or f"denied by {approver}")
     except ApiException as e:
         logger.error(f"💥 Failed to deny AccessRequest {name}: {e}")
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        return JSONResponse({"ok": False, "error": "Failed to deny request"}, status_code=500)
     return JSONResponse({"ok": True, "phase": Phase.DENIED})
 
 
@@ -647,7 +660,7 @@ async def revoke(request: Request, cluster: str, name: str):
         await notify_revoked(name, revoked_by=caller)
     except ApiException as e:
         logger.error(f"💥 Failed to revoke AccessRequest {name}: {e}")
-        return HTMLResponse(f"<h2>Error revoking request: {e}</h2>", status_code=500)
+        return HTMLResponse("<h2>Error revoking request. Please try again.</h2>", status_code=500)
     return RedirectResponse(url="/admin", status_code=303)
 
 

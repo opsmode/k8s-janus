@@ -8,6 +8,11 @@ annotations:
   artifacthub.io/changes: |
     - kind: added
       description: Initial release
+  artifacthub.io/links: |
+    - name: GitHub
+      url: https://github.com/opsmode/k8s-janus
+    - name: Helm Repository
+      url: https://opsmode.github.io/k8s-janus
 keywords:
   - kubernetes
   - k8s-janus
@@ -28,11 +33,6 @@ icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-
 home: https://opsmode.github.io/k8s-janus
 sources:
   - https://github.com/opsmode/k8s-janus
-links:
-  - name: GitHub
-    url: https://github.com/opsmode/k8s-janus
-  - name: Helm Repository
-    url: https://opsmode.github.io/k8s-janus
 maintainers:
   - name: OpsMode
     email: devops@opsmode.io

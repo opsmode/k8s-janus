@@ -24,7 +24,22 @@ _raw_excluded   = os.environ.get("EXCLUDED_NAMESPACES", "")
 EXCLUDED_NAMESPACES = set(n.strip() for n in _raw_excluded.split(",") if n.strip())
 
 import json as _json
-CLUSTERS: list[dict] = _json.loads(os.environ.get("CLUSTERS", '[{"name":"local","displayName":"Local"}]'))
+import sys as _sys
+try:
+    CLUSTERS: list[dict] = _json.loads(os.environ.get("CLUSTERS", '[{"name":"local","displayName":"Local"}]'))
+    if not CLUSTERS:
+        raise ValueError("CLUSTERS list is empty")
+    _seen_names = set()
+    for _c in CLUSTERS:
+        _n = _c.get("name", "")
+        if _n in _seen_names:
+            raise ValueError(f"Duplicate cluster name in CLUSTERS: {_n!r}")
+        _seen_names.add(_n)
+except Exception as _clusters_err:
+    logging.getLogger("k8s-janus-webui").critical(
+        f"💥 Failed to parse CLUSTERS env var: {_clusters_err} — cannot start"
+    )
+    _sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # Temp file tracker — cleaned up at process exit

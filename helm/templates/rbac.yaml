@@ -38,20 +38,11 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["get", "create", "delete"]
-  # Reconcile janus-pod-exec ClusterRole on the local cluster
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["clusterroles"]
-    verbs: ["get", "create", "update", "patch", "delete"]
-  # escalate: required to CREATE a ClusterRole that grants permissions the SA doesn't hold
-  # (Kubernetes blocks creating ClusterRoles that would escalate privileges without this verb)
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["clusterroles"]
-    verbs: ["escalate"]
-  # bind: scoped to janus-pod-exec only — only this ClusterRole is ever bound to users
+  # Reconcile janus-pod-exec ClusterRole — scoped to that name only
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles"]
     resourceNames: ["janus-pod-exec"]
-    verbs: ["bind"]
+    verbs: ["get", "create", "update", "patch", "delete", "escalate", "bind"]
   # Read pods for validation
   - apiGroups: [""]
     resources: ["pods"]
@@ -143,11 +134,8 @@ rules:
     verbs: ["get", "create", "delete"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles"]
-    verbs: ["get", "create", "update", "patch", "delete", "escalate"]
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["clusterroles"]
     resourceNames: ["janus-pod-exec"]
-    verbs: ["bind"]
+    verbs: ["get", "create", "update", "patch", "delete", "escalate", "bind"]
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["get", "list"]
