@@ -27,7 +27,7 @@ clusters:
 # → templates: controller-deployment.yaml, webui-deployment.yaml
 image:
   repository: opsmode/k8s-janus
-  tag: "v0.1.26"
+  tag: "v0.1.27"
   pullPolicy: IfNotPresent
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.
