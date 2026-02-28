@@ -1,5 +1,7 @@
 # K8s-Janus Helm Chart
 
+[GitHub](https://github.com/opsmode/k8s-janus) · [Artifact Hub](https://artifacthub.io/packages/search?repo=k8s-janus)
+
 **Just-in-Time `kubectl exec` access for Kubernetes.**
 Engineers request temporary pod access through a web UI. Admins approve with one click. The token auto-expires. No permanent permissions. Ever.
 
