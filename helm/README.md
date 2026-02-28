@@ -5,12 +5,26 @@ Engineers request temporary pod access through a web UI. Admins approve with one
 
 ## Install
 
+### Central cluster
+
 ```bash
 helm repo add k8s-janus https://opsmode.github.io/k8s-janus
 helm repo update
 helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
 ```
+
+### Remote cluster
+
+On each remote cluster, deploy only the agent (ServiceAccount + RBAC — no controller or webui):
+
+```bash
+helm upgrade --install k8s-janus k8s-janus/k8s-janus \
+  --namespace k8s-janus --create-namespace \
+  --set remote.enabled=true
+```
+
+Then run `setup.sh` (or enable `kubeconfigSync`) on the central cluster to register it. See [Cluster Setup](#cluster-setup) below.
 
 ## Prerequisites
 
@@ -85,18 +99,6 @@ kubeconfigSync:
 The Job reads ArgoCD's existing cluster Secrets and creates the kubeconfig Secrets automatically — no manual script run needed. Only clusters listed in `clusters:` are synced.
 
 > **Important:** The `name` field in each `clusters:` entry must exactly match the cluster name as registered in ArgoCD (the value ArgoCD stores in its cluster Secret's `name` label / server entry). If they differ, the sync Job will not find the Secret and the kubeconfig will not be created. You can verify registered names with `kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster -o jsonpath='{.items[*].metadata.name}'`.
-
-## Remote Agent Mode
-
-To register a remote cluster, deploy the chart with `remote.enabled=true`:
-
-```bash
-helm upgrade --install k8s-janus k8s-janus/k8s-janus \
-  --namespace k8s-janus --create-namespace \
-  --set remote.enabled=true
-```
-
-This creates only the `janus-remote` ServiceAccount and RBAC — no controller or webui. Then run `setup.sh` (or use `kubeconfigSync`) to register the cluster with the central instance.
 
 ## Links
 
