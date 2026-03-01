@@ -2,7 +2,7 @@
 # ⛩  K8s-Janus Setup Upload — resolves exec-based auth and uploads kubeconfig to the wizard
 #
 # Usage:
-#   ./scripts/setup-upload.sh [--port 8080] [--kubeconfig ~/.kube/config]
+#   bash setup-upload.sh [--port 8080] [--namespace k8s-janus] [--kubeconfig ~/.kube/config]
 #
 # Requires: kubectl, python3, curl
 # Optional: gcloud (for GKE), aws (for EKS), az (for AKS)
@@ -13,16 +13,21 @@ set -euo pipefail
 # Defaults & args
 # ==============================================================================
 PORT=8080
-WIZARD_URL="http://localhost:${PORT}"
+JANUS_NS="k8s-janus"
 KUBECONFIG_FILE="${KUBECONFIG:-$HOME/.kube/config}"
+PF_PID=""
+PF_STARTED=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --port)       PORT="$2";            WIZARD_URL="http://localhost:${PORT}"; shift 2 ;;
-    --kubeconfig) KUBECONFIG_FILE="$2"; shift 2 ;;
+    --port)        PORT="$2";          shift 2 ;;
+    --namespace)   JANUS_NS="$2";      shift 2 ;;
+    --kubeconfig)  KUBECONFIG_FILE="$2"; shift 2 ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
+
+WIZARD_URL="http://localhost:${PORT}"
 
 # ==============================================================================
 # Colors
@@ -53,14 +58,40 @@ done
 ok "kubeconfig: $KUBECONFIG_FILE"
 
 # ==============================================================================
-# Check wizard is reachable
+# Port-forward management
 # ==============================================================================
-step "Checking wizard at ${WIZARD_URL}/setup"
+step "Checking wizard at ${WIZARD_URL}"
 
-if ! curl -sf --max-time 3 "${WIZARD_URL}/healthz" &>/dev/null; then
-  die "Wizard not reachable at ${WIZARD_URL}\n\n  Start the port-forward first:\n\n    kubectl port-forward svc/janus-webui -n k8s-janus ${PORT}:80"
+stop_port_forward() {
+  if [[ -n "$PF_PID" ]] && kill -0 "$PF_PID" 2>/dev/null; then
+    kill "$PF_PID" 2>/dev/null || true
+  fi
+}
+
+if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
+  ok "Wizard already reachable — reusing existing port-forward"
+else
+  warn "Wizard not reachable — starting port-forward in background"
+  kubectl port-forward svc/janus-webui -n "$JANUS_NS" "${PORT}:80" \
+    >/dev/null 2>&1 &
+  PF_PID=$!
+  PF_STARTED=true
+
+  # Register cleanup only if we started it
+  trap 'stop_port_forward' EXIT
+
+  # Wait up to 8s for it to be ready
+  for i in $(seq 1 8); do
+    sleep 1
+    if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
+      ok "Port-forward ready (PID ${PF_PID})"
+      break
+    fi
+    if [[ $i -eq 8 ]]; then
+      die "Port-forward started but wizard not responding after 8s.\n\n  Check that janus-webui is running:\n    kubectl get pods -n ${JANUS_NS}"
+    fi
+  done
 fi
-ok "Wizard is up"
 
 # ==============================================================================
 # Flatten kubeconfig (embed CA data)
@@ -68,11 +99,16 @@ ok "Wizard is up"
 step "Flattening kubeconfig"
 
 TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
+# Extend trap to also clean tmp dir
+if $PF_STARTED; then
+  trap 'stop_port_forward; rm -rf "$TMP_DIR"' EXIT
+else
+  trap 'rm -rf "$TMP_DIR"' EXIT
+fi
 
 FLAT="$TMP_DIR/flat.yaml"
 KUBECONFIG="$KUBECONFIG_FILE" kubectl config view --flatten --minify=false > "$FLAT"
-ok "Flattened to $FLAT"
+ok "Flattened"
 
 # ==============================================================================
 # Detect and resolve exec-based auth
@@ -93,46 +129,43 @@ for u in kc.get("users", []):
     if not exec_cfg:
         continue
 
-    cmd   = exec_cfg["command"]
-    args  = exec_cfg.get("args") or []
-    env_overrides = {e["name"]: e["value"] for e in (exec_cfg.get("env") or [])}
-    env   = {**os.environ, **env_overrides}
+    cmd  = exec_cfg["command"]
+    args = exec_cfg.get("args") or []
+    env  = {**os.environ, **{e["name"]: e["value"] for e in (exec_cfg.get("env") or [])}}
 
     print(f"  → resolving exec auth for user: {u['name']}", flush=True)
     try:
-        result = subprocess.run(
-            [cmd] + args, env=env,
-            capture_output=True, text=True, timeout=15
-        )
+        result = subprocess.run([cmd] + args, env=env,
+                                capture_output=True, text=True, timeout=15)
         if result.returncode != 0:
             print(f"    ✘ exec failed: {result.stderr.strip()}", flush=True)
             sys.exit(1)
-        cred = json.loads(result.stdout)
+        cred  = json.loads(result.stdout)
         token = cred.get("status", {}).get("token")
         if not token:
             print("    ✘ no token in exec response", flush=True)
             sys.exit(1)
         u["user"] = {"token": token}
         changes += 1
-        print(f"    ✔ token resolved", flush=True)
+        print("    ✔ token resolved", flush=True)
     except FileNotFoundError:
         print(f"    ✘ exec command not found: {cmd}", flush=True)
-        print(f"      Install the auth plugin (e.g. gke-gcloud-auth-plugin) and try again.", flush=True)
+        print("      Install the auth plugin (e.g. gke-gcloud-auth-plugin) and try again.", flush=True)
         sys.exit(1)
     except subprocess.TimeoutExpired:
-        print(f"    ✘ exec timed out after 15s", flush=True)
+        print("    ✘ exec timed out after 15s", flush=True)
         sys.exit(1)
 
 with open(dst, "w") as f:
     yaml.dump(kc, f)
 
 if changes == 0:
-    print("  ℹ  No exec-based users found — kubeconfig already uses static tokens", flush=True)
+    print("  ℹ  No exec-based users — kubeconfig already uses static tokens", flush=True)
 else:
     print(f"  ✔ Resolved {changes} exec-based user(s)", flush=True)
 PYEOF
 
-ok "Auth resolved: $RESOLVED"
+ok "Auth resolved"
 
 # ==============================================================================
 # Upload to wizard
@@ -145,21 +178,18 @@ RESPONSE=$(curl -sf -X POST \
   -H "Accept: application/json")
 
 ERROR=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error') or '')" 2>/dev/null || echo "")
-if [[ -n "$ERROR" ]]; then
-  die "Upload failed: $ERROR"
-fi
+[[ -n "$ERROR" ]] && die "Upload failed: $ERROR"
 
-CONTEXTS=$(echo "$RESPONSE" | python3 -c "
+echo "$RESPONSE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 ctxs = d.get('contexts', [])
-print(f'Found {len(ctxs)} context(s):')
+print(f'  Found {len(ctxs)} context(s):')
 for c in ctxs:
-    print(f\"  · {c['name']}  ({c['cluster']})\")
-" 2>/dev/null || echo "")
+    print(f\"    · {c['name']}  ({c['cluster']})\")
+" 2>/dev/null || true
 
 ok "Upload successful"
-echo -e "${DIM}  $CONTEXTS${RESET}"
 
 # ==============================================================================
 # Open browser
@@ -169,16 +199,34 @@ step "Opening wizard in browser"
 SETUP_URL="${WIZARD_URL}/setup"
 
 if command -v open &>/dev/null; then
-  open "$SETUP_URL"
-  ok "Opened $SETUP_URL"
+  open "$SETUP_URL" && ok "Opened $SETUP_URL"
 elif command -v xdg-open &>/dev/null; then
-  xdg-open "$SETUP_URL"
-  ok "Opened $SETUP_URL"
+  xdg-open "$SETUP_URL" && ok "Opened $SETUP_URL"
 else
   echo -e "\n  ${BOLD}Open this URL in your browser:${RESET}"
-  echo -e "  ${CYAN}${SETUP_URL}${RESET}\n"
+  echo -e "  ${CYAN}${SETUP_URL}${RESET}"
 fi
 
+# ==============================================================================
+# Wait for wizard completion, then clean up
+# ==============================================================================
 echo ""
 echo -e "${MAGENTA}${BOLD}  ⛩  Kubeconfig uploaded — complete the wizard in your browser.${RESET}"
+echo ""
+
+if $PF_STARTED; then
+  echo -e "  ${BOLD}Port-forward running in background (PID ${PF_PID}).${RESET}"
+  echo -e "  ${DIM}Complete the wizard in your browser, then press ${RESET}${BOLD}Ctrl+C${DIM} to stop the port-forward.${RESET}"
+  echo ""
+
+  # Keep script alive so the trap can clean up on Ctrl+C
+  trap 'echo ""; stop_port_forward; ok "Port-forward stopped"; exit 0' INT TERM
+  while kill -0 "$PF_PID" 2>/dev/null; do
+    sleep 2
+  done
+  ok "Port-forward exited"
+else
+  echo -e "  ${DIM}Port-forward was already running — stop it when done with:${RESET}"
+  echo -e "  ${BOLD}pkill -f 'port-forward svc/janus-webui'${RESET}"
+fi
 echo ""
