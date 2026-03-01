@@ -281,6 +281,21 @@ async def setup_page(request: Request):
     return templates.TemplateResponse("setup.html", {"request": request})
 
 
+@app.get("/setup/upload-helper")
+async def setup_upload_helper():
+    """Serve the setup-upload.sh script for download."""
+    from fastapi.responses import FileResponse
+    script_path = os.path.join(_APP_DIR, "setup-upload.sh")
+    if not os.path.isfile(script_path):
+        return JSONResponse({"error": "Helper script not found."}, status_code=404)
+    return FileResponse(
+        script_path,
+        media_type="text/x-shellscript",
+        filename="setup-upload.sh",
+        headers={"Content-Disposition": "attachment; filename=setup-upload.sh"},
+    )
+
+
 @app.post("/setup/upload")
 async def setup_upload(kubeconfig: UploadFile = File(...)):
     """Parse an uploaded kubeconfig and return its contexts."""

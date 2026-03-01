@@ -400,8 +400,8 @@
             <span class="dz-sub">~/.kube/config · .yaml · .yml · any filename</span>
             <div class="drop-zone-hint">
               🍎 <strong>macOS:</strong> press <kbd style="background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.7rem">⇧⌘.</kbd> in the file picker to show hidden folders like <code>.kube</code><br><br>
-              ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper instead — it resolves auth automatically:<br>
-              <code>./scripts/setup-upload.sh</code>
+              ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — resolves auth &amp; uploads automatically:<br>
+              <code>curl -sO http://localhost:8080/setup/upload-helper &amp;&amp; bash setup-upload.sh</code>
             </div>
           </div>
           <input type="file" id="file-input" style="display:none">

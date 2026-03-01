@@ -85,8 +85,8 @@ def parse_kubeconfig(raw_bytes: bytes) -> dict:
             raise ValueError(
                 "This kubeconfig uses exec-based authentication (e.g. gke-gcloud-auth-plugin) "
                 "which cannot be resolved inside the pod.\n\n"
-                "Use the upload helper script — it resolves auth locally and uploads automatically:\n\n"
-                "  ./scripts/setup-upload.sh\n\n"
+                "Use the upload helper — it resolves auth locally and uploads automatically:\n\n"
+                "  curl -sO http://localhost:8080/setup/upload-helper && bash setup-upload.sh\n\n"
                 "Or manually export a static-token kubeconfig:\n\n"
                 "  kubectl config view --flatten --minify > flat-kube.yaml\n"
                 "  TOKEN=$(gcloud auth print-access-token)\n"
