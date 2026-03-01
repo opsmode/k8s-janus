@@ -353,6 +353,28 @@
   <div class="container">
 
     <!-- Broadcast card -->
+    <!-- ── Setup Wizard ── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-icon" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));">
+          <i data-lucide="wand-2" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>Cluster Setup</h2>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
+        Register remote clusters or re-run setup to add new ones. The wizard applies RBAC on each remote cluster,
+        issues a scoped token, and creates the kubeconfig secret on this cluster.
+      </p>
+      <a href="/setup" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+                              background:linear-gradient(135deg,var(--accent),var(--accent-2));
+                              color:#fff;border-radius:8px;font-size:0.875rem;font-weight:600;
+                              text-decoration:none;box-shadow:0 4px 14px var(--accent-glow)">
+        <i data-lucide="wand-2" width="14" height="14"></i>
+        Open Setup Wizard
+      </a>
+    </div>
+
+    <!-- ── Broadcast ── -->
     <div class="card" style="margin-bottom:16px;">
       <div class="card-header">
         <div class="card-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">

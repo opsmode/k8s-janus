@@ -2,7 +2,6 @@ import asyncio
 import os
 import re
 import logging
-import time
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -30,22 +29,6 @@ from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_rev
 # ---------------------------------------------------------------------------
 _setup_kubeconfigs: dict[str, dict] = {}   # session_id → parsed kubeconfig dict
 _setup_queues: dict[str, asyncio.Queue] = {}  # session_id → progress queue
-_setup_complete_cache: dict = {"result": None, "expires": 0.0}
-
-
-def _is_setup_done() -> bool:
-    """Cached setup-completion check (10 s TTL; latches True permanently)."""
-    from setup import is_setup_complete
-    now = time.monotonic()
-    if _setup_complete_cache["result"] is True:
-        return True
-    if now < _setup_complete_cache["expires"]:
-        return bool(_setup_complete_cache["result"])
-    result = is_setup_complete(CLUSTERS, JANUS_NAMESPACE)
-    _setup_complete_cache["result"] = result
-    _setup_complete_cache["expires"] = now + (86400.0 if result else 10.0)
-    return result
-
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -157,19 +140,6 @@ _SECURITY_HEADERS = [
         b"connect-src 'self' wss: ws:;"
     )),
 ]
-
-
-_SETUP_EXEMPT = ("/setup", "/ws/setup", "/healthz", "/static")
-
-
-@app.middleware("http")
-async def _setup_redirect(request: Request, call_next):
-    """Redirect all non-exempt paths to /setup until setup is complete."""
-    path = request.url.path
-    exempt = path.startswith(_SETUP_EXEMPT)
-    if not exempt and not _is_setup_done():
-        return RedirectResponse(url="/setup", status_code=302)
-    return await call_next(request)
 
 
 @app.middleware("http")
@@ -307,9 +277,7 @@ def _token_client(name: str, cluster: str):
 
 @app.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
-    """Serve the setup wizard. Redirect to / if already complete."""
-    if _is_setup_done():
-        return RedirectResponse(url="/", status_code=302)
+    """Serve the setup wizard (always accessible from the admin page)."""
     return templates.TemplateResponse("setup.html", {"request": request})
 
 
