@@ -400,10 +400,10 @@
             <span class="dz-sub">~/.kube/config · .yaml · .yml · any filename</span>
             <div class="drop-zone-hint">
               🍎 <strong>macOS:</strong> press <kbd style="background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.7rem">⇧⌘.</kbd> in the file picker to show hidden folders like <code>.kube</code><br><br>
-              ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — resolves auth &amp; uploads automatically:
+              ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — starts port-forward, resolves auth &amp; uploads automatically:
               <div class="cmd-block" style="margin-top:6px;white-space:normal">
                 <button class="copy-btn" onclick="copyCmd('cmd-upload-helper');event.stopPropagation()">copy</button>
-                <span id="cmd-upload-helper">curl -s http://localhost:8080/setup/upload-helper | bash</span>
+                <span id="cmd-upload-helper">curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh | bash</span>
               </div>
             </div>
           </div>
@@ -714,10 +714,10 @@ choco install kubernetes-cli</span>
         <span class="dz-sub">~/.kube/config · .yaml · .yml · any filename</span>
         <div class="drop-zone-hint">
           🍎 <strong>macOS:</strong> press <kbd style="background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.7rem">⇧⌘.</kbd> in the file picker to show hidden folders like <code>.kube</code><br><br>
-          ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — resolves auth &amp; uploads automatically:
+          ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — starts port-forward, resolves auth &amp; uploads automatically:
           <div class="cmd-block" style="margin-top:6px;white-space:normal">
             <button class="copy-btn" onclick="copyCmd('cmd-upload-helper-r');event.stopPropagation()">copy</button>
-            <span id="cmd-upload-helper-r">curl -s http://localhost:8080/setup/upload-helper | bash</span>
+            <span id="cmd-upload-helper-r">curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh | bash</span>
           </div>
         </div>
       `;
