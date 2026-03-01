@@ -637,10 +637,31 @@ choco install kubernetes-cli</span>
     function copyCmd(id) {
       const el = document.getElementById(id);
       if (!el) return;
-      navigator.clipboard.writeText(el.innerText).then(() => {
-        const btn = el.parentElement.querySelector('.copy-btn');
+      // Clone and strip comment spans so only commands are copied
+      const clone = el.cloneNode(true);
+      clone.querySelectorAll('.cmt').forEach(n => n.remove());
+      const text = clone.innerText.trim();
+      const btn = el.closest('.cmd-block')?.querySelector('.copy-btn');
+
+      const done = () => {
         if (btn) { btn.textContent = 'copied!'; setTimeout(() => btn.textContent = 'copy', 1500); }
-      });
+      };
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      } else {
+        fallbackCopy(text, done);
+      }
+    }
+
+    function fallbackCopy(text, cb) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); cb(); } catch {}
+      document.body.removeChild(ta);
     }
 
     // ---------------------------------------------------------------------------
