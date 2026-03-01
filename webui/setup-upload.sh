@@ -200,12 +200,14 @@ for c in ctxs:
 
 ok "Upload successful"
 
+SESSION_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null || echo "")
+
 # ==============================================================================
 # Open browser
 # ==============================================================================
 step "Opening wizard in browser"
 
-SETUP_URL="${WIZARD_URL}/setup"
+SETUP_URL="${WIZARD_URL}/setup${SESSION_ID:+?session=${SESSION_ID}}"
 
 if command -v open &>/dev/null; then
   open "$SETUP_URL" && ok "Opened $SETUP_URL"

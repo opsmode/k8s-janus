@@ -896,6 +896,26 @@ choco install kubernetes-cli</span>
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+
+    // ---------------------------------------------------------------------------
+    // Auto-restore session from ?session= query param (set by setup-upload.sh)
+    // ---------------------------------------------------------------------------
+    (async function restoreSession() {
+      const params = new URLSearchParams(location.search);
+      const sid = params.get('session');
+      if (!sid) return;
+      try {
+        const resp = await fetch(`/setup/contexts/${sid}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.error || !data.contexts?.length) return;
+        _sessionId  = data.session_id;
+        _kubeconfig = data.contexts;
+        populateContextSelectors(data.contexts);
+        showPanel('select');
+        history.replaceState(null, '', location.pathname);
+      } catch (_) { /* ignore — stay on upload panel */ }
+    })();
   </script>
 </body>
 </html>

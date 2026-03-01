@@ -314,6 +314,16 @@ async def setup_upload(kubeconfig: UploadFile = File(...)):
     return JSONResponse({"session_id": session_id, "contexts": contexts, "error": None})
 
 
+@app.get("/setup/contexts/{session_id}")
+async def setup_contexts(session_id: str):
+    """Return contexts for an existing upload session (used by upload-helper redirect)."""
+    if session_id not in _setup_kubeconfigs:
+        return JSONResponse({"error": "Session not found or expired."}, status_code=404)
+    from setup import list_contexts
+    contexts = list_contexts(_setup_kubeconfigs[session_id])
+    return JSONResponse({"session_id": session_id, "contexts": contexts, "error": None})
+
+
 @app.post("/setup/run")
 async def setup_run(request: Request):
     """Kick off the setup background task for a previously uploaded kubeconfig."""
