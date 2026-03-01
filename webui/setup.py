@@ -83,10 +83,18 @@ def parse_kubeconfig(raw_bytes: bytes) -> dict:
         user = user_entry.get("user", {})
         if user.get("exec"):
             raise ValueError(
-                "This kubeconfig uses exec-based authentication (e.g. gke-gcloud-auth-plugin). "
-                "Please export a self-contained version first:\n\n"
-                "  kubectl config view --flatten --minify > flat-kube.yaml\n\n"
-                "Then upload flat-kube.yaml."
+                "This kubeconfig uses exec-based authentication (e.g. gke-gcloud-auth-plugin) "
+                "which cannot be resolved inside the pod.\n\n"
+                "Use the upload helper script — it resolves auth locally and uploads automatically:\n\n"
+                "  ./scripts/setup-upload.sh\n\n"
+                "Or manually export a static-token kubeconfig:\n\n"
+                "  kubectl config view --flatten --minify > flat-kube.yaml\n"
+                "  TOKEN=$(gcloud auth print-access-token)\n"
+                "  python3 -c \"\n"
+                "import yaml; kc=yaml.safe_load(open('flat-kube.yaml'))\n"
+                "[(u.update({'user':{'token':'$TOKEN'}})) for u in kc.get('users',[])]\n"
+                "print(yaml.dump(kc))\" > flat-token-kube.yaml\n\n"
+                "Then upload flat-token-kube.yaml."
             )
 
     return kc
