@@ -358,9 +358,6 @@ async def _run_setup_task(
         from setup import run_setup
         async for line in run_setup(kubeconfig, central, remotes, janus_namespace):
             await q.put(line)
-        # Invalidate setup-complete cache so next request re-checks
-        _setup_complete_cache["result"] = None
-        _setup_complete_cache["expires"] = 0.0
     except Exception as e:
         await q.put(f"[FATAL] Unexpected error: {e}")
     finally:
