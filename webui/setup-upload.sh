@@ -119,7 +119,15 @@ step "Resolving exec-based authentication"
 RESOLVED="$TMP_DIR/resolved.yaml"
 
 python3 - "$FLAT" "$RESOLVED" <<'PYEOF'
-import sys, os, json, subprocess, yaml
+import sys, os, json, subprocess
+
+# ensure pyyaml available (system python may not have it)
+try:
+    import yaml
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--user", "pyyaml"],
+                   check=True)
+    import yaml
 
 src, dst = sys.argv[1], sys.argv[2]
 kc = yaml.safe_load(open(src))
