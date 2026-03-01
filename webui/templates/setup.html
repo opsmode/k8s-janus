@@ -403,7 +403,7 @@
               ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — resolves auth &amp; uploads automatically:
               <div class="cmd-block" style="margin-top:6px;white-space:normal">
                 <button class="copy-btn" onclick="copyCmd('cmd-upload-helper');event.stopPropagation()">copy</button>
-                <span id="cmd-upload-helper">curl -so setup-upload.sh http://localhost:8080/setup/upload-helper && bash setup-upload.sh</span>
+                <span id="cmd-upload-helper">curl -s http://localhost:8080/setup/upload-helper | bash</span>
               </div>
             </div>
           </div>
@@ -717,7 +717,7 @@ choco install kubernetes-cli</span>
           ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — resolves auth &amp; uploads automatically:
           <div class="cmd-block" style="margin-top:6px;white-space:normal">
             <button class="copy-btn" onclick="copyCmd('cmd-upload-helper-r');event.stopPropagation()">copy</button>
-            <span id="cmd-upload-helper-r">curl -so setup-upload.sh http://localhost:8080/setup/upload-helper && bash setup-upload.sh</span>
+            <span id="cmd-upload-helper-r">curl -s http://localhost:8080/setup/upload-helper | bash</span>
           </div>
         </div>
       `;
