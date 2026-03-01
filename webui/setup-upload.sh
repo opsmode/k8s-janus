@@ -75,6 +75,7 @@ else
   kubectl port-forward svc/janus-webui -n "$JANUS_NS" "${PORT}:80" \
     >/dev/null 2>&1 &
   PF_PID=$!
+  echo -e "  ${DIM}kubectl port-forward PID: ${PF_PID}${RESET}"
   PF_STARTED=true
 
   # Register cleanup only if we started it
@@ -216,13 +217,20 @@ echo ""
 
 if $PF_STARTED; then
   echo -e "  ${BOLD}Port-forward running in background (PID ${PF_PID}).${RESET}"
-  echo -e "  ${DIM}Complete the wizard in your browser, then press ${RESET}${BOLD}Ctrl+C${DIM} to stop the port-forward.${RESET}"
+  echo -e "  ${DIM}Complete the wizard in your browser, then press ${RESET}${BOLD}Ctrl+C${DIM} to stop.${RESET}"
+  echo -e "  ${DIM}Or stop it later with:  ${RESET}${BOLD}kill ${PF_PID}${RESET}"
   echo ""
 
-  # Keep script alive so the trap can clean up on Ctrl+C
   trap 'echo ""; stop_port_forward; ok "Port-forward stopped"; exit 0' INT TERM
+
+  # Keep alive — print a heartbeat every 30s so user knows it's still running
+  elapsed=0
   while kill -0 "$PF_PID" 2>/dev/null; do
-    sleep 2
+    sleep 5
+    elapsed=$((elapsed + 5))
+    if (( elapsed % 30 == 0 )); then
+      echo -e "  ${DIM}… port-forward still running (${elapsed}s) — Ctrl+C to stop${RESET}"
+    fi
   done
   ok "Port-forward exited"
 else
