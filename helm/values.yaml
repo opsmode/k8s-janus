@@ -147,16 +147,6 @@ networkPolicy:
 # ClusterRole, and ClusterRoleBinding are created (no controller/webui).
 # Run scripts/setup.sh afterwards to extract the token and register the cluster.
 # → templates: remote-rbac.yaml (only rendered when remote.enabled: true)
-# Automatic kubeconfig Secret sync from ArgoCD cluster Secrets.
-# When enabled, a post-install/upgrade Job reads ArgoCD's cluster credentials
-# and creates/updates the kubeconfig Secrets for all remote clusters on the
-# central cluster — no manual setup.sh run required.
-# Requires: ArgoCD managing the remote clusters, remote.enabled=false (central).
-# → templates: kubeconfig-sync-job.yaml
-kubeconfigSync:
-  enabled: false
-  # Namespace where ArgoCD stores its cluster Secrets.
-  argocdNamespace: argocd
 remote:
   enabled: false
   # Namespace created on the remote cluster for the Janus agent resources.

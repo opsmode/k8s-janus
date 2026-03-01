@@ -1,11 +1,14 @@
+import asyncio
 import os
 import re
 import logging
+import time
+import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import FastAPI, Request, Form, WebSocket
+from fastapi import FastAPI, Request, Form, WebSocket, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -18,9 +21,31 @@ from db import (
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
     get_access_request, list_access_requests, read_token_secret,
-    CLUSTERS, CRD_GROUP, CRD_VERSION,
+    CLUSTERS, CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
 )
 from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_revoked
+
+# ---------------------------------------------------------------------------
+# Setup wizard — in-memory session state
+# ---------------------------------------------------------------------------
+_setup_kubeconfigs: dict[str, dict] = {}   # session_id → parsed kubeconfig dict
+_setup_queues: dict[str, asyncio.Queue] = {}  # session_id → progress queue
+_setup_complete_cache: dict = {"result": None, "expires": 0.0}
+
+
+def _is_setup_done() -> bool:
+    """Cached setup-completion check (10 s TTL; latches True permanently)."""
+    from setup import is_setup_complete
+    now = time.monotonic()
+    if _setup_complete_cache["result"] is True:
+        return True
+    if now < _setup_complete_cache["expires"]:
+        return bool(_setup_complete_cache["result"])
+    result = is_setup_complete(CLUSTERS, JANUS_NAMESPACE)
+    _setup_complete_cache["result"] = result
+    _setup_complete_cache["expires"] = now + (86400.0 if result else 10.0)
+    return result
+
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -132,6 +157,19 @@ _SECURITY_HEADERS = [
         b"connect-src 'self' wss: ws:;"
     )),
 ]
+
+
+_SETUP_EXEMPT = ("/setup", "/ws/setup", "/healthz", "/static")
+
+
+@app.middleware("http")
+async def _setup_redirect(request: Request, call_next):
+    """Redirect all non-exempt paths to /setup until setup is complete."""
+    path = request.url.path
+    exempt = path.startswith(_SETUP_EXEMPT)
+    if not exempt and not _is_setup_done():
+        return RedirectResponse(url="/setup", status_code=302)
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -261,6 +299,105 @@ def _token_client(name: str, cluster: str):
         return None, None
     core_v1 = get_client_with_token(cluster, token, server, ca)
     return core_v1, namespace
+
+
+# ---------------------------------------------------------------------------
+# Setup wizard routes
+# ---------------------------------------------------------------------------
+
+@app.get("/setup", response_class=HTMLResponse)
+async def setup_page(request: Request):
+    """Serve the setup wizard. Redirect to / if already complete."""
+    if _is_setup_done():
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse("setup.html", {"request": request})
+
+
+@app.post("/setup/upload")
+async def setup_upload(kubeconfig: UploadFile = File(...)):
+    """Parse an uploaded kubeconfig and return its contexts."""
+    raw = await kubeconfig.read()
+    if len(raw) > 1024 * 1024:
+        return JSONResponse({"error": "File too large (max 1 MB)."}, status_code=400)
+    try:
+        from setup import parse_kubeconfig, list_contexts
+        kc = parse_kubeconfig(raw)
+        contexts = list_contexts(kc)
+    except ValueError as e:
+        return JSONResponse({"error": str(e)})
+
+    session_id = str(uuid.uuid4())
+    _setup_kubeconfigs[session_id] = kc
+    return JSONResponse({"session_id": session_id, "contexts": contexts, "error": None})
+
+
+@app.post("/setup/run")
+async def setup_run(request: Request):
+    """Kick off the setup background task for a previously uploaded kubeconfig."""
+    body = await request.json()
+    session_id    = body.get("session_id", "")
+    central       = body.get("central", "")
+    remotes       = body.get("remotes", [])
+
+    if not session_id or session_id not in _setup_kubeconfigs:
+        return JSONResponse({"error": "Session not found. Please re-upload your kubeconfig."}, status_code=400)
+    if not central:
+        return JSONResponse({"error": "No central cluster selected."}, status_code=400)
+
+    kc = _setup_kubeconfigs[session_id]
+    q: asyncio.Queue = asyncio.Queue()
+    _setup_queues[session_id] = q
+    asyncio.ensure_future(_run_setup_task(session_id, kc, central, remotes, JANUS_NAMESPACE, q))
+    return JSONResponse({"ok": True})
+
+
+@app.websocket("/ws/setup/{session_id}")
+async def setup_websocket(websocket: WebSocket, session_id: str):
+    """Stream setup progress lines to the browser."""
+    await websocket.accept()
+    q = _setup_queues.get(session_id)
+    if q is None:
+        await websocket.send_json({"type": "error", "text": "Session not found."})
+        await websocket.close()
+        return
+    try:
+        while True:
+            msg = await q.get()
+            if msg is None:
+                await websocket.send_json({"type": "done"})
+                break
+            await websocket.send_json({"type": "line", "text": msg})
+    except Exception:
+        pass
+    finally:
+        _setup_queues.pop(session_id, None)
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
+async def _run_setup_task(
+    session_id: str,
+    kubeconfig: dict,
+    central: str,
+    remotes: list,
+    janus_namespace: str,
+    q: asyncio.Queue,
+) -> None:
+    """Background coroutine: runs the setup generator and pushes lines to the queue."""
+    try:
+        from setup import run_setup
+        async for line in run_setup(kubeconfig, central, remotes, janus_namespace):
+            await q.put(line)
+        # Invalidate setup-complete cache so next request re-checks
+        _setup_complete_cache["result"] = None
+        _setup_complete_cache["expires"] = 0.0
+    except Exception as e:
+        await q.put(f"[FATAL] Unexpected error: {e}")
+    finally:
+        _setup_kubeconfigs.pop(session_id, None)
+        await q.put(None)  # sentinel → WebSocket handler closes
 
 
 # ---------------------------------------------------------------------------

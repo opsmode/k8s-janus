@@ -46,31 +46,40 @@ After deploying the agent, register the cluster with the central instance using 
 ## Registering remote clusters
 
 The central controller needs a kubeconfig Secret for each remote cluster, named `<cluster-name>-kubeconfig`, in the `k8s-janus` namespace.
+The controller init container blocks until all expected secrets exist, so the controller won't start until setup is complete.
 
-### Option A — setup.sh (recommended for most setups)
+### Option A — Web Setup Wizard (recommended)
 
-Run the interactive script from the central cluster:
+Port-forward the web UI from any machine with kubectl access to the central cluster:
+
+```bash
+kubectl port-forward svc/janus-webui -n k8s-janus 8080:80
+```
+
+Then open **http://localhost:8080/setup** in your browser.
+
+The wizard guides you through:
+1. Uploading a kubeconfig (supports all contexts in one file)
+2. Selecting the central cluster and remote targets
+3. Streaming live progress as it applies RBAC, issues tokens, and creates secrets
+
+Works with any install method — Helm CLI, ArgoCD, Flux, or manual manifests. No local scripts or repo clone needed.
+
+> **Flattened kubeconfig required:** If your kubeconfig uses exec-based auth (GKE, EKS, etc.), export a self-contained version first:
+> ```bash
+> kubectl config view --flatten --minify > flat-kube.yaml
+> ```
+> Then upload `flat-kube.yaml` in the wizard.
+
+### Option B — setup.sh (scripted / CI use)
+
+Run the interactive script for a fully automated, non-browser flow:
 
 ```bash
 ./scripts/setup.sh
 ```
 
-It deploys the remote agent, extracts a scoped token, and creates the kubeconfig Secret automatically.
-
-### Option B — kubeconfigSync (ArgoCD users)
-
-If ArgoCD already manages your remote clusters, skip the script entirely. Enable the post-install Job and it will create the kubeconfig Secrets from ArgoCD's existing cluster Secrets:
-
-```yaml
-kubeconfigSync:
-  enabled: true
-  argocdNamespace: argocd
-```
-
-> **Note:** The `name` field in each `clusters:` entry must exactly match the cluster name registered in ArgoCD. Verify with:
-> ```bash
-> kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster -o jsonpath='{.items[*].metadata.name}'
-> ```
+It deploys the remote agent, applies RBAC, extracts a scoped token, and creates the kubeconfig Secret — same steps as the wizard but scriptable.
 
 ## Configuration
 
@@ -122,8 +131,6 @@ kubeconfigSync:
 | `networkPolicy.enabled` | Deploy NetworkPolicy for all pods | `true` |
 | `pdb.minAvailable` | Min available pods during disruptions (requires `replicaCount > 1`) | `1` |
 | `remote.enabled` | Deploy as remote agent only (no controller/webui) | `false` |
-| `kubeconfigSync.enabled` | Enable ArgoCD kubeconfig sync Job | `false` |
-| `kubeconfigSync.argocdNamespace` | Namespace where ArgoCD stores cluster Secrets | `argocd` |
 
 ## Security
 

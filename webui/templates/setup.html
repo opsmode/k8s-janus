@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8s-Janus · Setup Wizard</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:           #080c14;
+      --surface:      #0d1117;
+      --surface-2:    #161b27;
+      --surface-3:    #1e2535;
+      --border:       #2a3448;
+      --border-light: #334155;
+      --text:         #e2e8f0;
+      --text-muted:   #94a3b8;
+      --text-dim:     #64748b;
+      --accent:       #6366f1;
+      --accent-glow:  rgba(99,102,241,0.35);
+      --accent-2:     #8b5cf6;
+      --cyan:         #06b6d4;
+      --cyan-glow:    rgba(6,182,212,0.25);
+      --success:      #10b981;
+      --warning:      #f59e0b;
+      --danger:       #ef4444;
+      --radius:       12px;
+      --radius-sm:    8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      /* Multi-colour ambient glow */
+      background-image:
+        radial-gradient(ellipse 70% 35% at 20% -5%, rgba(99,102,241,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 80% 110%, rgba(139,92,246,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 25% at 50% 60%, rgba(6,182,212,0.05) 0%, transparent 50%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .header-logo-img {
+      height: 44px;
+      width: auto;
+      filter: drop-shadow(0 0 14px var(--accent-glow));
+    }
+    .brand-text h1 {
+      font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0 30%, var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand-text span { font-size: 0.7rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+    .setup-badge {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    /* ── LAYOUT ── */
+    .page-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+    .page-scroll::-webkit-scrollbar { width: 6px; }
+    .page-scroll::-webkit-scrollbar-track { background: transparent; }
+    .page-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    .container { max-width: 700px; margin: 36px auto; padding: 0 20px 40px; }
+
+    /* ── STEP INDICATOR ── */
+    .wizard-steps {
+      display: flex; align-items: center;
+      margin-bottom: 28px;
+    }
+    .wizard-step {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 500; color: var(--text-dim);
+      transition: color 0.3s;
+    }
+    .wizard-step.active { color: var(--accent); }
+    .wizard-step.done   { color: var(--success); }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--surface-2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 700;
+      transition: all 0.3s;
+    }
+    .wizard-step.active .step-num {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: var(--accent); color: #fff;
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+    .wizard-step.done .step-num { background: var(--success); border-color: var(--success); color: #fff; }
+    .step-divider { flex: 1; height: 1px; background: var(--border); margin: 0 12px; min-width: 20px; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px 32px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent-glow) 50%, transparent 100%);
+    }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .card-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+    }
+    .card-header h2 { font-size: 1rem; font-weight: 600; }
+    .card-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── INFO CALLOUT (no-kubectl section) ── */
+    .info-callout {
+      background: linear-gradient(135deg, rgba(6,182,212,0.07), rgba(99,102,241,0.07));
+      border: 1px solid rgba(6,182,212,0.25);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin-top: 16px;
+    }
+    .info-callout-header {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 600; color: var(--cyan);
+      margin-bottom: 10px; cursor: pointer; user-select: none;
+    }
+    .info-callout-header svg { flex-shrink: 0; }
+    .info-callout-body { font-size: 0.78rem; color: var(--text-muted); }
+    .info-callout-body p { margin-bottom: 8px; }
+    .info-callout-body p:last-child { margin-bottom: 0; }
+    .cmd-block {
+      background: #070b12;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.73rem;
+      color: var(--text);
+      margin: 6px 0 10px;
+      position: relative;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .cmd-block .cmt { color: var(--text-dim); }
+    .cmd-block .kw  { color: var(--cyan); }
+    .copy-btn {
+      position: absolute; top: 6px; right: 8px;
+      background: var(--surface-3); border: 1px solid var(--border);
+      border-radius: 5px; padding: 2px 8px;
+      font-size: 0.65rem; font-family: 'Inter', sans-serif;
+      color: var(--text-dim); cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .os-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .os-tab {
+      padding: 3px 12px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+      transition: all 0.2s;
+    }
+    .os-tab.active { background: rgba(6,182,212,0.12); border-color: var(--cyan); color: var(--cyan); }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 44px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      background: var(--surface-2);
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.07);
+      box-shadow: 0 0 24px rgba(99,102,241,0.1);
+    }
+    .drop-zone svg { color: var(--accent); opacity: 0.7; margin-bottom: 12px; }
+    .drop-zone p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 4px; }
+    .drop-zone .dz-sub { font-size: 0.75rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .drop-zone-hint {
+      margin-top: 14px;
+      padding: 9px 14px;
+      background: rgba(99,102,241,0.07);
+      border: 1px solid rgba(99,102,241,0.18);
+      border-radius: 7px;
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      text-align: left;
+    }
+    .drop-zone-hint code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--surface-3); padding: 1px 5px; border-radius: 4px;
+      color: var(--accent); font-size: 0.7rem;
+    }
+
+    /* ── CONTEXT SELECTORS ── */
+    .section-label {
+      font-size: 0.68rem; font-weight: 700; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px; margin-top: 20px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .section-label:first-child { margin-top: 0; }
+    .context-list { display: flex; flex-direction: column; gap: 7px; }
+    .context-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .context-item:hover { border-color: var(--border-light); }
+    .context-item.selected {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.08);
+      box-shadow: inset 0 0 0 1px rgba(99,102,241,0.15);
+    }
+    .context-item input[type="radio"], .context-item input[type="checkbox"] {
+      width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer;
+    }
+    .context-name { font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .context-cluster { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 10px 22px; border-radius: var(--radius-sm);
+      font-size: 0.875rem; font-weight: 600;
+      border: none; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 24px rgba(99,102,241,0.55); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-ghost {
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .btn-ghost:hover { border-color: var(--border-light); color: var(--text); }
+    .btn-row { display: flex; gap: 12px; margin-top: 22px; }
+
+    /* ── PROGRESS LOG ── */
+    .log-container {
+      background: #060a10;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      height: 340px;
+      overflow-y: auto;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.77rem;
+      line-height: 1.75;
+    }
+    .log-container::-webkit-scrollbar { width: 5px; }
+    .log-container::-webkit-scrollbar-track { background: transparent; }
+    .log-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .log-line { white-space: pre-wrap; word-break: break-all; color: var(--text-dim); }
+    .log-line.ok    { color: #34d399; }
+    .log-line.error { color: #f87171; }
+    .log-line.warn  { color: #fbbf24; }
+    .log-line.done  { color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
+    .log-line.info  { color: #64748b; }
+    .log-cursor {
+      display: inline-block; width: 8px; height: 14px;
+      background: var(--accent); margin-left: 2px; vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ── COMPLETE ── */
+    .complete-wrap { text-align: center; padding: 8px 0; }
+    .complete-icon {
+      width: 72px; height: 72px;
+      background: radial-gradient(circle at 50% 50%, rgba(16,185,129,0.2), rgba(16,185,129,0.05));
+      border: 1px solid rgba(16,185,129,0.4);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--success);
+      margin: 0 auto 24px;
+      box-shadow: 0 0 32px rgba(16,185,129,0.2);
+    }
+    .complete-title {
+      font-size: 1.5rem; font-weight: 700; margin-bottom: 10px;
+      background: linear-gradient(135deg, #e2e8f0, var(--success));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .complete-sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 28px; }
+    .countdown { font-size: 0.78rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 14px; }
+
+    /* ── ERROR BANNER ── */
+    .error-banner {
+      display: none;
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.28);
+      border-radius: var(--radius-sm); padding: 11px 15px;
+      font-size: 0.78rem; color: #f87171;
+      margin-bottom: 14px;
+      white-space: pre-wrap;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    /* ── COLLAPSIBLE CHEVRON ── */
+    .chevron { transition: transform 0.2s; }
+    .chevron.open { transform: rotate(180deg); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-brand">
+      <img src="/static/k8s-janus-logo-white.png" class="header-logo-img" alt="K8s-Janus Logo">
+      <div class="brand-text">
+        <h1>K8s-Janus</h1>
+        <span>Just-in-Time Access</span>
+      </div>
+    </div>
+    <div class="setup-badge">Setup Wizard</div>
+  </header>
+
+  <div class="page-scroll">
+    <div class="container">
+
+      <!-- Step indicators -->
+      <div class="wizard-steps">
+        <div class="wizard-step active" id="step-ind-1">
+          <div class="step-num">1</div>
+          <span>Upload</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="wizard-step" id="step-ind-2">
+          <div class="step-num">2</div>
+          <span>Select Clusters</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="wizard-step" id="step-ind-3">
+          <div class="step-num">3</div>
+          <span>Configure</span>
+        </div>
+      </div>
+
+      <!-- ── PANEL 1: Upload ── -->
+      <div id="panel-upload">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon"><i data-lucide="upload-cloud" width="16" height="16"></i></div>
+            <div>
+              <h2>Upload your kubeconfig</h2>
+              <div class="card-sub">Drag &amp; drop or click to browse — never leaves your browser unencrypted</div>
+            </div>
+          </div>
+
+          <div id="error-upload" class="error-banner"></div>
+
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <i data-lucide="file-key" width="44" height="44"></i>
+            <p>Drop your kubeconfig here</p>
+            <span class="dz-sub">~/.kube/config · .yaml · .yml · any filename</span>
+            <div class="drop-zone-hint">
+              ⚠️ If you get an <em>"exec-based auth"</em> error, export a self-contained file first:<br>
+              <code>kubectl config view --flatten --minify &gt; flat-kube.yaml</code>
+            </div>
+          </div>
+          <input type="file" id="file-input" accept=".yaml,.yml,.kubeconfig,*" style="display:none">
+
+          <!-- Security notice -->
+          <div style="margin-top:14px;display:flex;align-items:flex-start;gap:9px;padding:10px 14px;
+                      background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.18);border-radius:8px">
+            <i data-lucide="shield-check" width="15" height="15" style="color:var(--success);flex-shrink:0;margin-top:1px"></i>
+            <p style="font-size:0.73rem;color:var(--text-dim);line-height:1.6">
+              <strong style="color:var(--text-muted)">Security:</strong>
+              Your kubeconfig is sent over your local port-forward only — it never leaves your machine to an external server.
+              It is held in-memory on the pod for the duration of the wizard and discarded immediately on completion.
+              No credentials are logged or persisted.
+            </p>
+          </div>
+        </div>
+
+        <!-- ── No kubectl? Here's how ── -->
+        <div class="card" style="padding:20px 28px">
+          <div class="info-callout-header" onclick="toggleNoKubectl()" style="margin-bottom:0">
+            <i data-lucide="terminal" width="15" height="15" style="color:var(--cyan)"></i>
+            <span style="color:var(--cyan);font-size:0.78rem;font-weight:600">Don't have kubectl or direct cluster access?</span>
+            <i data-lucide="chevron-down" width="14" height="14" id="kubectl-chevron" class="chevron" style="margin-left:auto;color:var(--text-dim)"></i>
+          </div>
+
+          <div id="no-kubectl-body" class="hidden" style="margin-top:14px">
+            <div class="os-tabs">
+              <button class="os-tab active" onclick="showOs('linux')">Linux / macOS</button>
+              <button class="os-tab" onclick="showOs('win')">Windows</button>
+              <button class="os-tab" onclick="showOs('cloud')">Cloud Shell</button>
+            </div>
+
+            <!-- Linux / macOS -->
+            <div id="os-linux">
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px">
+                Install <strong>kubectl</strong> and export your kubeconfig — then upload the file above.
+              </p>
+              <div class="cmd-block">
+<button class="copy-btn" onclick="copyCmd('cmd-linux-install')">copy</button
+><span id="cmd-linux-install"><span class="cmt"># macOS (Homebrew)</span>
+brew install kubectl
+
+<span class="cmt"># Linux (curl)</span>
+curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/</span>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">Then export a flattened kubeconfig:</p>
+              <div class="cmd-block">
+<button class="copy-btn" onclick="copyCmd('cmd-linux-export')">copy</button
+><span id="cmd-linux-export">kubectl config view --flatten --minify > flat-kube.yaml</span>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted)">Upload <code style="font-family:monospace;color:var(--accent)">flat-kube.yaml</code> above.</p>
+            </div>
+
+            <!-- Windows -->
+            <div id="os-win" class="hidden">
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px">Install kubectl via winget or scoop:</p>
+              <div class="cmd-block">
+<button class="copy-btn" onclick="copyCmd('cmd-win-install')">copy</button
+><span id="cmd-win-install"><span class="cmt"># winget (Windows 10/11)</span>
+winget install Kubernetes.kubectl
+
+<span class="cmt"># or Chocolatey</span>
+choco install kubernetes-cli</span>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">Export kubeconfig (PowerShell):</p>
+              <div class="cmd-block">
+<button class="copy-btn" onclick="copyCmd('cmd-win-export')">copy</button
+><span id="cmd-win-export">kubectl config view --flatten --minify | Out-File -Encoding utf8 flat-kube.yaml</span>
+              </div>
+            </div>
+
+            <!-- Cloud Shell -->
+            <div id="os-cloud" class="hidden">
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px">
+                kubectl is pre-installed in Google Cloud Shell, Azure Cloud Shell, and AWS CloudShell.
+                Just run the export command and download the file.
+              </p>
+              <div class="cmd-block">
+<button class="copy-btn" onclick="copyCmd('cmd-cloud-export')">copy</button
+><span id="cmd-cloud-export">kubectl config view --flatten --minify > flat-kube.yaml
+<span class="cmt"># Then click "Download file" in your cloud shell to save flat-kube.yaml locally</span></span>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted)">
+                Then upload the downloaded file using the drop zone above.
+              </p>
+            </div>
+
+            <!-- Port-forward reminder (install-method-agnostic) -->
+            <div style="margin-top:14px;padding:12px 14px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.2);border-radius:8px">
+              <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">
+                <strong style="color:var(--accent)">Accessing this wizard?</strong>
+                You need a port-forward to reach it from your browser — run this on any machine with kubectl:
+              </p>
+              <div class="cmd-block" style="margin:0">
+<button class="copy-btn" onclick="copyCmd('cmd-pf')">copy</button
+><span id="cmd-pf">kubectl port-forward svc/janus-webui -n k8s-janus 8080:80
+<span class="cmt"># then open http://localhost:8080/setup</span></span>
+              </div>
+              <p style="font-size:0.73rem;color:var(--text-dim);margin-top:8px">
+                Installed via ArgoCD, Flux, or another GitOps tool? The service name and namespace are the same —
+                just point kubectl at your management cluster.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PANEL 2: Select Contexts ── -->
+      <div id="panel-select" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon"><i data-lucide="network" width="16" height="16"></i></div>
+            <div>
+              <h2>Select clusters</h2>
+              <div class="card-sub">Choose the management cluster and any remote targets to register</div>
+            </div>
+          </div>
+
+          <div id="error-select" class="error-banner"></div>
+
+          <div class="section-label">Management cluster (controller &amp; web UI run here)</div>
+          <div class="context-list" id="central-list"></div>
+
+          <div class="section-label" style="margin-top:20px">Remote clusters <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dim);font-size:0.72rem">(optional — re-run wizard to add more later)</span></div>
+          <div id="remote-section">
+            <div class="context-list" id="remote-list"></div>
+            <div id="no-remotes" class="hidden" style="font-size:0.78rem;color:var(--text-dim);padding:10px 0">
+              No other contexts found. You can add remote clusters later by re-running the wizard.
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="showPanel('upload')">
+              <i data-lucide="arrow-left" width="14" height="14"></i> Back
+            </button>
+            <button class="btn btn-primary" id="btn-start" disabled onclick="startSetup()">
+              <i data-lucide="play" width="14" height="14"></i> Start Setup
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PANEL 3: Progress ── -->
+      <div id="panel-progress" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon"><i data-lucide="terminal" width="16" height="16"></i></div>
+            <div>
+              <h2>Configuring clusters</h2>
+              <div class="card-sub">Applying RBAC, issuing tokens, writing kubeconfig secrets…</div>
+            </div>
+          </div>
+
+          <div class="log-container" id="log-output">
+            <span class="log-cursor"></span>
+          </div>
+
+          <div id="error-progress" class="error-banner" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- ── PANEL 4: Complete ── -->
+      <div id="panel-complete" class="hidden">
+        <div class="card" style="padding:48px 32px">
+          <div class="complete-wrap">
+            <div class="complete-icon">
+              <i data-lucide="check-circle" width="34" height="34"></i>
+            </div>
+            <div class="complete-title">Setup Complete</div>
+            <div class="complete-sub">
+              Kubeconfig secrets created. The controller is starting up — should be ready in a few seconds.
+            </div>
+            <a href="/" class="btn btn-primary" style="display:inline-flex;margin:0 auto 4px">
+              <i data-lucide="layout-dashboard" width="14" height="14"></i>
+              Go to Dashboard
+            </a>
+            <div class="countdown" id="countdown-text"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // ---------------------------------------------------------------------------
+    // State
+    // ---------------------------------------------------------------------------
+    let _sessionId  = null;
+    let _kubeconfig = null;
+    let _ws         = null;
+
+    // ---------------------------------------------------------------------------
+    // Panel management
+    // ---------------------------------------------------------------------------
+    const PANELS = ['upload', 'select', 'progress', 'complete'];
+
+    function showPanel(name) {
+      PANELS.forEach(p => {
+        document.getElementById(`panel-${p}`).classList.toggle('hidden', p !== name);
+      });
+      const stepIdx = PANELS.indexOf(name);
+      document.querySelectorAll('.wizard-step').forEach((el, i) => {
+        el.classList.toggle('active', i === stepIdx);
+        el.classList.toggle('done',   i < stepIdx);
+      });
+      lucide.createIcons();
+    }
+
+    // ---------------------------------------------------------------------------
+    // No-kubectl collapsible section
+    // ---------------------------------------------------------------------------
+    function toggleNoKubectl() {
+      const body    = document.getElementById('no-kubectl-body');
+      const chevron = document.getElementById('kubectl-chevron');
+      const hidden  = body.classList.toggle('hidden');
+      chevron.classList.toggle('open', !hidden);
+    }
+
+    let _activeOs = 'linux';
+    function showOs(os) {
+      ['linux', 'win', 'cloud'].forEach(id => {
+        document.getElementById(`os-${id}`).classList.toggle('hidden', id !== os);
+      });
+      document.querySelectorAll('.os-tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['linux','win','cloud'][i] === os);
+      });
+      _activeOs = os;
+    }
+
+    function copyCmd(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText).then(() => {
+        const btn = el.parentElement.querySelector('.copy-btn');
+        if (btn) { btn.textContent = 'copied!'; setTimeout(() => btn.textContent = 'copy', 1500); }
+      });
+    }
+
+    // ---------------------------------------------------------------------------
+    // Panel 1 — Upload
+    // ---------------------------------------------------------------------------
+    const dropZone  = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault(); dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+    async function handleFile(file) {
+      if (file.size > 1024 * 1024) {
+        showError('upload', 'File too large (max 1 MB). Is this really a kubeconfig?');
+        return;
+      }
+      dropZone.innerHTML = `<div class="spinner"></div><p style="margin-top:12px;color:var(--text-muted)">Parsing ${escHtml(file.name)}…</p>`;
+
+      const formData = new FormData();
+      formData.append('kubeconfig', file);
+
+      try {
+        const resp = await fetch('/setup/upload', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.error) { resetDropZone(); showError('upload', data.error); return; }
+        _sessionId  = data.session_id;
+        _kubeconfig = data.contexts;
+        populateContextSelectors(data.contexts);
+        showPanel('select');
+      } catch (err) {
+        resetDropZone();
+        showError('upload', `Upload failed: ${err.message}`);
+      }
+    }
+
+    function resetDropZone() {
+      dropZone.innerHTML = `
+        <i data-lucide="file-key" width="44" height="44"></i>
+        <p>Drop your kubeconfig here</p>
+        <span class="dz-sub">~/.kube/config · .yaml · .yml · any filename</span>
+        <div class="drop-zone-hint">
+          ⚠️ If you get an <em>"exec-based auth"</em> error, export a self-contained file first:<br>
+          <code>kubectl config view --flatten --minify &gt; flat-kube.yaml</code>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Panel 2 — Select contexts
+    // ---------------------------------------------------------------------------
+    function populateContextSelectors(contexts) {
+      const centralList = document.getElementById('central-list');
+      const remoteList  = document.getElementById('remote-list');
+      centralList.innerHTML = '';
+      remoteList.innerHTML  = '';
+
+      contexts.forEach(ctx => {
+        const cItem = document.createElement('label');
+        cItem.className = 'context-item';
+        cItem.innerHTML = `
+          <input type="radio" name="central" value="${escHtml(ctx.name)}">
+          <div>
+            <div class="context-name">${escHtml(ctx.name)}</div>
+            <div class="context-cluster">${escHtml(ctx.cluster)}</div>
+          </div>
+        `;
+        cItem.querySelector('input').addEventListener('change', onCentralChange);
+        centralList.appendChild(cItem);
+      });
+
+      onCentralChange();
+    }
+
+    function onCentralChange() {
+      const central   = document.querySelector('input[name="central"]:checked')?.value;
+      const remoteList = document.getElementById('remote-list');
+      const noRemotes  = document.getElementById('no-remotes');
+      const btnStart   = document.getElementById('btn-start');
+
+      document.querySelectorAll('#central-list .context-item').forEach(item => {
+        item.classList.toggle('selected', item.querySelector('input').checked);
+      });
+      btnStart.disabled = !central;
+
+      remoteList.innerHTML = '';
+      const others = (_kubeconfig || []).filter(c => c.name !== central);
+
+      if (others.length === 0) {
+        noRemotes.classList.remove('hidden');
+        remoteList.classList.add('hidden');
+      } else {
+        noRemotes.classList.add('hidden');
+        remoteList.classList.remove('hidden');
+        others.forEach(ctx => {
+          const rItem = document.createElement('label');
+          rItem.className = 'context-item';
+          rItem.innerHTML = `
+            <input type="checkbox" name="remote" value="${escHtml(ctx.name)}">
+            <div>
+              <div class="context-name">${escHtml(ctx.name)}</div>
+              <div class="context-cluster">${escHtml(ctx.cluster)}</div>
+            </div>
+          `;
+          rItem.querySelector('input').addEventListener('change', e => {
+            rItem.classList.toggle('selected', e.target.checked);
+          });
+          remoteList.appendChild(rItem);
+        });
+      }
+      lucide.createIcons();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Panel 3 — Run setup
+    // ---------------------------------------------------------------------------
+    async function startSetup() {
+      const central = document.querySelector('input[name="central"]:checked')?.value;
+      if (!central) return;
+      const remotes = [...document.querySelectorAll('input[name="remote"]:checked')].map(el => el.value);
+
+      showPanel('progress');
+
+      try {
+        const resp = await fetch('/setup/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: _sessionId, central, remotes }),
+        });
+        if (!resp.ok) {
+          showError('progress', `Failed to start setup: ${await resp.text()}`);
+          return;
+        }
+      } catch (err) {
+        showError('progress', `Network error: ${err.message}`);
+        return;
+      }
+
+      connectWebSocket(_sessionId);
+    }
+
+    function connectWebSocket(sessionId) {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      _ws = new WebSocket(`${proto}//${location.host}/ws/setup/${sessionId}`);
+      document.getElementById('log-output').innerHTML = '';
+
+      _ws.onmessage = ev => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'line') {
+            appendLog(msg.text);
+            if (msg.text.startsWith('[DONE]')) {
+              setTimeout(() => showPanel('complete'), 800);
+              startCountdown(5);
+            } else if (msg.text.startsWith('[FATAL]')) {
+              showError('progress', msg.text.replace('[FATAL] ', ''));
+            }
+          } else if (msg.type === 'done') {
+            setTimeout(() => showPanel('complete'), 800);
+            startCountdown(5);
+          } else if (msg.type === 'error') {
+            appendLog(`[ERROR] ${msg.text}`, 'error');
+          }
+        } catch {}
+      };
+      _ws.onerror = () => appendLog('[ERROR] WebSocket connection lost', 'error');
+      _ws.onclose = () => { document.querySelector('.log-cursor')?.remove(); };
+    }
+
+    function appendLog(text, forceClass) {
+      const log = document.getElementById('log-output');
+      log.querySelector('.log-cursor')?.remove();
+
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      if      (forceClass)                               line.classList.add(forceClass);
+      else if (text.startsWith('[OK]'))                  line.classList.add('ok');
+      else if (text.startsWith('[ERROR]') || text.startsWith('[FATAL]')) line.classList.add('error');
+      else if (text.startsWith('[WARN]'))                line.classList.add('warn');
+      else if (text.startsWith('[DONE]'))                line.classList.add('done');
+      else                                               line.classList.add('info');
+
+      line.textContent = text;
+      log.appendChild(line);
+
+      const cur = document.createElement('span');
+      cur.className = 'log-cursor';
+      log.appendChild(cur);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Panel 4 — Complete
+    // ---------------------------------------------------------------------------
+    function startCountdown(secs) {
+      const el = document.getElementById('countdown-text');
+      function tick() {
+        if (secs <= 0) { location.href = '/'; return; }
+        el.textContent = `Redirecting to dashboard in ${secs}s…`;
+        secs--;
+        setTimeout(tick, 1000);
+      }
+      tick();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+    function showError(panel, msg) {
+      const el = document.getElementById(`error-${panel}`);
+      if (!el) return;
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

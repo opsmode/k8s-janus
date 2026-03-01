@@ -35,6 +35,78 @@ spec:
         runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-kubeconfigs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          envFrom:
+            - configMapRef:
+                name: {{ include "janus.configmap.name" . }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command:
+            - python3
+            - -c
+            - |
+              import json, os, ssl, sys, time, urllib.request, urllib.error
+
+              API   = "https://kubernetes.default.svc"
+              TOKEN = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
+              CA    = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+              NS    = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
+              clusters = json.loads(os.environ.get("CLUSTERS", '[{"name":"local"}]'))
+              remotes  = clusters[1:]  # central cluster (index 0) uses in-cluster config
+
+              if not remotes:
+                  print("Single-cluster install — no kubeconfig secrets needed.", flush=True)
+                  sys.exit(0)
+
+              secrets = [c.get("secretName") or f"{c['name']}-kubeconfig" for c in remotes]
+              print(f"Waiting for kubeconfig secrets: {secrets}", flush=True)
+              print("Run the setup wizard: kubectl port-forward svc/janus-webui -n k8s-janus 8080:80", flush=True)
+              print("Then open http://localhost:8080/setup", flush=True)
+
+              ctx = ssl.create_default_context(cafile=CA)
+
+              def exists(name):
+                  url = f"{API}/api/v1/namespaces/{NS}/secrets/{name}"
+                  req = urllib.request.Request(url, headers={"Authorization": f"Bearer {TOKEN}"})
+                  try:
+                      urllib.request.urlopen(req, context=ctx, timeout=10)
+                      return True
+                  except urllib.error.HTTPError as e:
+                      return e.code != 404
+                  except Exception:
+                      return False
+
+              waited = 0
+              while waited < 3600:
+                  missing = [s for s in secrets if not exists(s)]
+                  if not missing:
+                      print("All kubeconfig secrets present — starting controller.", flush=True)
+                      sys.exit(0)
+                  print(f"  still waiting for: {missing}", flush=True)
+                  time.sleep(10)
+                  waited += 10
+
+              print("Timeout (1h) waiting for kubeconfig secrets. Run the setup wizard.", flush=True)
+              sys.exit(1)
       containers:
         - name: controller
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

@@ -9,30 +9,40 @@
   Remote agent mode — ServiceAccount {{ .Values.remote.serviceAccountName }}
   is ready in namespace {{ .Values.remote.namespace }}.
 
-  Now run setup.sh on your central cluster to extract the token
-  and register this cluster:
+  Register this cluster using the Setup Wizard on your central instance,
+  or run setup.sh locally:
 
     ./scripts/setup.sh
 
 {{- else }}
 
+  ── Next: Run the Setup Wizard ──────────────────────────────────
+
+  Port-forward the web UI:
+
+    kubectl port-forward svc/{{ include "janus.webui.name" . }} \
+      -n {{ .Values.janus.namespace }} 8080:80
+
+  Then open in your browser:
+
+    http://localhost:8080/setup
+
+  Upload your kubeconfig, select your clusters, and the wizard
+  configures everything automatically. The controller starts once
+  setup completes.
+
+  ── Access ──────────────────────────────────────────────────────
 {{- if eq .Values.service.type "LoadBalancer" }}
 
-  Waiting for LoadBalancer IP...
-  Run this to get the external URL:
+  After setup, get the external URL:
 
     kubectl get svc {{ include "janus.webui.name" . }} \
       -n {{ .Values.janus.namespace }} \
       -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 
-  Or watch until it's ready:
-
-    kubectl get svc {{ include "janus.webui.name" . }} \
-      -n {{ .Values.janus.namespace }} --watch
-
 {{- else if eq .Values.service.type "NodePort" }}
 
-  Access via NodePort:
+  After setup, access via NodePort:
 
     export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
     export NODE_PORT=$(kubectl get svc {{ include "janus.webui.name" . }} \
@@ -42,7 +52,7 @@
 
 {{- else if .Values.ingress.enabled }}
 
-  Access via Ingress:
+  After setup, access via Ingress:
 
     https://{{ .Values.ingress.host }}
 
