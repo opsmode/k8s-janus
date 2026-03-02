@@ -14,9 +14,8 @@ data:
   ADMIN_EMAILS: {{ .Values.janus.adminEmails | join "," | quote }}
   WEBUI_BASE_URL: {{ .Values.webui.baseUrl | default "" | quote }}
   CRD_RETENTION_SECONDS: {{ .Values.janus.crdRetentionSeconds | quote }}
-  {{- if .Values.clusters }}
-  CLUSTERS: {{ .Values.clusters | toJson | quote }}
-  {{- end }}
+  JANUS_CLUSTER_NAME: {{ .Values.janus.clusterName | default "local" | quote }}
+  JANUS_CLUSTER_DISPLAY_NAME: {{ .Values.janus.clusterDisplayName | default (.Values.janus.clusterName | default "local") | quote }}
   IDLE_TIMEOUT_SECONDS: {{ .Values.janus.idleTimeoutSeconds | default 900 | quote }}
   AUTH_ENABLED: {{ ternary "true" "false" (ne .Values.webui.authEnabled false) | quote }}
   DISPLAY_TIMEZONE: {{ .Values.janus.displayTimezone | default "UTC" | quote }}

@@ -9,19 +9,6 @@ replicaCount: 1
 #     environment: production
 #     team: platform
 labels: {}
-# List of clusters Janus manages. The first entry is the management cluster —
-# controller and web UI run here. All AccessRequest CRDs and token Secrets are
-# stored here. Additional entries are remote targets for temporary pod access.
-# Run scripts/setup.sh to create kubeconfig Secrets in the k8s-janus namespace.
-# → templates: cluster-secrets.yaml (creates a kubeconfig Secret per entry)
-clusters:
-  - name: my-cluster
-    displayName: "My Cluster"
-    # secretName: auto-derived as "<name>-kubeconfig" — override only if needed
-# To add more clusters, run scripts/setup.sh and follow the prompts.
-# Example additional entry:
-#   - name: second-cluster
-#     displayName: "Second Cluster"
 # Container image used by both controller and webui deployments.
 # Tag is updated automatically by CI on every release.
 # → templates: controller-deployment.yaml, webui-deployment.yaml
@@ -51,6 +38,11 @@ ingress:
 janus:
   # Kubernetes namespace where Janus is deployed and stores token Secrets
   namespace: "k8s-janus"
+  # Name and display name for this (central) cluster shown in the UI.
+  # Can be updated at any time — just re-deploy; no data migration needed.
+  # Remote clusters are auto-discovered from kubeconfig Secrets — no list needed.
+  clusterName: "central"
+  clusterDisplayName: "Central Cluster"
   defaultTtlSeconds: 3600 # Default access duration in the request form (1h)
   maxTtlSeconds: 28800 # Hard cap engineers cannot exceed (8h)
   crdRetentionSeconds: 86400 # Delete expired/denied/revoked CRDs after (24h)

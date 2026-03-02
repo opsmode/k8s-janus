@@ -23,37 +23,24 @@ CRD_VERSION     = "v1alpha1"
 _raw_excluded   = os.environ.get("EXCLUDED_NAMESPACES", "")
 EXCLUDED_NAMESPACES = set(n.strip() for n in _raw_excluded.split(",") if n.strip())
 
-import json as _json
+# Central cluster identity — name/displayName are optional single-value envs.
+# No JSON list needed. Remote clusters are discovered from labeled Secrets.
+_CENTRAL_NAME         = os.environ.get("JANUS_CLUSTER_NAME", "local")
+_CENTRAL_DISPLAY_NAME = os.environ.get("JANUS_CLUSTER_DISPLAY_NAME", _CENTRAL_NAME)
 
-# CLUSTERS_STATIC: seed list from env (always has the central cluster at index 0).
-# Remote clusters are discovered dynamically from labeled kubeconfig Secrets.
-_STATIC_RAW = os.environ.get("CLUSTERS", "")
-if _STATIC_RAW:
-    import sys as _sys
-    try:
-        _static = _json.loads(_STATIC_RAW)
-        if not _static:
-            raise ValueError("CLUSTERS list is empty")
-    except Exception as _err:
-        logging.getLogger("k8s-janus-webui").critical(
-            f"💥 Failed to parse CLUSTERS env var: {_err} — cannot start"
-        )
-        _sys.exit(1)
-    CLUSTERS_STATIC: list[dict] = _static
-else:
-    CLUSTERS_STATIC = []
-
-_MANAGED_LABEL = "k8s-janus.opsmode.io/managed"
+_MANAGED_LABEL    = "k8s-janus.opsmode.io/managed"
 _KUBECONFIG_SUFFIX = "-kubeconfig"
 
 
 def _discover_clusters() -> list[dict]:
     """
     Build the live CLUSTERS list:
-    1. Central cluster is always first (from CLUSTERS_STATIC[0] or a synthetic entry).
+    1. Central cluster is always first (identity from JANUS_CLUSTER_NAME env or 'local').
     2. Remote clusters are discovered by scanning kubeconfig Secrets labeled
        ``k8s-janus.opsmode.io/managed=true`` in JANUS_NAMESPACE.
     """
+    central = {"name": _CENTRAL_NAME, "displayName": _CENTRAL_DISPLAY_NAME}
+
     try:
         core_v1 = _get_central_core_v1()
         secrets = core_v1.list_namespaced_secret(
@@ -62,10 +49,7 @@ def _discover_clusters() -> list[dict]:
         )
     except Exception as e:
         logger.warning(f"_discover_clusters: could not list secrets: {e}")
-        # Fallback: return static list
-        if CLUSTERS_STATIC:
-            return list(CLUSTERS_STATIC)
-        return [{"name": "local", "displayName": "Local"}]
+        return [central]
 
     remotes: list[dict] = []
     for s in secrets.items:
@@ -73,20 +57,12 @@ def _discover_clusters() -> list[dict]:
         if not name.endswith(_KUBECONFIG_SUFFIX):
             continue
         cluster_name = name[: -len(_KUBECONFIG_SUFFIX)]
-        # Prefer display name from secret annotations if present
         display_name = (s.metadata.annotations or {}).get(
             "k8s-janus.opsmode.io/displayName", cluster_name
         )
         remotes.append({"name": cluster_name, "displayName": display_name, "secretName": name})
 
-    # Sort remotes by name for stable ordering
     remotes.sort(key=lambda c: c["name"])
-
-    if CLUSTERS_STATIC:
-        central = dict(CLUSTERS_STATIC[0])
-    else:
-        central = {"name": "local", "displayName": "Local"}
-
     return [central] + remotes
 
 
@@ -112,13 +88,7 @@ def invalidate_clusters_cache() -> None:
     _clusters_cache["expires"] = 0.0
 
 
-# Backwards-compat alias used by main.py imports — returns live list
-@property  # type: ignore[misc]
-def _clusters_property():
-    return get_clusters()
-
-
-# Eagerly populate on first import
+# Eagerly populate on first import (used by terminal_ws and other direct imports)
 CLUSTERS: list[dict] = get_clusters()
 
 # ---------------------------------------------------------------------------

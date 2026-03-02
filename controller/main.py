@@ -19,23 +19,10 @@ JANUS_NAMESPACE = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
 MAX_TTL_SECONDS = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
 MIN_TTL_SECONDS = 600
 CRD_GROUP = "k8s-janus.opsmode.io"
-_STATIC_RAW = os.environ.get("CLUSTERS", "")
-if _STATIC_RAW:
-    try:
-        _CLUSTERS_STATIC: list[dict] = json.loads(_STATIC_RAW)
-        if not _CLUSTERS_STATIC:
-            raise ValueError("CLUSTERS list is empty")
-    except Exception as _clusters_err:
-        import sys
-        logging.basicConfig()
-        logging.getLogger(__name__).critical(
-            f"💥 Failed to parse CLUSTERS env var: {_clusters_err} — cannot start"
-        )
-        sys.exit(1)
-else:
-    _CLUSTERS_STATIC = []
+_CENTRAL_NAME         = os.environ.get("JANUS_CLUSTER_NAME", "local")
+_CENTRAL_DISPLAY_NAME = os.environ.get("JANUS_CLUSTER_DISPLAY_NAME", _CENTRAL_NAME)
 
-_MANAGED_LABEL = "k8s-janus.opsmode.io/managed"
+_MANAGED_LABEL    = "k8s-janus.opsmode.io/managed"
 _KUBECONFIG_SUFFIX = "-kubeconfig"
 import time as _time
 _clusters_cache: dict = {"clusters": None, "expires": 0.0}
@@ -57,6 +44,8 @@ def get_clusters() -> list[dict]:
     if _clusters_cache["clusters"] is not None and now < _clusters_cache["expires"]:
         return _clusters_cache["clusters"]
 
+    central = {"name": _CENTRAL_NAME, "displayName": _CENTRAL_DISPLAY_NAME}
+
     try:
         core_v1 = _get_central_core_v1_ctrl()
         secrets = core_v1.list_namespaced_secret(
@@ -77,11 +66,6 @@ def get_clusters() -> list[dict]:
     except Exception as e:
         logging.getLogger(__name__).warning(f"get_clusters: could not list secrets: {e}")
         remotes = []
-
-    if _CLUSTERS_STATIC:
-        central = dict(_CLUSTERS_STATIC[0])
-    else:
-        central = {"name": "local", "displayName": "Local"}
 
     result = [central] + remotes
     _clusters_cache["clusters"] = result
