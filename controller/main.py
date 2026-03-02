@@ -19,17 +19,78 @@ JANUS_NAMESPACE = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
 MAX_TTL_SECONDS = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
 MIN_TTL_SECONDS = 600
 CRD_GROUP = "k8s-janus.opsmode.io"
-try:
-    CLUSTERS: list[dict] = json.loads(os.environ.get("CLUSTERS", '[{"name":"local","displayName":"Local"}]'))
-    if not CLUSTERS:
-        raise ValueError("CLUSTERS list is empty")
-except Exception as _clusters_err:
-    import sys
-    logging.basicConfig()
-    logging.getLogger(__name__).critical(
-        f"💥 Failed to parse CLUSTERS env var: {_clusters_err} — cannot start"
-    )
-    sys.exit(1)
+_STATIC_RAW = os.environ.get("CLUSTERS", "")
+if _STATIC_RAW:
+    try:
+        _CLUSTERS_STATIC: list[dict] = json.loads(_STATIC_RAW)
+        if not _CLUSTERS_STATIC:
+            raise ValueError("CLUSTERS list is empty")
+    except Exception as _clusters_err:
+        import sys
+        logging.basicConfig()
+        logging.getLogger(__name__).critical(
+            f"💥 Failed to parse CLUSTERS env var: {_clusters_err} — cannot start"
+        )
+        sys.exit(1)
+else:
+    _CLUSTERS_STATIC = []
+
+_MANAGED_LABEL = "k8s-janus.opsmode.io/managed"
+_KUBECONFIG_SUFFIX = "-kubeconfig"
+import time as _time
+_clusters_cache: dict = {"clusters": None, "expires": 0.0}
+_CLUSTERS_TTL = 30.0
+
+
+def _get_central_core_v1_ctrl():
+    """Return CoreV1Api using in-cluster config for the controller SA."""
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config()
+    return client.CoreV1Api()
+
+
+def get_clusters() -> list[dict]:
+    """Return live cluster list: central + remotes discovered from labeled secrets."""
+    now = _time.monotonic()
+    if _clusters_cache["clusters"] is not None and now < _clusters_cache["expires"]:
+        return _clusters_cache["clusters"]
+
+    try:
+        core_v1 = _get_central_core_v1_ctrl()
+        secrets = core_v1.list_namespaced_secret(
+            namespace=JANUS_NAMESPACE,
+            label_selector=f"{_MANAGED_LABEL}=true",
+        )
+        remotes: list[dict] = []
+        for s in secrets.items:
+            name = s.metadata.name or ""
+            if not name.endswith(_KUBECONFIG_SUFFIX):
+                continue
+            cluster_name = name[: -len(_KUBECONFIG_SUFFIX)]
+            display_name = (s.metadata.annotations or {}).get(
+                "k8s-janus.opsmode.io/displayName", cluster_name
+            )
+            remotes.append({"name": cluster_name, "displayName": display_name, "secretName": name})
+        remotes.sort(key=lambda c: c["name"])
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"get_clusters: could not list secrets: {e}")
+        remotes = []
+
+    if _CLUSTERS_STATIC:
+        central = dict(_CLUSTERS_STATIC[0])
+    else:
+        central = {"name": "local", "displayName": "Local"}
+
+    result = [central] + remotes
+    _clusters_cache["clusters"] = result
+    _clusters_cache["expires"] = now + _CLUSTERS_TTL
+    return result
+
+
+# Module-level alias for compatibility
+CLUSTERS: list[dict] = get_clusters()
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("k8s-janus-audit")
@@ -81,11 +142,12 @@ def get_k8s_clients_for_cluster(cluster_name: str):
     Remote clusters: load the static kubeconfig from the cluster's Secret,
     which authenticates as janus-remote SA on that cluster.
     """
-    cluster_cfg = next((c for c in CLUSTERS if c["name"] == cluster_name), None)
+    clusters = get_clusters()
+    cluster_cfg = next((c for c in clusters if c["name"] == cluster_name), None)
     if not cluster_cfg:
         raise ValueError(f"Unknown cluster: {cluster_name}")
 
-    if cluster_name == CLUSTERS[0]["name"]:
+    if cluster_name == clusters[0]["name"]:
         return get_k8s_clients()
 
     secret_name = cluster_cfg.get("secretName") or f"{cluster_name}-kubeconfig"
@@ -118,7 +180,7 @@ def get_k8s_clients_for_cluster(cluster_name: str):
 async def on_create(name, spec, status, patch, **kwargs):
     """New AccessRequest created — validate and notify approvers."""
     requester = spec.get("requester", "unknown")
-    cluster = spec.get("cluster", CLUSTERS[0]["name"])
+    cluster = spec.get("cluster", get_clusters()[0]["name"])
     namespace = spec.get("namespace", "unknown")
     logger.info(SEP)
     logger.info(f"📥 New AccessRequest [{name}] from {requester} → cluster={cluster} ns={namespace}")
@@ -167,7 +229,7 @@ async def on_create(name, spec, status, patch, **kwargs):
 @kopf.on.field("k8s-janus.opsmode.io", "v1alpha1", "accessrequests", field="status.phase")
 async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
     """React when phase transitions to Approved, Denied, or Revoked."""
-    cluster = spec.get("cluster", CLUSTERS[0]["name"])
+    cluster = spec.get("cluster", get_clusters()[0]["name"])
     namespace = spec.get("namespace", "unknown")
     requester = spec.get("requester", "unknown")
     logger.info(SEP)
@@ -203,7 +265,7 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
 
 async def grant_access(name: str, spec: dict, patch):
     """Create SA + RoleBinding + TokenRequest on target cluster, store token in Secret on central cluster."""
-    target_cluster = spec.get("cluster", CLUSTERS[0]["name"])
+    target_cluster = spec.get("cluster", get_clusters()[0]["name"])
     requester = spec.get("requester", "unknown")
     namespace = spec.get("namespace", "default")
     logger.info(SEP)
@@ -272,12 +334,13 @@ async def grant_access(name: str, spec: dict, patch):
         # 3. Resolve server URL and CA for the target cluster.
         #    Central cluster: read from the in-cluster service account files.
         #    Remote clusters: parse from the kubeconfig Secret.
-        cluster_cfg = next((c for c in CLUSTERS if c["name"] == target_cluster), None)
+        _clusters_live = get_clusters()
+        cluster_cfg = next((c for c in _clusters_live if c["name"] == target_cluster), None)
         server_url = ""
         ca_data = ""
 
         try:
-            if target_cluster == CLUSTERS[0]["name"]:
+            if target_cluster == _clusters_live[0]["name"]:
                 # In-cluster: host is injected as KUBERNETES_SERVICE_HOST/PORT
                 host = os.environ.get("KUBERNETES_SERVICE_HOST", "")
                 port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
@@ -545,11 +608,12 @@ def ensure_pod_exec_clusterrole(rbac_v1, cluster_name: str):
 
 async def _setup_remote_clusterroles():
     """Best-effort background task: ensure janus-pod-exec ClusterRole on all remote clusters."""
+    _clusters_live = get_clusters()
     _, rbac_v1 = get_k8s_clients()
-    ensure_pod_exec_clusterrole(rbac_v1, CLUSTERS[0]["name"])
-    for cluster in CLUSTERS:
+    ensure_pod_exec_clusterrole(rbac_v1, _clusters_live[0]["name"])
+    for cluster in _clusters_live:
         cname = cluster.get("name", "")
-        if not cname or cname == CLUSTERS[0]["name"]:
+        if not cname or cname == _clusters_live[0]["name"]:
             continue
         try:
             _, remote_rbac = get_k8s_clients_for_cluster(cname)
@@ -560,7 +624,7 @@ async def _setup_remote_clusterroles():
 
 @kopf.on.startup()
 async def startup(**kwargs):
-    logger.info(f"🚀 k8s-janus controller starting up on cluster={CLUSTERS[0]['name']}")
+    logger.info(f"🚀 k8s-janus controller starting up on cluster={get_clusters()[0]['name']}")
     init_db()
     try:
         from db import purge_old_records
@@ -586,7 +650,7 @@ async def startup(**kwargs):
                 continue
             name = ar["metadata"]["name"]
             namespace = ar.get("spec", {}).get("namespace", "default")
-            target_cluster = ar.get("spec", {}).get("cluster", CLUSTERS[0]["name"])
+            target_cluster = ar.get("spec", {}).get("cluster", get_clusters()[0]["name"])
             expires_at_str = ar.get("status", {}).get("expiresAt", "")
             if not expires_at_str:
                 logger.warning(f"⚠️  [{name}] Active request has no expiresAt — cleaning up now on cluster={target_cluster} ns={namespace}")
@@ -606,4 +670,4 @@ async def startup(**kwargs):
     # Start periodic CRD cleanup background task
     asyncio.create_task(_periodic_crd_cleanup_loop())
     logger.info(f"🧹 periodic CRD cleanup started (retention={CLEANUP_RETENTION_SECONDS}s, phases={CLEANUP_TERMINAL_PHASES})")
-    logger.info(f"✅ k8s-janus controller ready on cluster={CLUSTERS[0]['name']}")
+    logger.info(f"✅ k8s-janus controller ready on cluster={get_clusters()[0]['name']}")

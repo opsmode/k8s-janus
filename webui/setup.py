@@ -2,7 +2,7 @@
 Setup wizard backend for K8s-Janus.
 
 Handles kubeconfig parsing, remote RBAC provisioning, token issuance,
-and kubeconfig Secret creation on the central cluster.
+kubeconfig Secret creation, pod rollout restart, and live Ready status.
 """
 import asyncio
 import base64
@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import tempfile
+import time
 from typing import AsyncIterator
 
 import yaml
@@ -209,13 +210,14 @@ def _apply_remote_rbac(
     namespace: str,
 ) -> None:
     """
-    Idempotently apply the janus-remote RBAC resources on a remote cluster.
+    Force-recreate the janus-remote RBAC resources on a remote cluster.
+    Delete-then-create ensures stale rules/subjects are always replaced.
     Mirrors helm/templates/remote-rbac.yaml (remote.enabled=true).
     """
     labels = {"app.kubernetes.io/managed-by": "janus-setup-wizard",
               "k8s-janus.opsmode.io/managed": "true"}
 
-    # 1. Namespace
+    # 1. Namespace — create if missing (409 = already exists, fine)
     try:
         core_v1.create_namespace(client.V1Namespace(
             metadata=client.V1ObjectMeta(name=namespace, labels=labels)
@@ -225,19 +227,20 @@ def _apply_remote_rbac(
         if e.status != 409:
             raise
 
-    # 2. ServiceAccount
-    sa = client.V1ServiceAccount(
-        metadata=client.V1ObjectMeta(name="janus-remote", namespace=namespace, labels=labels)
-    )
+    # 2. ServiceAccount — delete + recreate for clean state
     try:
-        core_v1.create_namespaced_service_account(namespace=namespace, body=sa)
+        core_v1.delete_namespaced_service_account("janus-remote", namespace)
     except ApiException as e:
-        if e.status == 409:
-            core_v1.patch_namespaced_service_account("janus-remote", namespace, sa)
-        else:
+        if e.status != 404:
             raise
+    core_v1.create_namespaced_service_account(
+        namespace=namespace,
+        body=client.V1ServiceAccount(
+            metadata=client.V1ObjectMeta(name="janus-remote", namespace=namespace, labels=labels)
+        ),
+    )
 
-    # 3. ClusterRole
+    # 3. ClusterRole — delete + recreate
     rules = [
         client.V1PolicyRule(
             api_groups=r["apiGroups"],
@@ -252,14 +255,13 @@ def _apply_remote_rbac(
         rules=rules,
     )
     try:
-        rbac_v1.create_cluster_role(body=cr)
+        rbac_v1.delete_cluster_role("janus-remote")
     except ApiException as e:
-        if e.status == 409:
-            rbac_v1.patch_cluster_role("janus-remote", cr)
-        else:
+        if e.status != 404:
             raise
+    rbac_v1.create_cluster_role(body=cr)
 
-    # 4. ClusterRoleBinding
+    # 4. ClusterRoleBinding — delete + recreate
     crb = client.V1ClusterRoleBinding(
         metadata=client.V1ObjectMeta(name="janus-remote", labels=labels),
         role_ref=client.V1RoleRef(
@@ -274,12 +276,11 @@ def _apply_remote_rbac(
         )],
     )
     try:
-        rbac_v1.create_cluster_role_binding(body=crb)
+        rbac_v1.delete_cluster_role_binding("janus-remote")
     except ApiException as e:
-        if e.status == 409:
-            rbac_v1.patch_cluster_role_binding("janus-remote", crb)
-        else:
+        if e.status != 404:
             raise
+    rbac_v1.create_cluster_role_binding(body=crb)
 
 
 def _issue_token(
@@ -389,12 +390,213 @@ def is_setup_complete(clusters: list[dict], janus_namespace: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Cluster removal
+# ---------------------------------------------------------------------------
+
+def remove_cluster(
+    cluster_name: str,
+    janus_namespace: str,
+    kubeconfig: dict | None = None,
+    remote_context: str | None = None,
+) -> list[str]:
+    """
+    Remove a remote cluster from Janus:
+      1. Delete the kubeconfig Secret on the central cluster.
+      2. If a kubeconfig/context is provided, delete the janus-remote SA,
+         ClusterRole, ClusterRoleBinding, and the k8s-janus Namespace on the remote.
+    Returns a list of log lines.
+    """
+    lines: list[str] = []
+    secret_name = f"{cluster_name}-kubeconfig"
+
+    # Step 1: delete kubeconfig secret on central
+    try:
+        core_v1 = _get_central_core_v1()
+        core_v1.delete_namespaced_secret(name=secret_name, namespace=janus_namespace)
+        lines.append(f"[OK]   Deleted secret {secret_name}")
+    except ApiException as e:
+        if e.status == 404:
+            lines.append(f"[INFO]   Secret {secret_name} not found (already removed)")
+        else:
+            lines.append(f"[ERROR] Could not delete secret {secret_name}: {e.reason}")
+
+    # Step 2: clean up RBAC on remote if we have credentials
+    if kubeconfig and remote_context:
+        try:
+            core_v1_r, rbac_v1_r = _build_clients_for_context(kubeconfig, remote_context)
+
+            # ClusterRoleBinding
+            try:
+                rbac_v1_r.delete_cluster_role_binding("janus-remote")
+                lines.append("[OK]   Deleted ClusterRoleBinding janus-remote")
+            except ApiException as e:
+                if e.status != 404:
+                    lines.append(f"[WARN]  Could not delete ClusterRoleBinding: {e.reason}")
+
+            # ClusterRole
+            try:
+                rbac_v1_r.delete_cluster_role("janus-remote")
+                lines.append("[OK]   Deleted ClusterRole janus-remote")
+            except ApiException as e:
+                if e.status != 404:
+                    lines.append(f"[WARN]  Could not delete ClusterRole: {e.reason}")
+
+            # ServiceAccount
+            try:
+                core_v1_r.delete_namespaced_service_account("janus-remote", janus_namespace)
+                lines.append("[OK]   Deleted ServiceAccount janus-remote")
+            except ApiException as e:
+                if e.status != 404:
+                    lines.append(f"[WARN]  Could not delete ServiceAccount: {e.reason}")
+
+            # Namespace (only delete if it's the janus namespace and nothing critical remains)
+            try:
+                core_v1_r.delete_namespace(janus_namespace)
+                lines.append(f"[OK]   Deleted namespace {janus_namespace} on remote cluster")
+            except ApiException as e:
+                if e.status == 404:
+                    pass
+                elif e.status == 409:
+                    lines.append(f"[WARN]  Namespace {janus_namespace} not empty, skipped deletion")
+                else:
+                    lines.append(f"[WARN]  Could not delete namespace: {e.reason}")
+
+        except Exception as e:
+            lines.append(f"[WARN]  Could not clean remote RBAC (non-fatal): {e}")
+            lines.append("[INFO]   Kubeconfig secret was still deleted.")
+
+    return lines
+
+
+# ---------------------------------------------------------------------------
+# Pod rollout restart + Ready polling
+# ---------------------------------------------------------------------------
+
+_ROLLOUT_ANNOTATION = "kubectl.kubernetes.io/restartedAt"
+
+
+def _rollout_restart_deployments(namespace: str) -> list[str]:
+    """
+    Patch both janus-controller and janus-webui deployments with a restartedAt
+    annotation to trigger a rolling restart. Returns list of restarted names.
+    """
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config()
+    apps_v1 = client.AppsV1Api()
+
+    now_iso = __import__("datetime").datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    patch = {
+        "spec": {
+            "template": {
+                "metadata": {
+                    "annotations": {_ROLLOUT_ANNOTATION: now_iso}
+                }
+            }
+        }
+    }
+
+    restarted = []
+    try:
+        deps = apps_v1.list_namespaced_deployment(namespace=namespace)
+        for dep in deps.items:
+            name = dep.metadata.name
+            if "janus" in name:
+                apps_v1.patch_namespaced_deployment(name=name, namespace=namespace, body=patch)
+                logger.info(f"Triggered rollout restart: {name}")
+                restarted.append(name)
+    except ApiException as e:
+        logger.warning(f"rollout restart failed: {e}")
+    return restarted
+
+
+def _poll_deployment_ready(namespace: str, timeout: int = 120) -> dict[str, bool]:
+    """
+    Poll janus deployments until all pods are Ready or timeout.
+    Returns {deployment_name: is_ready}.
+    """
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config()
+    apps_v1 = client.AppsV1Api()
+
+    deadline = time.monotonic() + timeout
+    results: dict[str, bool] = {}
+
+    while time.monotonic() < deadline:
+        try:
+            deps = apps_v1.list_namespaced_deployment(namespace=namespace)
+            results = {}
+            for dep in deps.items:
+                name = dep.metadata.name
+                if "janus" not in name:
+                    continue
+                desired   = dep.spec.replicas or 1
+                ready     = dep.status.ready_replicas or 0
+                updated   = dep.status.updated_replicas or 0
+                available = dep.status.available_replicas or 0
+                results[name] = (ready >= desired and updated >= desired and available >= desired)
+
+            if all(results.values()) and results:
+                return results
+        except Exception as e:
+            logger.debug(f"_poll_deployment_ready: {e}")
+
+        time.sleep(3)
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Stale secret cleanup
+# ---------------------------------------------------------------------------
+
+def _cleanup_stale_secrets(
+    central_core_v1: client.CoreV1Api,
+    active_cluster_names: set,
+    namespace: str,
+) -> int:
+    """
+    Delete kubeconfig secrets in `namespace` that are labeled managed=true
+    but whose cluster name is NOT in `active_cluster_names`.
+    Returns the number of secrets deleted.
+    """
+    try:
+        secrets = central_core_v1.list_namespaced_secret(
+            namespace=namespace,
+            label_selector="k8s-janus.opsmode.io/managed=true",
+        )
+    except ApiException:
+        return 0
+
+    deleted = 0
+    for s in secrets.items:
+        name = s.metadata.name or ""
+        if not name.endswith("-kubeconfig"):
+            continue
+        cluster_name = name[: -len("-kubeconfig")]
+        if cluster_name in active_cluster_names:
+            continue
+        try:
+            central_core_v1.delete_namespaced_secret(name=name, namespace=namespace)
+            logger.info(f"Deleted stale secret: {name}")
+            deleted += 1
+        except ApiException as e:
+            if e.status != 404:
+                logger.warning(f"Could not delete stale secret {name}: {e}")
+    return deleted
+
+
+# ---------------------------------------------------------------------------
 # Main async generator
 # ---------------------------------------------------------------------------
 
 async def run_setup(
     kubeconfig: dict,
     central_context: str,
+    central_name: str,       # optional display name / slug for central cluster
     remote_contexts: list,   # list of {"context": str, "cluster_name": str}
     janus_namespace: str,
 ) -> AsyncIterator[str]:
@@ -404,7 +606,8 @@ async def run_setup(
     """
     loop = asyncio.get_event_loop()
 
-    yield f"[INFO] Central cluster: {central_context} (uses in-cluster config — no secret needed)"
+    central_display = central_name or central_context
+    yield f"[INFO] Central cluster: {central_display} (uses in-cluster config — no secret needed)"
 
     if not remote_contexts:
         yield "[DONE] No remote clusters selected. Single-cluster setup complete."
@@ -485,9 +688,50 @@ async def run_setup(
             errors.append(context_name)
             continue
 
+    # --- Cleanup stale kubeconfig secrets for clusters no longer in this run ---
+    configured_names = {r["cluster_name"] for r in remote_contexts if r["context"] not in errors}
+    if configured_names:
+        yield "[INFO] Cleaning up stale kubeconfig secrets..."
+        try:
+            central_core_v1_cleanup = await loop.run_in_executor(None, _get_central_core_v1)
+            stale_count = await loop.run_in_executor(
+                None, _cleanup_stale_secrets, central_core_v1_cleanup, configured_names, janus_namespace
+            )
+            if stale_count:
+                yield f"[OK]   Removed {stale_count} stale secret(s)"
+            else:
+                yield "[INFO]   No stale secrets found"
+        except Exception as e:
+            yield f"[WARN]  Stale secret cleanup failed (non-fatal): {e}"
+
     if errors and len(errors) == total:
         yield f"[FATAL] All {total} cluster(s) failed. Check errors above."
-    elif errors:
+        return
+
+    # --- Rollout restart controller + webui ---
+    yield "[INFO] Restarting controller and webui pods..."
+    try:
+        restarted = await loop.run_in_executor(
+            None, _rollout_restart_deployments, janus_namespace
+        )
+        if restarted:
+            for dep_name in restarted:
+                yield f"[RESTART] {dep_name}"
+            yield "[INFO]   Waiting for pods to become Ready (up to 2 min)..."
+            ready_map = await loop.run_in_executor(
+                None, _poll_deployment_ready, janus_namespace, 120
+            )
+            for dep_name, is_ready in sorted(ready_map.items()):
+                if is_ready:
+                    yield f"[READY]  {dep_name} ✓"
+                else:
+                    yield f"[WARN]   {dep_name} not ready within timeout (check logs)"
+        else:
+            yield "[WARN]  No janus deployments found to restart"
+    except Exception as e:
+        yield f"[WARN]  Pod restart failed (non-fatal): {e}"
+
+    if errors:
         yield f"[WARN]  {len(errors)} cluster(s) failed: {', '.join(errors)}"
         yield "[DONE] Setup complete (partial) — controller will start for configured clusters."
     else:

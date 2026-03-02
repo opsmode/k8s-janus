@@ -398,7 +398,17 @@
         <span>Just-in-Time Access</span>
       </div>
     </div>
-    <div class="setup-badge">Setup Wizard</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="setup-badge">Setup Wizard</div>
+      <a href="/" style="font-size:0.75rem;color:var(--text-dim);text-decoration:none;
+                          display:flex;align-items:center;gap:5px;padding:4px 10px;
+                          border:1px solid var(--border);border-radius:6px;
+                          transition:color 0.2s,border-color 0.2s"
+         onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-light)'"
+         onmouseout="this.style.color='var(--text-dim)';this.style.borderColor='var(--border)'">
+        <i data-lucide="layout-dashboard" width="13" height="13"></i> Dashboard
+      </a>
+    </div>
   </header>
 
   <div class="page-scroll">
@@ -463,7 +473,18 @@
           </div>
         </div>
 
-        <!-- ── No kubectl? Here's how ── -->
+        <!-- ── Manage existing clusters ── -->
+      <div style="margin-top:4px">
+        <button onclick="loadManagePanel()" style="background:none;border:none;cursor:pointer;
+          display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--text-dim);padding:6px 0;
+          text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted"
+          onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-dim)'">
+          <i data-lucide="trash-2" width="13" height="13"></i>
+          Remove / manage existing remote clusters
+        </button>
+      </div>
+
+      <!-- ── No kubectl? Here's how ── -->
         <div class="card" style="padding:20px 28px">
           <div class="info-callout-header" onclick="toggleNoKubectl()" style="margin-bottom:0">
             <i data-lucide="terminal" width="15" height="15" style="color:var(--cyan)"></i>
@@ -576,6 +597,23 @@ choco install kubernetes-cli</span>
               </div>
             </div>
             <div class="context-list" id="central-list"></div>
+            <div id="central-name-row" style="display:none;padding:12px 16px;background:var(--surface-2);
+                  border:1px solid rgba(99,102,241,0.2);border-top:1px solid var(--border);
+                  border-radius:0 0 10px 10px">
+              <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:5px;font-weight:500">
+                <i data-lucide="tag" width="12" height="12" style="vertical-align:-2px;margin-right:3px;color:var(--accent)"></i>
+                Display name for this cluster in the UI
+              </label>
+              <input type="text" id="central-cluster-name"
+                placeholder="e.g. lab-central, prod-eu, my-cluster"
+                style="width:100%;background:var(--surface);border:1px solid var(--border-light);
+                       color:var(--text);border-radius:6px;padding:7px 10px;font-size:0.82rem;
+                       font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box"
+                oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+              <div style="font-size:0.7rem;color:var(--text-dim);margin-top:3px">
+                Optional — leave blank to use the context name as-is
+              </div>
+            </div>
           </div>
 
           <div class="cluster-section remote">
@@ -646,6 +684,32 @@ choco install kubernetes-cli</span>
               Go to Dashboard
             </a>
             <div class="countdown" id="countdown-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MANAGE: Remove Clusters ── -->
+      <div id="panel-manage" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:var(--danger)">
+              <i data-lucide="trash-2" width="16" height="16"></i>
+            </div>
+            <div>
+              <h2>Remove clusters</h2>
+              <div class="card-sub">Deletes the kubeconfig secret and cleans RBAC on the remote cluster</div>
+            </div>
+          </div>
+          <div id="manage-cluster-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+            <div style="color:var(--text-dim);font-size:0.82rem">Loading configured clusters…</div>
+          </div>
+          <div id="manage-log" style="display:none;margin-top:10px">
+            <div class="log-container" id="manage-log-output" style="height:160px"></div>
+          </div>
+          <div class="btn-row" style="margin-top:14px">
+            <button class="btn btn-ghost" onclick="showManagePanel(false); showPanel('upload')">
+              <i data-lucide="arrow-left" width="14" height="14"></i> Back to Upload
+            </button>
           </div>
         </div>
       </div>
@@ -820,11 +884,13 @@ choco install kubernetes-cli</span>
       const remoteList = document.getElementById('remote-list');
       const noRemotes  = document.getElementById('no-remotes');
       const btnStart   = document.getElementById('btn-start');
+      const centralNameRow = document.getElementById('central-name-row');
 
       document.querySelectorAll('#central-list .context-item').forEach(item => {
         item.classList.toggle('selected', item.querySelector('input').checked);
       });
       btnStart.disabled = !central;
+      if (centralNameRow) centralNameRow.style.display = central ? 'block' : 'none';
 
       remoteList.innerHTML = '';
       const others = (_kubeconfig || []).filter(c => c.name !== central);
@@ -878,6 +944,10 @@ choco install kubernetes-cli</span>
     async function startSetup() {
       const central = document.querySelector('input[name="central"]:checked')?.value;
       if (!central) return;
+
+      const centralNameRaw = document.getElementById('central-cluster-name')?.value.trim() || '';
+      const central_name   = centralNameRaw.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || '';
+
       const remotes = [];
       for (const cb of document.querySelectorAll('input[name="remote"]:checked')) {
         const ctx        = cb.value;
@@ -899,7 +969,7 @@ choco install kubernetes-cli</span>
         const resp = await fetch('/setup/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: _sessionId, central, remotes }),
+          body: JSON.stringify({ session_id: _sessionId, central, central_name, remotes }),
         });
         if (!resp.ok) {
           showError('progress', `Failed to start setup: ${await resp.text()}`);
@@ -933,6 +1003,11 @@ choco install kubernetes-cli</span>
               } else {
                 hint.textContent = 'Setup complete!';
               }
+              // Resolve the correct dashboard URL (LB IP / ingress / localhost)
+              fetch('/api/setup/redirect-url').then(r => r.json()).then(d => {
+                const dashBtn = document.getElementById('btn-go-dashboard');
+                if (dashBtn && d.url) dashBtn.href = d.url;
+              }).catch(() => {});
               const el = document.getElementById('progress-actions');
               el.style.display = 'flex';
               lucide.createIcons();
@@ -957,10 +1032,11 @@ choco install kubernetes-cli</span>
       const line = document.createElement('div');
       line.className = 'log-line';
       if      (forceClass)                               line.classList.add(forceClass);
-      else if (text.startsWith('[OK]'))                  line.classList.add('ok');
+      else if (text.startsWith('[OK]') || text.startsWith('[READY]'))   line.classList.add('ok');
       else if (text.startsWith('[ERROR]') || text.startsWith('[FATAL]')) line.classList.add('error');
       else if (text.startsWith('[WARN]'))                line.classList.add('warn');
       else if (text.startsWith('[DONE]'))                line.classList.add('done');
+      else if (text.startsWith('[RESTART]'))             line.classList.add('warn');
       else                                               line.classList.add('info');
 
       line.textContent = text;
@@ -1000,6 +1076,112 @@ choco install kubernetes-cli</span>
       return String(str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ---------------------------------------------------------------------------
+    // Manage / Remove clusters
+    // ---------------------------------------------------------------------------
+    let _manageVisible = false;
+
+    function showManagePanel(show) {
+      _manageVisible = show;
+      document.getElementById('panel-manage').classList.toggle('hidden', !show);
+    }
+
+    async function loadManagePanel() {
+      // Hide all wizard panels, show manage panel
+      PANELS.forEach(p => document.getElementById(`panel-${p}`).classList.add('hidden'));
+      document.querySelectorAll('.wizard-step').forEach(el => {
+        el.classList.remove('active', 'done');
+      });
+      showManagePanel(true);
+
+      const listEl = document.getElementById('manage-cluster-list');
+      listEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.82rem">Loading…</div>';
+
+      try {
+        const resp = await fetch('/api/clusters');
+        const clusters = await resp.json();
+        const remotes = clusters.slice(1); // skip central
+        if (remotes.length === 0) {
+          listEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.82rem">No remote clusters configured.</div>';
+          return;
+        }
+        listEl.innerHTML = '';
+        remotes.forEach(c => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px';
+          row.innerHTML = `
+            <div>
+              <div style="font-size:0.88rem;font-family:'JetBrains Mono',monospace;color:var(--text)">${escHtml(c.displayName || c.name)}</div>
+              <div style="font-size:0.72rem;color:var(--text-dim);margin-top:2px">${escHtml(c.name)}-kubeconfig</div>
+            </div>
+            <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);border-radius:6px;cursor:pointer"
+              onclick="removeCluster('${escHtml(c.name)}', this)">
+              <i data-lucide="trash-2" width="13" height="13"></i> Remove
+            </button>
+          `;
+          listEl.appendChild(row);
+        });
+        lucide.createIcons();
+      } catch (e) {
+        listEl.innerHTML = `<div style="color:var(--danger);font-size:0.82rem">Failed to load clusters: ${escHtml(String(e))}</div>`;
+      }
+    }
+
+    async function removeCluster(clusterName, btn) {
+      if (!confirm(`Remove cluster "${clusterName}"?\n\nThis will delete the kubeconfig secret and clean up RBAC on the remote cluster (if accessible).`)) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="border-top-color:var(--danger)"></span>';
+
+      const manageLog = document.getElementById('manage-log');
+      const logOut    = document.getElementById('manage-log-output');
+      manageLog.style.display = 'block';
+      logOut.innerHTML = '';
+
+      try {
+        const resp = await fetch('/setup/remove-cluster', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cluster_name: clusterName,
+            session_id: _sessionId || '',
+            context: '',
+          }),
+        });
+        const data = await resp.json();
+        (data.lines || []).forEach(line => {
+          const div = document.createElement('div');
+          div.className = 'log-line';
+          if (line.startsWith('[OK]'))    div.classList.add('ok');
+          else if (line.startsWith('[ERROR]')) div.classList.add('error');
+          else if (line.startsWith('[WARN]'))  div.classList.add('warn');
+          else                                 div.classList.add('info');
+          div.textContent = line;
+          logOut.appendChild(div);
+          logOut.scrollTop = logOut.scrollHeight;
+        });
+        if (data.ok) {
+          btn.closest('div[style]').remove();
+          if (document.getElementById('manage-cluster-list').children.length === 0) {
+            document.getElementById('manage-cluster-list').innerHTML =
+              '<div style="color:var(--text-dim);font-size:0.82rem">No remote clusters configured.</div>';
+          }
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="trash-2" width="13" height="13"></i> Retry';
+          lucide.createIcons();
+        }
+      } catch(e) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="trash-2" width="13" height="13"></i> Retry';
+        lucide.createIcons();
+        const div = document.createElement('div');
+        div.className = 'log-line error';
+        div.textContent = `[ERROR] ${e}`;
+        logOut.appendChild(div);
+      }
     }
 
     // ---------------------------------------------------------------------------

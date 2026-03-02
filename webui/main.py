@@ -20,7 +20,8 @@ from db import (
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
     get_access_request, list_access_requests, read_token_secret,
-    CLUSTERS, CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
+    get_clusters, invalidate_clusters_cache,
+    CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
 )
 from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_revoked
 
@@ -219,7 +220,7 @@ def _base_context(request: Request) -> dict:
     user_email, user_name = _get_user(request)
     return {
         "request": request,
-        "clusters": CLUSTERS,
+        "clusters": get_clusters(),
         "user_email": user_email,
         "user_name": user_name,
         "is_devops": _is_admin(user_email),
@@ -243,7 +244,7 @@ def _require_admin(request: Request):
 
 def _patch_status(name: str, body: dict) -> None:
     """Patch an AccessRequest CRD status on the central cluster."""
-    custom_api, _ = get_api_clients(CLUSTERS[0]["name"])
+    custom_api, _ = get_api_clients(get_clusters()[0]["name"])
     custom_api.patch_cluster_custom_object_status(
         group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=name,
         body={"status": body},
@@ -330,6 +331,7 @@ async def setup_run(request: Request):
     body = await request.json()
     session_id    = body.get("session_id", "")
     central       = body.get("central", "")
+    central_name  = body.get("central_name", "")   # display name for central cluster
     # remotes: list of {"context": str, "cluster_name": str}
     remotes       = body.get("remotes", [])
 
@@ -341,8 +343,69 @@ async def setup_run(request: Request):
     kc = _setup_kubeconfigs[session_id]
     q: asyncio.Queue = asyncio.Queue()
     _setup_queues[session_id] = q
-    asyncio.ensure_future(_run_setup_task(session_id, kc, central, remotes, JANUS_NAMESPACE, q))
+    asyncio.ensure_future(_run_setup_task(session_id, kc, central, central_name, remotes, JANUS_NAMESPACE, q))
     return JSONResponse({"ok": True})
+
+
+@app.get("/api/clusters")
+async def api_clusters():
+    """Return the live cluster list (auto-discovered from kubeconfig Secrets)."""
+    return JSONResponse(get_clusters())
+
+
+@app.post("/setup/remove-cluster")
+async def setup_remove_cluster(request: Request):
+    """
+    Remove a remote cluster: deletes its kubeconfig Secret and optionally
+    cleans up RBAC on the remote if a session_id + context is provided.
+    """
+    body         = await request.json()
+    cluster_name = body.get("cluster_name", "").strip()
+    session_id   = body.get("session_id", "")
+    context_name = body.get("context", "")
+
+    if not cluster_name:
+        return JSONResponse({"error": "cluster_name is required."}, status_code=400)
+
+    loop = asyncio.get_event_loop()
+    kubeconfig = _setup_kubeconfigs.get(session_id) if session_id else None
+
+    from setup import remove_cluster, _rollout_restart_deployments
+    lines = await loop.run_in_executor(
+        None, remove_cluster, cluster_name, JANUS_NAMESPACE,
+        kubeconfig, context_name or None
+    )
+
+    # Invalidate cluster cache after removal
+    invalidate_clusters_cache()
+
+    # Restart pods so controller/webui picks up the removed cluster
+    had_error = any(l.startswith("[ERROR]") for l in lines)
+    if not had_error:
+        try:
+            await loop.run_in_executor(None, _rollout_restart_deployments, JANUS_NAMESPACE)
+            lines.append("[INFO] Restarting pods to apply changes...")
+        except Exception as e:
+            lines.append(f"[WARN]  Pod restart failed (non-fatal): {e}")
+
+    return JSONResponse({"lines": lines, "ok": not had_error})
+
+
+@app.get("/api/setup/redirect-url")
+async def setup_redirect_url(request: Request):
+    """
+    Return the URL the setup wizard should redirect to on completion.
+    Prefers WEBUI_BASE_URL env (set when ingress/LB is configured), else
+    falls back to the request's host (port-forward scenario).
+    """
+    base_url = os.environ.get("WEBUI_BASE_URL", "").rstrip("/")
+    if not base_url:
+        # Derive from request: works for port-forward (localhost:8080)
+        scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+        host   = request.headers.get("x-forwarded-host", request.headers.get("host", "localhost"))
+        base_url = f"{scheme}://{host}"
+    return JSONResponse({"url": f"{base_url}/"})
+
 
 
 @app.websocket("/ws/setup/{session_id}")
@@ -375,6 +438,7 @@ async def _run_setup_task(
     session_id: str,
     kubeconfig: dict,
     central: str,
+    central_name: str,
     remotes: list,
     janus_namespace: str,
     q: asyncio.Queue,
@@ -382,8 +446,10 @@ async def _run_setup_task(
     """Background coroutine: runs the setup generator and pushes lines to the queue."""
     try:
         from setup import run_setup
-        async for line in run_setup(kubeconfig, central, remotes, janus_namespace):
+        async for line in run_setup(kubeconfig, central, central_name, remotes, janus_namespace):
             await q.put(line)
+        # Invalidate cluster cache so the UI picks up new clusters immediately
+        invalidate_clusters_cache()
     except Exception as e:
         await q.put(f"[FATAL] Unexpected error: {e}")
     finally:
@@ -536,7 +602,7 @@ async def submit_request(
             return RedirectResponse(url=f"/status/{cluster}/{existing_name}", status_code=303)
 
     try:
-        central_api, _ = get_api_clients(CLUSTERS[0]["name"])
+        central_api, _ = get_api_clients(get_clusters()[0]["name"])
         central_api.create_cluster_custom_object(
             group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", body=body,
         )
@@ -607,7 +673,7 @@ async def status(request: Request, cluster: str, name: str):
 @app.get("/callback", response_class=HTMLResponse)
 async def callback(request: Request, action: str, name: str, cluster: str = ""):
     if not cluster:
-        cluster = CLUSTERS[0]["name"]
+        cluster = get_clusters()[0]["name"]
     ar = get_access_request(name, cluster)
     if not ar:
         return HTMLResponse(f"<h2>Request '{name}' not found on cluster '{cluster}'.</h2>", status_code=404)
@@ -911,10 +977,11 @@ async def commands_for_request(request: Request, name: str):
     if not _valid_name(name):
         return JSONResponse({"error": "Invalid request name"}, status_code=400)
     user_email, _ = _get_user(request)
-    ar = get_access_request(name, CLUSTERS[0]["name"])
+    _clusters = get_clusters()
+    ar = get_access_request(name, _clusters[0]["name"])
     if ar is None:
         # Try all clusters
-        for c in CLUSTERS:
+        for c in _clusters:
             ar = get_access_request(name, c["name"])
             if ar:
                 break
