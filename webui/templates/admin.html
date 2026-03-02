@@ -380,18 +380,6 @@
           <i data-lucide="server-off" width="14" height="14"></i>
           Offboard Clusters
         </a>
-        <button onclick="document.getElementById('setup-cmd-box').classList.toggle('hidden')"
-          style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
-                 background:var(--surface-2);border:1px solid var(--border);
-                 color:var(--text-dim);border-radius:8px;font-size:0.875rem;font-weight:600;cursor:pointer;">
-          <i data-lucide="terminal" width="14" height="14"></i>
-          Port-forward command
-        </button>
-      </div>
-      <div id="setup-cmd-box" class="hidden"
-           style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
-        <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Run locally, then open http://localhost:8080/setup</div>
-        <code style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--text);white-space:pre-wrap;display:block">kubectl port-forward svc/{{ janus_webui_svc }} -n {{ janus_namespace }} 8080:80</code>
       </div>
     </div>
 
