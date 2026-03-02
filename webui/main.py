@@ -380,7 +380,7 @@ async def setup_remove_cluster(request: Request):
     invalidate_clusters_cache()
 
     # Restart pods so controller/webui picks up the removed cluster
-    had_error = any(l.startswith("[ERROR]") for l in lines)
+    had_error = any(line.startswith("[ERROR]") for line in lines)
     if not had_error:
         try:
             await loop.run_in_executor(None, _rollout_restart_deployments, JANUS_NAMESPACE)
