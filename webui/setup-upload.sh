@@ -54,15 +54,19 @@ tty_read() {
 }
 
 # _read_key — reads one keypress from /dev/tty into KEY
-# Handles plain chars, Enter, Space, and arrow escape sequences safely.
-# Uses a single read with timeout for the escape sequence to avoid
-# consuming script bytes when running via curl | bash.
+# Reads escape sequences byte by byte with short timeouts so we never
+# accidentally consume script bytes when running via curl | bash.
 _read_key() {
-  IFS= read -r -s -n1 KEY </dev/tty
-  if [[ $KEY == $'\x1b' ]]; then
-    local seq=""
-    IFS= read -r -s -n2 -t 0.1 seq </dev/tty || true
-    KEY="${KEY}${seq}"
+  local b1="" b2="" b3=""
+  IFS= read -r -s -n1 b1 </dev/tty
+  if [[ $b1 == $'\x1b' ]]; then
+    IFS= read -r -s -n1 -t 0.05 b2 </dev/tty || true
+    if [[ $b2 == "[" ]]; then
+      IFS= read -r -s -n1 -t 0.05 b3 </dev/tty || true
+    fi
+    KEY="${b1}${b2}${b3}"
+  else
+    KEY="$b1"
   fi
 }
 
