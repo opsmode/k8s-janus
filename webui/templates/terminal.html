@@ -605,6 +605,7 @@
               <span class="status-dot" id="pane-a-dot"></span>
               <span id="pane-a-status">Disconnected</span>
             </div>
+            <button id="pane-a-close" onclick="closeSplit()" style="display:none;background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
           </div>
           <div class="tabs" id="pane-a-tabs" style="display:none;">
             <button class="tab active" onclick="paneTab('a','terminal')">
@@ -988,6 +989,7 @@
       splitOpen = true;
       sessionStorage.setItem('k8s_janus_split', '1');
       document.getElementById('pane-b').style.display = 'flex';
+      document.getElementById('pane-a-close').style.display = '';
       document.getElementById('split-btn').classList.add('active');
       if (!paneB) paneB = new TermPane('b');
       setActivePane('b');
@@ -999,6 +1001,7 @@
       splitOpen = false;
       sessionStorage.removeItem('k8s_janus_split');
       document.getElementById('pane-b').style.display = 'none';
+      document.getElementById('pane-a-close').style.display = 'none';
       document.getElementById('split-btn').classList.remove('active');
       if (paneB) { paneB.destroy(); paneB = null; }
       setActivePane('a');
