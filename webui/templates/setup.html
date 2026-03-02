@@ -61,18 +61,20 @@
       flex-shrink: 0;
       z-index: 100;
     }
-    .header-brand { display: flex; align-items: center; gap: 14px; }
-    .header-logo-img {
-      height: 44px;
-      width: auto;
-      filter: drop-shadow(0 0 14px var(--accent-glow));
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
     }
     .brand-text h1 {
-      font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #e2e8f0 30%, var(--accent));
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .brand-text span { font-size: 0.7rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
 
     .setup-badge {
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -391,19 +393,26 @@
 <body>
 
   <header>
-    <div class="header-brand">
-      <img src="/static/k8s-janus-logo-white.png" class="header-logo-img" alt="K8s-Janus Logo">
-      <div class="brand-text">
-        <h1>K8s-Janus</h1>
-        <span>Just-in-Time Access</span>
+    <a class="header-brand" href="/" style="text-decoration:none;">
+      <div class="header-logo">
+        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
       </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px">
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>The gatekeeper who never sleeps (unlike your on-call engineer)</span>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;">
       <div class="setup-badge">Setup Wizard</div>
-      <a href="/" style="font-size:0.75rem;color:var(--text-dim);text-decoration:none;
+      <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
+         style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
+         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
+        <i data-lucide="github" style="width:17px;height:17px;"></i>
+      </a>
+      <a href="/" style="font-size:0.78rem;color:var(--text-dim);text-decoration:none;
                           display:flex;align-items:center;gap:5px;padding:4px 10px;
                           border:1px solid var(--border);border-radius:6px;
-                          transition:color 0.2s,border-color 0.2s"
+                          transition:color 0.15s,border-color 0.15s"
          onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-light)'"
          onmouseout="this.style.color='var(--text-dim)';this.style.borderColor='var(--border)'">
         <i data-lucide="layout-dashboard" width="13" height="13"></i> Dashboard
