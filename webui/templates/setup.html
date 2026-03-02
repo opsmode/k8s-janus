@@ -837,30 +837,27 @@ choco install kubernetes-cli</span>
       } else {
         noRemotes.classList.add('hidden');
         remoteList.classList.remove('hidden');
-        others.forEach((ctx, idx) => {
+        others.forEach((ctx) => {
           const rItem = document.createElement('div');
           rItem.className = 'context-item remote-sel';
 
-          // Build cluster name dropdown — auto-assign in order if configured_remotes available
-          const autoName = _configuredRemotes[idx]?.name || '';
+          // Build cluster name select — only visible when checkbox is checked
           let selectHtml = '';
           if (_configuredRemotes.length > 0) {
             const opts = _configuredRemotes.map(r =>
-              `<option value="${escHtml(r.name)}" ${r.name === autoName ? 'selected' : ''}>${escHtml(r.displayName)} (${escHtml(r.name)})</option>`
+              `<option value="${escHtml(r.name)}">${escHtml(r.displayName)} (${escHtml(r.name)})</option>`
             ).join('');
             selectHtml = `
               <select name="remote-cluster-name" data-context="${escHtml(ctx.name)}"
-                style="margin-top:5px;background:var(--surface);border:1px solid var(--border);
-                       color:var(--text);border-radius:6px;padding:4px 8px;font-size:0.75rem;width:100%;cursor:pointer">
-                <option value="">— skip this cluster —</option>
+                style="display:none;margin-top:6px;background:var(--surface);border:1px solid var(--border-light);
+                       color:var(--text);border-radius:6px;padding:5px 8px;font-size:0.78rem;width:100%;cursor:pointer">
+                <option value="">— map to configured cluster —</option>
                 ${opts}
               </select>`;
-          } else {
-            selectHtml = `<input type="hidden" name="remote-cluster-name" data-context="${escHtml(ctx.name)}" value="${escHtml(autoName)}">`;
           }
 
           rItem.innerHTML = `
-            <input type="checkbox" name="remote" value="${escHtml(ctx.name)}" ${autoName ? 'checked' : ''}>
+            <input type="checkbox" name="remote" value="${escHtml(ctx.name)}">
             <div style="flex:1;min-width:0">
               <div class="context-name">${escHtml(ctx.name)}</div>
               <div class="context-cluster">${escHtml(ctx.cluster)}</div>
@@ -868,11 +865,12 @@ choco install kubernetes-cli</span>
             </div>
           `;
 
-          const cb = rItem.querySelector('input[type="checkbox"]');
+          const cb  = rItem.querySelector('input[type="checkbox"]');
+          const sel = rItem.querySelector('select[name="remote-cluster-name"]');
           cb.addEventListener('change', e => {
             rItem.classList.toggle('selected', e.target.checked);
+            if (sel) sel.style.display = e.target.checked ? 'block' : 'none';
           });
-          if (autoName) rItem.classList.add('selected');
           remoteList.appendChild(rItem);
         });
       }
@@ -888,9 +886,10 @@ choco install kubernetes-cli</span>
       const remotes = [...document.querySelectorAll('input[name="remote"]:checked')]
         .map(cb => {
           const ctx = cb.value;
-          const sel = document.querySelector(`[name="remote-cluster-name"][data-context="${CSS.escape(ctx)}"]`);
+          const sel = cb.closest('.context-item')?.querySelector('select[name="remote-cluster-name"]');
           const cluster_name = sel?.value || '';
-          return cluster_name ? { context: ctx, cluster_name } : null;
+          if (!cluster_name) { showError('select', `Please select a cluster name for: ${ctx}`); return null; }
+          return { context: ctx, cluster_name };
         })
         .filter(Boolean);
 
