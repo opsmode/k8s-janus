@@ -313,174 +313,37 @@ for c in ctxs:
 ok "Upload successful"
 
 SESSION_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null || echo "")
-CONTEXTS_JSON=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('contexts',[])))" 2>/dev/null || echo "[]")
 
 # ==============================================================================
-# CLI or browser?
+# Open browser
 # ==============================================================================
-step "How would you like to continue?"
-
-echo ""
-echo -e "  ${BOLD}1)${RESET} ${GREEN}CLI${RESET}      — run setup now in this terminal (no browser needed)"
-echo -e "  ${BOLD}2)${RESET} ${CYAN}Browser${RESET}  — open the web wizard to select clusters and watch progress"
-echo ""
-tty_read "  Choice [1]: " MODE_CHOICE
-[[ -z "$MODE_CHOICE" ]] && MODE_CHOICE="1"
+step "Opening wizard in browser"
 
 SETUP_URL="${WIZARD_URL}/setup${SESSION_ID:+?session=${SESSION_ID}}"
 
-if [[ "$MODE_CHOICE" == "2" ]]; then
-  # ── Browser mode ──────────────────────────────────────────────────────────
-  step "Opening wizard in browser"
-  if command -v open &>/dev/null; then
-    open "$SETUP_URL" && ok "Opened $SETUP_URL"
-  elif command -v xdg-open &>/dev/null; then
-    xdg-open "$SETUP_URL" && ok "Opened $SETUP_URL"
-  else
-    echo -e "\n  ${BOLD}Open this URL in your browser:${RESET}"
-    echo -e "  ${CYAN}${SETUP_URL}${RESET}"
-  fi
-
-  echo ""
-  echo -e "${MAGENTA}${BOLD}  ⛩  Kubeconfig uploaded — complete the wizard in your browser.${RESET}"
-  echo ""
-
-  if $PF_STARTED; then
-    echo -e "  ${DIM}Port-forward running (PID ${PF_PID}) — press ${RESET}${BOLD}Ctrl+C${DIM} when done.${RESET}"
-    trap 'echo ""; stop_port_forward; ok "Port-forward stopped"; exit 0' INT TERM
-    elapsed=0
-    while kill -0 "$PF_PID" 2>/dev/null; do
-      sleep 5; elapsed=$((elapsed + 5))
-      (( elapsed % 30 == 0 )) && echo -e "  ${DIM}… port-forward still running (${elapsed}s)${RESET}"
-    done
-    ok "Port-forward exited"
-  else
-    echo -e "  ${DIM}Stop port-forward when done: ${RESET}${BOLD}pkill -f 'port-forward svc/janus-webui'${RESET}"
-  fi
-
+if command -v open &>/dev/null; then
+  open "$SETUP_URL" && ok "Opened $SETUP_URL"
+elif command -v xdg-open &>/dev/null; then
+  xdg-open "$SETUP_URL" && ok "Opened $SETUP_URL"
 else
-  # ── CLI mode ───────────────────────────────────────────────────────────────
-  mapfile -t CTX_NAMES < <(echo "$CONTEXTS_JSON" | python3 -c "
-import sys, json
-for c in json.load(sys.stdin):
-    print(c['name'])
-")
+  echo -e "\n  ${BOLD}Open this URL in your browser:${RESET}"
+  echo -e "  ${CYAN}${SETUP_URL}${RESET}"
+fi
 
-  [[ ${#CTX_NAMES[@]} -eq 0 ]] && die "No contexts available from uploaded kubeconfig"
+echo ""
+echo -e "${MAGENTA}${BOLD}  ⛩  Kubeconfig uploaded — complete setup in your browser.${RESET}"
+echo ""
 
-  echo ""
-  for i in "${!CTX_NAMES[@]}"; do
-    marker=""
-    [[ "${CTX_NAMES[$i]}" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← central${RESET}"
-    echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${CTX_NAMES[$i]}${RESET}${marker}"
+if $PF_STARTED; then
+  echo -e "  ${DIM}Port-forward running (PID ${PF_PID}) — press ${RESET}${BOLD}Ctrl+C${DIM} when done.${RESET}"
+  trap 'echo ""; stop_port_forward; ok "Port-forward stopped"; exit 0' INT TERM
+  elapsed=0
+  while kill -0 "$PF_PID" 2>/dev/null; do
+    sleep 5; elapsed=$((elapsed + 5))
+    (( elapsed % 30 == 0 )) && echo -e "  ${DIM}… port-forward still running (${elapsed}s)${RESET}"
   done
-  echo ""
-
-  # Central context
-  DEFAULT_CENTRAL=""
-  for i in "${!CTX_NAMES[@]}"; do
-    [[ "${CTX_NAMES[$i]}" == "$MGMT_CONTEXT" ]] && DEFAULT_CENTRAL="$((i+1))" && break
-  done
-  PROMPT="  Central cluster"
-  [[ -n "$DEFAULT_CENTRAL" ]] && PROMPT+=" [${DEFAULT_CENTRAL}]"
-  PROMPT+=": "
-  tty_read "$PROMPT" CENTRAL_NUM
-  [[ -z "$CENTRAL_NUM" && -n "$DEFAULT_CENTRAL" ]] && CENTRAL_NUM="$DEFAULT_CENTRAL"
-  if [[ "$CENTRAL_NUM" =~ ^[0-9]+$ ]] && (( CENTRAL_NUM >= 1 && CENTRAL_NUM <= ${#CTX_NAMES[@]} )); then
-    CENTRAL_CTX="${CTX_NAMES[$((CENTRAL_NUM-1))]}"
-  else
-    die "Invalid selection: $CENTRAL_NUM"
-  fi
-  ok "Central: ${CENTRAL_CTX}"
-
-  # Remote contexts
-  echo ""
-  echo -e "  ${DIM}Enter remote cluster numbers (space-separated), or Enter to skip.${RESET}"
-  tty_read "  Remote clusters: " REMOTE_NUMS
-  REMOTE_CTXS=()
-  for num in $REMOTE_NUMS; do
-    if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#CTX_NAMES[@]} )); then
-      REMOTE_CTXS+=("${CTX_NAMES[$((num-1))]}")
-    else
-      warn "Ignoring invalid: $num"
-    fi
-  done
-
-  # Build JSON payload
-  CENTRAL_JSON=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$CENTRAL_CTX")
-  REMOTE_JSON="["
-  for ctx in "${REMOTE_CTXS[@]}"; do
-    REMOTE_JSON+=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$ctx")","
-  done
-  REMOTE_JSON="${REMOTE_JSON%,}]"
-
-  RUN_PAYLOAD="{\"session_id\":\"${SESSION_ID}\",\"central_context\":${CENTRAL_JSON},\"remote_contexts\":${REMOTE_JSON}}"
-
-  step "Running setup"
-  RUN_RESP=$(curl -sf -X POST "${WIZARD_URL}/setup/run" \
-    -H "Content-Type: application/json" \
-    -d "$RUN_PAYLOAD" 2>&1) || die "Failed to start setup: $RUN_RESP"
-
-  RUN_ERR=$(echo "$RUN_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error') or '')" 2>/dev/null || echo "")
-  [[ -n "$RUN_ERR" ]] && die "Setup failed to start: $RUN_ERR"
-
-  # Stream progress via WebSocket
-  echo ""
-  python3 - "${WIZARD_URL/http/ws}/ws/setup/${SESSION_ID}" <<'WSEOF'
-import sys, asyncio
-
-async def stream(url):
-    try:
-        import websockets
-    except ImportError:
-        print("  [INFO] websockets not available — watching via HTTP poll")
-        import urllib.request, json, time
-        base = url.replace("ws://","http://").replace("wss://","https://")
-        base = base.replace("/ws/setup/", "/setup/status/")
-        for _ in range(360):
-            try:
-                r = urllib.request.urlopen(base, timeout=5)
-                data = json.loads(r.read())
-                for line in data.get("lines", []):
-                    print(f"  {line}")
-                if data.get("done"):
-                    break
-            except Exception:
-                pass
-            time.sleep(2)
-        return
-
-    GREEN="\033[0;32m"; RED="\033[0;31m"; YELLOW="\033[1;33m"
-    CYAN="\033[0;36m"; BOLD="\033[1m"; RESET="\033[0m"
-
-    async with websockets.connect(url) as ws:
-        async for msg in ws:
-            import json as _json
-            try:
-                d = _json.loads(msg)
-            except Exception:
-                print(f"  {msg}")
-                continue
-            text = d.get("text","")
-            if text.startswith("[OK]"):
-                print(f"  {GREEN}{BOLD}{text}{RESET}")
-            elif text.startswith("[ERROR]") or text.startswith("[FATAL]"):
-                print(f"  {RED}{BOLD}{text}{RESET}")
-            elif text.startswith("[WARN]"):
-                print(f"  {YELLOW}{text}{RESET}")
-            elif text.startswith("[DONE]"):
-                print(f"  {GREEN}{BOLD}{text}{RESET}")
-            else:
-                print(f"  {CYAN}{text}{RESET}")
-            sys.stdout.flush()
-            if d.get("type") == "done":
-                break
-
-asyncio.run(stream(sys.argv[1]))
-WSEOF
-
-  echo ""
-  stop_port_forward
-  echo -e "\n${MAGENTA}${BOLD}  ⛩  Setup complete.${RESET}"
+  ok "Port-forward exited"
+else
+  echo -e "  ${DIM}Stop port-forward when done: ${RESET}${BOLD}pkill -f 'port-forward svc/janus-webui'${RESET}"
 fi
 echo ""
