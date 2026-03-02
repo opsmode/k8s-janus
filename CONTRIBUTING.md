@@ -25,7 +25,7 @@ For a local Kubernetes cluster, use [kind](https://kind.sigs.k8s.io/) or [k3d](h
 1. Fork the repository
 2. Create a branch: `git checkout -b feat/your-feature`
 3. Make your changes
-4. Test locally against a real cluster using `./scripts/setup.sh`
+4. Test locally against a real cluster using `bash webui/setup-upload.sh`
 5. Open a pull request against `main`
 
 ## Commit Convention

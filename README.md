@@ -149,7 +149,7 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
 ```
 
-### Option A — Web Setup Wizard (recommended)
+### Register remote clusters
 
 Run the setup script — it walks you through everything interactively:
 
@@ -157,24 +157,26 @@ Run the setup script — it walks you through everything interactively:
 bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
 ```
 
-The script will:
-1. Ask whether you prefer **CLI mode** (runs entirely in the terminal) or **Browser mode** (opens the web wizard)
-2. Ask you to pick a **central cluster** (where Janus runs)
-3. Resolve exec-based auth (GKE, EKS, AKS) to static tokens automatically — no cloud SDK needed inside the pod
-4. Apply `janus-remote` RBAC to each remote cluster
-5. Issue a scoped 1-year token and create the `<cluster>-kubeconfig` Secret on the central cluster
+Choose **CLI mode** (terminal only) or **Browser mode** (opens the web wizard). The script:
+1. Picks up your local kubeconfig — resolves exec-based auth (GKE, EKS, AKS) to static tokens automatically
+2. Asks which cluster is central (where Janus runs) and which are remote targets
+3. Applies `janus-remote` RBAC to each remote cluster
+4. Issues a scoped 1-year token and creates the `<cluster>-kubeconfig` Secret on the central cluster
+5. Restarts the controller and web UI so they pick up the new clusters immediately
 
 No cloud-specific setup, no IAM bindings, no repo clone needed.
 
-### Option B — setup.sh (scripted / CI use)
+**Select central and remote clusters:**
 
-For headless or CI environments:
+![Select clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-onboarding.jpeg)
 
-```bash
-./scripts/setup.sh
-```
+**Live configuration progress — RBAC, tokens, secrets, pod restart:**
 
-Deploys the remote agent, applies RBAC, extracts tokens, and creates kubeconfig Secrets. Optionally auto-patches `helm/values.yaml` with the `clusters:` list if `yq` is installed.
+![Configuring clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-configuring.jpeg)
+
+**Remove clusters at any time by re-running the wizard:**
+
+![Remove clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-offboarding.jpeg)
 
 **Optional — exclude additional namespaces from the request form:**
 

@@ -9,10 +9,9 @@
   Remote agent mode — ServiceAccount {{ .Values.remote.serviceAccountName }}
   is ready in namespace {{ .Values.remote.namespace }}.
 
-  Register this cluster using the Setup Wizard on your central instance,
-  or run setup.sh locally:
+  Register this cluster from any machine with kubectl access:
 
-    ./scripts/setup.sh
+    bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
 
 {{- else }}
 

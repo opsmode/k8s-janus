@@ -31,24 +31,11 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
 ```
 
-### 2. Remote clusters (optional)
-
-On each additional cluster, deploy only the agent — no controller or web UI:
-
-```bash
-helm upgrade --install k8s-janus k8s-janus/k8s-janus \
-  --namespace k8s-janus --create-namespace \
-  --set remote.enabled=true
-```
-
-After deploying the agent, register the cluster with the central instance using one of the two options below.
-
 ## Registering remote clusters
 
-The central controller needs a kubeconfig Secret for each remote cluster, named `<cluster-name>-kubeconfig`, in the `k8s-janus` namespace.
-The controller init container blocks until all expected secrets exist, so the controller won't start until setup is complete.
+The setup script handles everything — deploying RBAC on remote clusters, issuing scoped tokens, and creating the kubeconfig Secrets the controller needs. The controller init container blocks until all expected Secrets exist, so it won't start until setup is complete.
 
-### Option A — Setup script (recommended)
+### Setup script
 
 Run the setup script — it walks you through everything interactively:
 
@@ -56,28 +43,22 @@ Run the setup script — it walks you through everything interactively:
 bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
 ```
 
-Choose **CLI mode** (terminal only, no browser) or **Browser mode** (opens the web wizard with live progress). The script handles kubeconfig flattening, exec-based auth resolution (GKE, EKS, AKS), RBAC application, token issuance, and Secret creation — no repo clone needed.
+Choose **CLI mode** (terminal only) or **Browser mode** (opens the web wizard with live progress). The script handles kubeconfig flattening, exec-based auth resolution (GKE, EKS, AKS), RBAC application, token issuance, and Secret creation — no repo clone needed.
 
-### Option B — setup.sh (scripted / CI use)
+**Select clusters and set display names:**
 
-For headless or CI environments:
+![Select clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-onboarding.jpeg)
 
-```bash
-./scripts/setup.sh
-```
+**Live configuration progress:**
 
-Deploys the remote agent, applies RBAC, extracts a scoped token, and creates the kubeconfig Secret. Optionally auto-patches `values.yaml` with the `clusters:` list if `yq` is installed.
+![Configuring clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-configuring.jpeg)
+
+**Remove clusters at any time via the wizard:**
+
+![Remove clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-offboarding.jpeg)
+
 
 ## Configuration
-
-### Clusters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `clusters` | List of clusters to manage — first entry is always the central cluster | see values.yaml |
-| `clusters[].name` | Cluster identifier used internally and to find the kubeconfig Secret | required |
-| `clusters[].displayName` | Name shown in the web UI | required |
-| `clusters[].secretName` | Override kubeconfig Secret name (default: `<name>-kubeconfig`) | optional |
 
 ### Access policy
 
