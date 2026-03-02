@@ -491,10 +491,13 @@ fi
 
 step "Uploading to wizard"
 
-RESPONSE=$(curl -sf -X POST \
+RESPONSE=$(curl -sf --max-time 15 -X POST \
   "${WIZARD_URL}/setup/upload" \
   -F "kubeconfig=@${RESOLVED}" \
-  -H "Accept: application/json")
+  -H "Accept: application/json" 2>&1) || {
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${WIZARD_URL}/healthz" 2>/dev/null || echo "000")
+  die "Upload request failed (wizard health: HTTP ${HTTP_CODE}).\n\n  Is the port-forward still running and the wizard ready?\n    kubectl --context ${MGMT_CONTEXT} get pods -n ${JANUS_NS}"
+}
 
 ERROR=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error') or '')" 2>/dev/null || echo "")
 [[ -n "$ERROR" ]] && die "Upload failed: $ERROR"
@@ -516,13 +519,14 @@ step "Opening wizard in browser"
 
 SETUP_URL="${WIZARD_URL}/setup${SESSION_ID:+?session=${SESSION_ID}}"
 
+echo ""
+echo -e "  ${BOLD}Open this URL in your browser:${RESET}"
+echo -e "  ${CYAN}${SETUP_URL}${RESET}"
+echo ""
 if command -v open &>/dev/null; then
-  open "$SETUP_URL" && ok "Opened $SETUP_URL"
+  open "$SETUP_URL" 2>/dev/null && ok "Browser opened automatically" || true
 elif command -v xdg-open &>/dev/null; then
-  xdg-open "$SETUP_URL" && ok "Opened $SETUP_URL"
-else
-  echo -e "\n  ${BOLD}Open this URL in your browser:${RESET}"
-  echo -e "  ${CYAN}${SETUP_URL}${RESET}"
+  xdg-open "$SETUP_URL" 2>/dev/null || true
 fi
 
 echo ""
