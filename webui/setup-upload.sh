@@ -11,6 +11,17 @@
 # Requires: kubectl, python3, curl
 # Optional: gcloud (for GKE), aws (for EKS), az (for AKS)
 
+# When piped through curl | bash, stdin is occupied by the script which
+# breaks interactive terminal reads. Download ourselves fresh and re-exec
+# so stdin is free for keyboard input.
+_SCRIPT_URL="https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh"
+if [[ ! -t 0 ]] && [[ "${_JANUS_REEXEC:-}" != "1" ]]; then
+  _TMP=$(mktemp /tmp/janus-setup-XXXXXX.sh)
+  curl -fsSL "$_SCRIPT_URL" -o "$_TMP"
+  chmod +x "$_TMP"
+  _JANUS_REEXEC=1 exec bash "$_TMP" "$@" </dev/tty
+fi
+
 set -euo pipefail
 
 # ==============================================================================
