@@ -223,13 +223,22 @@
 
     /* ── CONTEXT SELECTORS ── */
     .section-label {
-      font-size: 0.68rem; font-weight: 700; color: var(--text-dim);
-      text-transform: uppercase; letter-spacing: 0.1em;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface-3);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
       margin-bottom: 10px; margin-top: 20px;
-      display: flex; align-items: center; gap: 6px;
     }
-    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .section-label:first-child { margin-top: 0; }
+    .section-label:first-of-type { margin-top: 0; }
+    .section-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+    }
+    .section-icon.central { background: rgba(99,102,241,0.2); color: var(--accent); }
+    .section-icon.remote  { background: rgba(16,185,129,0.15); color: #10b981; }
+    .section-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .section-hint  { font-size: 0.72rem; color: var(--text-dim); margin-top: 1px; }
     .context-list { display: flex; flex-direction: column; gap: 7px; }
     .context-item {
       display: flex; align-items: center; gap: 12px;
@@ -247,8 +256,15 @@
     .context-item input[type="radio"], .context-item input[type="checkbox"] {
       width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer;
     }
-    .context-name { font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; color: var(--text); }
-    .context-cluster { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+    .context-name { font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .context-cluster { font-size: 0.75rem; color: var(--text-dim); margin-top: 3px; }
+    .role-badge {
+      display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 4px; margin-left: 8px;
+      vertical-align: middle;
+    }
+    .role-badge.central { background: rgba(99,102,241,0.15); color: var(--accent); }
+    .role-badge.remote  { background: rgba(16,185,129,0.12); color: #10b981; }
 
     /* ── BUTTONS ── */
     .btn {
@@ -526,10 +542,22 @@ choco install kubernetes-cli</span>
 
           <div id="error-select" class="error-banner"></div>
 
-          <div class="section-label">Management cluster (controller &amp; web UI run here)</div>
+          <div class="section-label">
+            <div class="section-icon central"><i data-lucide="server" width="14" height="14"></i></div>
+            <div>
+              <div class="section-title">Management cluster</div>
+              <div class="section-hint">Controller &amp; web UI run here — pick one</div>
+            </div>
+          </div>
           <div class="context-list" id="central-list"></div>
 
-          <div class="section-label" style="margin-top:20px">Remote clusters <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dim);font-size:0.72rem">(optional — re-run wizard to add more later)</span></div>
+          <div class="section-label">
+            <div class="section-icon remote"><i data-lucide="git-branch" width="14" height="14"></i></div>
+            <div>
+              <div class="section-title">Remote clusters</div>
+              <div class="section-hint">Janus will exec into pods here — pick any, optional</div>
+            </div>
+          </div>
           <div id="remote-section">
             <div class="context-list" id="remote-list"></div>
             <div id="no-remotes" class="hidden" style="font-size:0.78rem;color:var(--text-dim);padding:10px 0">
@@ -564,6 +592,11 @@ choco install kubernetes-cli</span>
           </div>
 
           <div id="error-progress" class="error-banner" style="margin-top:14px"></div>
+          <div id="progress-continue" style="display:none;margin-top:14px;text-align:right">
+            <button class="btn btn-primary" onclick="showPanel('complete');startCountdown(5)">
+              Continue anyway <i data-lucide="arrow-right" width="14" height="14"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -599,6 +632,7 @@ choco install kubernetes-cli</span>
     let _sessionId  = null;
     let _kubeconfig = null;
     let _ws         = null;
+    let _setupHadError = false;
 
     // ---------------------------------------------------------------------------
     // Panel management
@@ -738,8 +772,8 @@ choco install kubernetes-cli</span>
         cItem.className = 'context-item';
         cItem.innerHTML = `
           <input type="radio" name="central" value="${escHtml(ctx.name)}">
-          <div>
-            <div class="context-name">${escHtml(ctx.name)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="context-name">${escHtml(ctx.name)}<span class="role-badge central">management</span></div>
             <div class="context-cluster">${escHtml(ctx.cluster)}</div>
           </div>
         `;
@@ -775,8 +809,8 @@ choco install kubernetes-cli</span>
           rItem.className = 'context-item';
           rItem.innerHTML = `
             <input type="checkbox" name="remote" value="${escHtml(ctx.name)}">
-            <div>
-              <div class="context-name">${escHtml(ctx.name)}</div>
+            <div style="flex:1;min-width:0">
+              <div class="context-name">${escHtml(ctx.name)}<span class="role-badge remote">remote</span></div>
               <div class="context-cluster">${escHtml(ctx.cluster)}</div>
             </div>
           `;
@@ -797,6 +831,8 @@ choco install kubernetes-cli</span>
       if (!central) return;
       const remotes = [...document.querySelectorAll('input[name="remote"]:checked')].map(el => el.value);
 
+      _setupHadError = false;
+      document.getElementById('progress-continue').style.display = 'none';
       showPanel('progress');
 
       try {
@@ -827,15 +863,26 @@ choco install kubernetes-cli</span>
           const msg = JSON.parse(ev.data);
           if (msg.type === 'line') {
             appendLog(msg.text);
+            if (msg.text.startsWith('[ERROR]') || msg.text.startsWith('[FATAL]')) {
+              _setupHadError = true;
+            }
             if (msg.text.startsWith('[DONE]')) {
-              setTimeout(() => showPanel('complete'), 800);
-              startCountdown(5);
+              if (_setupHadError) {
+                appendLog('[WARN] Some clusters had errors — review above before continuing.', 'warn');
+                document.getElementById('progress-continue').style.display = 'block';
+                lucide.createIcons();
+              } else {
+                setTimeout(() => showPanel('complete'), 800);
+                startCountdown(5);
+              }
             } else if (msg.text.startsWith('[FATAL]')) {
               showError('progress', msg.text.replace('[FATAL] ', ''));
             }
           } else if (msg.type === 'done') {
-            setTimeout(() => showPanel('complete'), 800);
-            startCountdown(5);
+            if (!_setupHadError) {
+              setTimeout(() => showPanel('complete'), 800);
+              startCountdown(5);
+            }
           } else if (msg.type === 'error') {
             appendLog(`[ERROR] ${msg.text}`, 'error');
           }

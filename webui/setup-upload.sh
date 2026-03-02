@@ -118,18 +118,23 @@ step "Resolving exec-based authentication"
 
 RESOLVED="$TMP_DIR/resolved.yaml"
 
-python3 - "$FLAT" "$RESOLVED" <<'PYEOF'
+python3 - "$FLAT" "$RESOLVED" "$TMP_DIR" <<'PYEOF'
 import sys, os, json, subprocess
 
-# ensure pyyaml available (system python may not have it)
+src, dst, tmp = sys.argv[1], sys.argv[2], sys.argv[3]
+
+# ensure pyyaml available — use a temp venv to avoid PEP 668 / externally-managed errors
 try:
     import yaml
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--user", "pyyaml"],
-                   check=True)
+    venv_dir = os.path.join(tmp, "venv")
+    subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
+    pip = os.path.join(venv_dir, "bin", "pip")
+    subprocess.run([pip, "install", "--quiet", "pyyaml"], check=True)
+    sys.path.insert(0, os.path.join(venv_dir, "lib",
+        next(d for d in os.listdir(os.path.join(venv_dir, "lib")) if d.startswith("python")),
+        "site-packages"))
     import yaml
-
-src, dst = sys.argv[1], sys.argv[2]
 kc = yaml.safe_load(open(src))
 changes = 0
 
