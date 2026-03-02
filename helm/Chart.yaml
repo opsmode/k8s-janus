@@ -2,18 +2,18 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 0.1.30
-appVersion: "0.1.30"
+version: 0.1.31
+appVersion: "0.1.31"
 annotations:
   artifacthub.io/changes: |
-    - kind: security
-      description: RBAC scoped to named resources only, Pod Security Standards enforced, NetworkPolicy hardened
-    - kind: fixed
-      description: Failed phase on access grant errors instead of freezing in Approved
-    - kind: fixed
-      description: Suppress status poll requests from access log
+    - kind: added
+      description: Web-based setup wizard — browser or CLI mode, no repo clone needed
+    - kind: added
+      description: setup-upload.sh — interactive script with CLI and Browser modes, exec-auth resolution
     - kind: changed
-      description: Helm README restructured for clarity with security section added
+      description: Controller init container blocks until all kubeconfig secrets are present
+    - kind: fixed
+      description: webui-secrets Role — add list verb for deployments (fixes rollout restart after setup)
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/opsmode/k8s-janus

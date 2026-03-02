@@ -48,38 +48,25 @@ After deploying the agent, register the cluster with the central instance using 
 The central controller needs a kubeconfig Secret for each remote cluster, named `<cluster-name>-kubeconfig`, in the `k8s-janus` namespace.
 The controller init container blocks until all expected secrets exist, so the controller won't start until setup is complete.
 
-### Option A — Web Setup Wizard (recommended)
+### Option A — Setup script (recommended)
 
-Port-forward the web UI from any machine with kubectl access to the central cluster:
+Run the setup script — it walks you through everything interactively:
 
 ```bash
-kubectl port-forward svc/janus-webui -n k8s-janus 8080:80
+bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
 ```
 
-Then open **http://localhost:8080/setup** in your browser.
-
-The wizard guides you through:
-1. Uploading a kubeconfig (supports all contexts in one file)
-2. Selecting the central cluster and remote targets
-3. Streaming live progress as it applies RBAC, issues tokens, and creates secrets
-
-Works with any install method — Helm CLI, ArgoCD, Flux, or manual manifests. No local scripts or repo clone needed.
-
-> **Flattened kubeconfig required:** If your kubeconfig uses exec-based auth (GKE, EKS, etc.), export a self-contained version first:
-> ```bash
-> kubectl config view --flatten --minify > flat-kube.yaml
-> ```
-> Then upload `flat-kube.yaml` in the wizard.
+Choose **CLI mode** (terminal only, no browser) or **Browser mode** (opens the web wizard with live progress). The script handles kubeconfig flattening, exec-based auth resolution (GKE, EKS, AKS), RBAC application, token issuance, and Secret creation — no repo clone needed.
 
 ### Option B — setup.sh (scripted / CI use)
 
-Run the interactive script for a fully automated, non-browser flow:
+For headless or CI environments:
 
 ```bash
 ./scripts/setup.sh
 ```
 
-It deploys the remote agent, applies RBAC, extracts a scoped token, and creates the kubeconfig Secret — same steps as the wizard but scriptable.
+Deploys the remote agent, applies RBAC, extracts a scoped token, and creates the kubeconfig Secret. Optionally auto-patches `values.yaml` with the `clusters:` list if `yq` is installed.
 
 ## Configuration
 
