@@ -127,26 +127,27 @@ fi
 ok "Central cluster: ${BOLD}${MGMT_CONTEXT}${RESET}"
 
 # ==============================================================================
-# Select which contexts to include
+# Select which contexts to include (CLI mode only — browser gets all)
 # ==============================================================================
-step "Select contexts to register"
-
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-echo ""
-for i in "${!ALL_CONTEXTS[@]}"; do
-  marker=""
-  [[ "${ALL_CONTEXTS[$i]}" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← central${RESET}"
-  echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ALL_CONTEXTS[$i]}${RESET}${marker}"
-done
-echo ""
-
 SELECTED_CONTEXTS=()
-if [[ ${#ALL_CONTEXTS[@]} -eq 1 ]]; then
+if [[ "$MODE" == "browser" ]]; then
+  SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
+  ok "All ${#ALL_CONTEXTS[@]} context(s) will be uploaded to the wizard"
+elif [[ ${#ALL_CONTEXTS[@]} -eq 1 ]]; then
   SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
   ok "Only one context — using: ${SELECTED_CONTEXTS[0]}"
 else
+  step "Select contexts to register"
+  echo ""
+  for i in "${!ALL_CONTEXTS[@]}"; do
+    marker=""
+    [[ "${ALL_CONTEXTS[$i]}" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← central${RESET}"
+    echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ALL_CONTEXTS[$i]}${RESET}${marker}"
+  done
+  echo ""
   echo -e "  ${DIM}Enter numbers space-separated, or press Enter to include all.${RESET}"
   tty_read "  Contexts to register [all]: " SELECTION
 
