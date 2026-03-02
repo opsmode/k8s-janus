@@ -578,7 +578,11 @@
 
     <!-- ── APPROVED (waiting for controller) ── -->
     {% if status.get("phase") == "Approved" %}
-    <div class="alert alert-info">
+    <div style="text-align:center;margin-top:16px;">
+      <img src="/static/approved.gif"
+           alt="Approved!" style="height:140px;border-radius:10px;opacity:0.9;">
+    </div>
+    <div class="alert alert-info" style="margin-top:12px;">
       <i data-lucide="loader" style="width:16px;height:16px;"></i>
       <span>✅ Approved! The controller is spinning up your RoleBinding as we speak. Please hold — this page refreshes automatically. No carrier pigeons were harmed.</span>
     </div>
