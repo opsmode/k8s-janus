@@ -179,7 +179,7 @@ rules:
   # Rollout restart after setup (patch deployment annotations)
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["get", "patch"]
+    verbs: ["get", "list", "patch"]
   # Read pods for live Ready status polling after setup restart
   - apiGroups: [""]
     resources: ["pods"]
