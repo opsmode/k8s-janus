@@ -53,16 +53,28 @@ tty_read() {
   read -r "$varname" </dev/tty
 }
 
+# _read_key — reads one keypress from /dev/tty into KEY
+# Handles plain chars, Enter, Space, and arrow escape sequences safely.
+# Uses a single read with timeout for the escape sequence to avoid
+# consuming script bytes when running via curl | bash.
+_read_key() {
+  IFS= read -r -s -n1 KEY </dev/tty
+  if [[ $KEY == $'\x1b' ]]; then
+    local seq=""
+    IFS= read -r -s -n2 -t 0.1 seq </dev/tty || true
+    KEY="${KEY}${seq}"
+  fi
+}
+
 # pick_one TITLE item1 item2 ...  — arrow keys to move, Enter to confirm
 # Sets global PICK_RESULT to the chosen item
 pick_one() {
   local title="$1"; shift
   local items=("$@")
-  local cur=0 key esc
-  local UP=$'\x1b[A' DOWN=$'\x1b[B'
+  local cur=0
 
   _draw_pick_one() {
-    printf '\033[%dA' "${#items[@]}" >/dev/tty   # move cursor up
+    printf '\033[%dA' "${#items[@]}" >/dev/tty
     for i in "${!items[@]}"; do
       if [[ $i -eq $cur ]]; then
         printf "  ${GREEN}${BOLD}▶ %s${RESET}\n" "${items[$i]}" >/dev/tty
@@ -79,15 +91,11 @@ pick_one() {
   _draw_pick_one
 
   while true; do
-    IFS= read -r -s -n1 key </dev/tty
-    if [[ $key == $'\x1b' ]]; then
-      IFS= read -r -s -n2 key </dev/tty
-      key=$'\x1b'"$key"
-    fi
-    case "$key" in
-      "$UP"|$'\x1b[A')   (( cur > 0 ))                && (( cur-- )); _draw_pick_one ;;
-      "$DOWN"|$'\x1b[B') (( cur < ${#items[@]}-1 ))   && (( cur++ )); _draw_pick_one ;;
-      $'\n'|$'\r')       break ;;
+    _read_key
+    case "$KEY" in
+      $'\x1b[A') (( cur > 0 ))              && (( cur-- )); _draw_pick_one ;;
+      $'\x1b[B') (( cur < ${#items[@]}-1 )) && (( cur++ )); _draw_pick_one ;;
+      $'\n'|$'\r') break ;;
     esac
   done
   PICK_RESULT="${items[$cur]}"
@@ -104,7 +112,7 @@ pick_many() {
   for (( i=0; i<${#items[@]}; i++ )); do selected[$i]=0; done
 
   _draw_pick_many() {
-    printf '\033[%dA' "${#items[@]}" >/dev/tty
+    printf '\033[%dA' $(( ${#items[@]} + 1 )) >/dev/tty
     for i in "${!items[@]}"; do
       local check="  " color="$DIM"
       [[ ${selected[$i]} -eq 1 ]] && check="${GREEN}✔${RESET}" && color=""
@@ -114,25 +122,21 @@ pick_many() {
         printf "    [%b] %b%s${RESET}\n" "$check" "$color" "${items[$i]}" >/dev/tty
       fi
     done
-    printf "  ${DIM}Space=toggle  Enter=confirm${RESET}\n" >/dev/tty
+    printf "  ${DIM}↑↓ move  Space=toggle  Enter=confirm${RESET}\n" >/dev/tty
   }
 
   printf '\n  %s\n' "$title" >/dev/tty
   for item in "${items[@]}"; do
     printf "    [ ] ${DIM}%s${RESET}\n" "$item" >/dev/tty
   done
-  printf "  ${DIM}Space=toggle  Enter=confirm${RESET}\n" >/dev/tty
+  printf "  ${DIM}↑↓ move  Space=toggle  Enter=confirm${RESET}\n" >/dev/tty
   _draw_pick_many
 
   while true; do
-    IFS= read -r -s -n1 key </dev/tty
-    if [[ $key == $'\x1b' ]]; then
-      IFS= read -r -s -n2 key </dev/tty
-      key=$'\x1b'"$key"
-    fi
-    case "$key" in
-      $'\x1b[A') (( cur > 0 ))               && (( cur-- )); _draw_pick_many ;;
-      $'\x1b[B') (( cur < ${#items[@]}-1 ))  && (( cur++ )); _draw_pick_many ;;
+    _read_key
+    case "$KEY" in
+      $'\x1b[A') (( cur > 0 ))              && (( cur-- )); _draw_pick_many ;;
+      $'\x1b[B') (( cur < ${#items[@]}-1 )) && (( cur++ )); _draw_pick_many ;;
       ' ')       selected[$cur]=$(( 1 - selected[$cur] )); _draw_pick_many ;;
       $'\n'|$'\r') break ;;
     esac
