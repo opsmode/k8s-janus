@@ -1241,6 +1241,16 @@ choco install kubernetes-cli</span>
 
       const sid = params.get('session');
       if (!sid) return;
+
+      // ?autorun=1 — setup/run was already POSTed by setup-upload.sh, skip straight to progress
+      if (params.get('autorun') === '1') {
+        history.replaceState(null, '', location.pathname);
+        _sessionId = sid;
+        showPanel('progress');
+        connectWebSocket(sid);
+        return;
+      }
+
       try {
         const resp = await fetch(`/setup/contexts/${sid}`);
         if (!resp.ok) return;
