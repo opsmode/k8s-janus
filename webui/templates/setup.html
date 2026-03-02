@@ -592,10 +592,11 @@ choco install kubernetes-cli</span>
           </div>
 
           <div id="error-progress" class="error-banner" style="margin-top:14px"></div>
-          <div id="progress-continue" style="display:none;margin-top:14px;text-align:right">
-            <button class="btn btn-primary" onclick="showPanel('complete');startCountdown(5)">
-              Continue anyway <i data-lucide="arrow-right" width="14" height="14"></i>
-            </button>
+          <div id="progress-actions" style="display:none;margin-top:18px;display:none;gap:10px;justify-content:flex-end;align-items:center">
+            <span id="progress-actions-hint" style="font-size:0.78rem;color:var(--text-dim)"></span>
+            <a href="/" class="btn btn-primary" id="btn-go-dashboard">
+              <i data-lucide="layout-dashboard" width="14" height="14"></i> Go to Dashboard
+            </a>
           </div>
         </div>
       </div>
@@ -832,7 +833,7 @@ choco install kubernetes-cli</span>
       const remotes = [...document.querySelectorAll('input[name="remote"]:checked')].map(el => el.value);
 
       _setupHadError = false;
-      document.getElementById('progress-continue').style.display = 'none';
+      document.getElementById('progress-actions').style.display = 'none';
       showPanel('progress');
 
       try {
@@ -867,22 +868,20 @@ choco install kubernetes-cli</span>
               _setupHadError = true;
             }
             if (msg.text.startsWith('[DONE]')) {
+              const hint = document.getElementById('progress-actions-hint');
               if (_setupHadError) {
-                appendLog('[WARN] Some clusters had errors — review above before continuing.', 'warn');
-                document.getElementById('progress-continue').style.display = 'block';
-                lucide.createIcons();
+                hint.textContent = 'Some clusters had errors — review above.';
               } else {
-                setTimeout(() => showPanel('complete'), 800);
-                startCountdown(5);
+                hint.textContent = 'Setup complete!';
               }
+              const el = document.getElementById('progress-actions');
+              el.style.display = 'flex';
+              lucide.createIcons();
             } else if (msg.text.startsWith('[FATAL]')) {
               showError('progress', msg.text.replace('[FATAL] ', ''));
             }
           } else if (msg.type === 'done') {
-            if (!_setupHadError) {
-              setTimeout(() => showPanel('complete'), 800);
-              startCountdown(5);
-            }
+            // no-op — user clicks "Go to Dashboard" manually
           } else if (msg.type === 'error') {
             appendLog(`[ERROR] ${msg.text}`, 'error');
           }
