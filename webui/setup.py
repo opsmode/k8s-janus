@@ -395,7 +395,7 @@ def is_setup_complete(clusters: list[dict], janus_namespace: str) -> bool:
 async def run_setup(
     kubeconfig: dict,
     central_context: str,
-    remote_contexts: list[str],
+    remote_contexts: list,   # list of {"context": str, "cluster_name": str}
     janus_namespace: str,
 ) -> AsyncIterator[str]:
     """
@@ -413,10 +413,11 @@ async def run_setup(
     errors: list[str] = []
     total = len(remote_contexts)
 
-    for i, context_name in enumerate(remote_contexts, 1):
-        slug = slugify(context_name)
-        secret_name = f"{slug}-kubeconfig"
-        yield f"[INFO] [{i}/{total}] {context_name}"
+    for i, remote in enumerate(remote_contexts, 1):
+        context_name = remote["context"]
+        cluster_name = remote["cluster_name"]
+        secret_name  = f"{cluster_name}-kubeconfig"
+        yield f"[INFO] [{i}/{total}] {context_name} → {cluster_name}"
 
         # --- Connectivity check ---
         try:
@@ -470,7 +471,7 @@ async def run_setup(
             continue
 
         # --- Build + store kubeconfig secret ---
-        kc_dict = _build_kubeconfig_dict(slug, server, ca_data, token)
+        kc_dict = _build_kubeconfig_dict(cluster_name, server, ca_data, token)
         yield f"[INFO]   Creating Secret {secret_name!r} on central cluster..."
         try:
             central_core_v1 = await loop.run_in_executor(None, _get_central_core_v1)

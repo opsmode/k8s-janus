@@ -659,10 +659,11 @@ choco install kubernetes-cli</span>
     // ---------------------------------------------------------------------------
     // State
     // ---------------------------------------------------------------------------
-    let _sessionId  = null;
-    let _kubeconfig = null;
-    let _ws         = null;
-    let _setupHadError = false;
+    let _sessionId         = null;
+    let _kubeconfig        = null;
+    let _configuredRemotes = [];   // [{name, displayName}] from server CLUSTERS config
+    let _ws                = null;
+    let _setupHadError     = false;
 
     // ---------------------------------------------------------------------------
     // Panel management
@@ -761,8 +762,9 @@ choco install kubernetes-cli</span>
         const resp = await fetch('/setup/upload', { method: 'POST', body: formData });
         const data = await resp.json();
         if (data.error) { resetDropZone(); showError('upload', data.error); return; }
-        _sessionId  = data.session_id;
-        _kubeconfig = data.contexts;
+        _sessionId         = data.session_id;
+        _kubeconfig        = data.contexts;
+        _configuredRemotes = data.configured_remotes || [];
         populateContextSelectors(data.contexts);
         showPanel('select');
       } catch (err) {
@@ -835,20 +837,42 @@ choco install kubernetes-cli</span>
       } else {
         noRemotes.classList.add('hidden');
         remoteList.classList.remove('hidden');
-        others.forEach(ctx => {
-          const rItem = document.createElement('label');
-          rItem.className = 'context-item';
+        others.forEach((ctx, idx) => {
+          const rItem = document.createElement('div');
           rItem.className = 'context-item remote-sel';
+
+          // Build cluster name dropdown — auto-assign in order if configured_remotes available
+          const autoName = _configuredRemotes[idx]?.name || '';
+          let selectHtml = '';
+          if (_configuredRemotes.length > 0) {
+            const opts = _configuredRemotes.map(r =>
+              `<option value="${escHtml(r.name)}" ${r.name === autoName ? 'selected' : ''}>${escHtml(r.displayName)} (${escHtml(r.name)})</option>`
+            ).join('');
+            selectHtml = `
+              <select name="remote-cluster-name" data-context="${escHtml(ctx.name)}"
+                style="margin-top:5px;background:var(--surface);border:1px solid var(--border);
+                       color:var(--text);border-radius:6px;padding:4px 8px;font-size:0.75rem;width:100%;cursor:pointer">
+                <option value="">— skip this cluster —</option>
+                ${opts}
+              </select>`;
+          } else {
+            selectHtml = `<input type="hidden" name="remote-cluster-name" data-context="${escHtml(ctx.name)}" value="${escHtml(autoName)}">`;
+          }
+
           rItem.innerHTML = `
-            <input type="checkbox" name="remote" value="${escHtml(ctx.name)}">
+            <input type="checkbox" name="remote" value="${escHtml(ctx.name)}" ${autoName ? 'checked' : ''}>
             <div style="flex:1;min-width:0">
               <div class="context-name">${escHtml(ctx.name)}</div>
               <div class="context-cluster">${escHtml(ctx.cluster)}</div>
+              ${selectHtml}
             </div>
           `;
-          rItem.querySelector('input').addEventListener('change', e => {
+
+          const cb = rItem.querySelector('input[type="checkbox"]');
+          cb.addEventListener('change', e => {
             rItem.classList.toggle('selected', e.target.checked);
           });
+          if (autoName) rItem.classList.add('selected');
           remoteList.appendChild(rItem);
         });
       }
@@ -861,7 +885,14 @@ choco install kubernetes-cli</span>
     async function startSetup() {
       const central = document.querySelector('input[name="central"]:checked')?.value;
       if (!central) return;
-      const remotes = [...document.querySelectorAll('input[name="remote"]:checked')].map(el => el.value);
+      const remotes = [...document.querySelectorAll('input[name="remote"]:checked')]
+        .map(cb => {
+          const ctx = cb.value;
+          const sel = document.querySelector(`[name="remote-cluster-name"][data-context="${CSS.escape(ctx)}"]`);
+          const cluster_name = sel?.value || '';
+          return cluster_name ? { context: ctx, cluster_name } : null;
+        })
+        .filter(Boolean);
 
       _setupHadError = false;
       document.getElementById('progress-actions').style.display = 'none';
@@ -986,8 +1017,9 @@ choco install kubernetes-cli</span>
         if (!resp.ok) return;
         const data = await resp.json();
         if (data.error || !data.contexts?.length) return;
-        _sessionId  = data.session_id;
-        _kubeconfig = data.contexts;
+        _sessionId         = data.session_id;
+        _kubeconfig        = data.contexts;
+        _configuredRemotes = data.configured_remotes || [];
         populateContextSelectors(data.contexts);
         showPanel('select');
         history.replaceState(null, '', location.pathname);
