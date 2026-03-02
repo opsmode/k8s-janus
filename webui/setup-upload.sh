@@ -4,6 +4,9 @@
 # Usage:
 #   bash setup-upload.sh [--port 8080] [--namespace k8s-janus] [--kubeconfig ~/.kube/config]
 #
+# Interactively lists all contexts from your kubeconfig and asks which to include.
+# You can pick specific contexts (e.g. "1 3") or press Enter to include all.
+#
 # Requires: kubectl, python3, curl
 # Optional: gcloud (for GKE), aws (for EKS), az (for AKS)
 
@@ -95,21 +98,86 @@ else
 fi
 
 # ==============================================================================
-# Flatten kubeconfig (embed CA data)
+# List contexts and let user choose which to include
 # ==============================================================================
-step "Flattening kubeconfig"
+step "Available contexts"
 
 TMP_DIR=$(mktemp -d)
-# Extend trap to also clean tmp dir
 if $PF_STARTED; then
   trap 'stop_port_forward; rm -rf "$TMP_DIR"' EXIT
 else
   trap 'rm -rf "$TMP_DIR"' EXIT
 fi
 
+# Get all context names from the kubeconfig
+mapfile -t ALL_CONTEXTS < <(KUBECONFIG="$KUBECONFIG_FILE" kubectl config get-contexts -o name 2>/dev/null)
+CURRENT_CTX=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl config current-context 2>/dev/null || echo "")
+
+if [[ ${#ALL_CONTEXTS[@]} -eq 0 ]]; then
+  die "No contexts found in $KUBECONFIG_FILE"
+fi
+
+echo ""
+for i in "${!ALL_CONTEXTS[@]}"; do
+  ctx="${ALL_CONTEXTS[$i]}"
+  marker=""
+  [[ "$ctx" == "$CURRENT_CTX" ]] && marker=" ${GREEN}← current${RESET}"
+  echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ctx}${RESET}${marker}"
+done
+echo ""
+
+if [[ ${#ALL_CONTEXTS[@]} -eq 1 ]]; then
+  SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
+  ok "Only one context — using: ${SELECTED_CONTEXTS[0]}"
+else
+  echo -e "  ${DIM}Enter context numbers to include (space-separated), or press Enter to include all.${RESET}"
+  echo -e "  ${DIM}Example: ${BOLD}1 3${RESET}${DIM} to include the 1st and 3rd context.${RESET}"
+  echo ""
+  read -rp "  Contexts to include [all]: " SELECTION
+
+  SELECTED_CONTEXTS=()
+  if [[ -z "$SELECTION" ]]; then
+    SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
+    ok "Including all ${#ALL_CONTEXTS[@]} contexts"
+  else
+    for num in $SELECTION; do
+      if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#ALL_CONTEXTS[@]} )); then
+        SELECTED_CONTEXTS+=("${ALL_CONTEXTS[$((num-1))]}")
+      else
+        warn "Ignoring invalid selection: $num"
+      fi
+    done
+    [[ ${#SELECTED_CONTEXTS[@]} -eq 0 ]] && die "No valid contexts selected"
+    ok "Selected: ${SELECTED_CONTEXTS[*]}"
+  fi
+fi
+
+# ==============================================================================
+# Flatten kubeconfig (embed CA data, only selected contexts)
+# ==============================================================================
+step "Flattening kubeconfig"
+
 FLAT="$TMP_DIR/flat.yaml"
-KUBECONFIG="$KUBECONFIG_FILE" kubectl config view --flatten --minify=false > "$FLAT"
-ok "Flattened"
+
+if [[ ${#SELECTED_CONTEXTS[@]} -eq ${#ALL_CONTEXTS[@]} ]]; then
+  # All contexts — flatten the whole file
+  KUBECONFIG="$KUBECONFIG_FILE" kubectl config view --flatten --minify=false > "$FLAT"
+else
+  # Flatten each selected context individually then merge
+  PARTS=()
+  for ctx in "${SELECTED_CONTEXTS[@]}"; do
+    part="$TMP_DIR/ctx-${ctx//\//_}.yaml"
+    KUBECONFIG="$KUBECONFIG_FILE" kubectl config view --flatten --minify \
+      --context "$ctx" > "$part"
+    PARTS+=("$part")
+  done
+
+  # Merge all parts by concatenating (kubectl supports KUBECONFIG=a:b:c view --flatten)
+  MERGED_KUBECONFIG=$(IFS=":"; echo "${PARTS[*]}")
+  KUBECONFIG="$MERGED_KUBECONFIG" kubectl config view --flatten --minify=false > "$FLAT"
+fi
+
+ok "Flattened (${#SELECTED_CONTEXTS[@]} context(s))"
 
 # ==============================================================================
 # Detect and resolve exec-based auth
