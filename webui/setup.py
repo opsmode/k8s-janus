@@ -292,8 +292,9 @@ def _issue_token(
         name="janus-remote",
         namespace=namespace,
         body=client.AuthenticationV1TokenRequest(
-            spec=client.AuthenticationV1TokenRequestSpec(
+            spec=client.V1TokenRequestSpec(
                 expiration_seconds=duration_seconds,
+                audiences=[],
             )
         ),
     )
