@@ -3,9 +3,10 @@
 #
 # Usage:
 #   bash setup-upload.sh [--port 8080] [--namespace k8s-janus] [--kubeconfig ~/.kube/config]
+#                        [--management-context <context-name>]
 #
-# Interactively lists all contexts from your kubeconfig and asks which to include.
-# You can pick specific contexts (e.g. "1 3") or press Enter to include all.
+# Interactively asks which context is the management cluster (where Janus is installed),
+# then which contexts to include as remote clusters.
 #
 # Requires: kubectl, python3, curl
 # Optional: gcloud (for GKE), aws (for EKS), az (for AKS)
@@ -18,14 +19,16 @@ set -euo pipefail
 PORT=8080
 JANUS_NS="k8s-janus"
 KUBECONFIG_FILE="${KUBECONFIG:-$HOME/.kube/config}"
+MGMT_CONTEXT=""
 PF_PID=""
 PF_STARTED=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --port)        PORT="$2";          shift 2 ;;
-    --namespace)   JANUS_NS="$2";      shift 2 ;;
-    --kubeconfig)  KUBECONFIG_FILE="$2"; shift 2 ;;
+    --port)                PORT="$2";        shift 2 ;;
+    --namespace)           JANUS_NS="$2";    shift 2 ;;
+    --kubeconfig)          KUBECONFIG_FILE="$2"; shift 2 ;;
+    --management-context)  MGMT_CONTEXT="$2"; shift 2 ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -61,7 +64,55 @@ done
 ok "kubeconfig: $KUBECONFIG_FILE"
 
 # ==============================================================================
-# Port-forward management
+# List all contexts, ask which is the management cluster (for port-forward)
+# ==============================================================================
+step "Available contexts"
+
+mapfile -t ALL_CONTEXTS_PRE < <(KUBECONFIG="$KUBECONFIG_FILE" kubectl config get-contexts -o name 2>/dev/null)
+CURRENT_CTX_PRE=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl config current-context 2>/dev/null || echo "")
+
+[[ ${#ALL_CONTEXTS_PRE[@]} -eq 0 ]] && die "No contexts found in $KUBECONFIG_FILE"
+
+echo ""
+for i in "${!ALL_CONTEXTS_PRE[@]}"; do
+  ctx="${ALL_CONTEXTS_PRE[$i]}"
+  marker=""
+  [[ "$ctx" == "$CURRENT_CTX_PRE" ]] && marker=" ${GREEN}← current${RESET}"
+  echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ctx}${RESET}${marker}"
+done
+echo ""
+
+if [[ -z "$MGMT_CONTEXT" ]]; then
+  if [[ ${#ALL_CONTEXTS_PRE[@]} -eq 1 ]]; then
+    MGMT_CONTEXT="${ALL_CONTEXTS_PRE[0]}"
+    ok "Only one context — using as management: ${MGMT_CONTEXT}"
+  else
+    # Pre-select the current context as default
+    DEFAULT_MGMT_NUM=""
+    for i in "${!ALL_CONTEXTS_PRE[@]}"; do
+      [[ "${ALL_CONTEXTS_PRE[$i]}" == "$CURRENT_CTX_PRE" ]] && DEFAULT_MGMT_NUM="$((i+1))" && break
+    done
+
+    PROMPT="  Which context is the management cluster (where Janus is installed)?"
+    [[ -n "$DEFAULT_MGMT_NUM" ]] && PROMPT+=" [${DEFAULT_MGMT_NUM}]"
+    PROMPT+=": "
+    read -rp "$PROMPT" MGMT_NUM
+
+    # Default to current context if user just pressed Enter
+    [[ -z "$MGMT_NUM" && -n "$DEFAULT_MGMT_NUM" ]] && MGMT_NUM="$DEFAULT_MGMT_NUM"
+
+    if [[ "$MGMT_NUM" =~ ^[0-9]+$ ]] && (( MGMT_NUM >= 1 && MGMT_NUM <= ${#ALL_CONTEXTS_PRE[@]} )); then
+      MGMT_CONTEXT="${ALL_CONTEXTS_PRE[$((MGMT_NUM-1))]}"
+    else
+      die "Invalid selection: $MGMT_NUM"
+    fi
+  fi
+fi
+
+ok "Management cluster context: ${BOLD}${MGMT_CONTEXT}${RESET}"
+
+# ==============================================================================
+# Port-forward management (using the management context)
 # ==============================================================================
 step "Checking wizard at ${WIZARD_URL}"
 
@@ -75,32 +126,33 @@ if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
   ok "Wizard already reachable — reusing existing port-forward"
 else
   warn "Wizard not reachable — starting port-forward in background"
-  kubectl port-forward svc/janus-webui -n "$JANUS_NS" "${PORT}:80" \
+  KUBECONFIG="$KUBECONFIG_FILE" kubectl port-forward svc/janus-webui \
+    --context "$MGMT_CONTEXT" -n "$JANUS_NS" "${PORT}:80" \
     >/dev/null 2>&1 &
   PF_PID=$!
-  echo -e "  ${DIM}kubectl port-forward PID: ${PF_PID}${RESET}"
+  echo -e "  ${DIM}kubectl port-forward PID: ${PF_PID} (context: ${MGMT_CONTEXT})${RESET}"
   PF_STARTED=true
 
   # Register cleanup only if we started it
   trap 'stop_port_forward' EXIT
 
-  # Wait up to 8s for it to be ready
-  for i in $(seq 1 8); do
+  # Wait up to 12s for it to be ready
+  for i in $(seq 1 12); do
     sleep 1
     if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
       ok "Port-forward ready (PID ${PF_PID})"
       break
     fi
-    if [[ $i -eq 8 ]]; then
-      die "Port-forward started but wizard not responding after 8s.\n\n  Check that janus-webui is running:\n    kubectl get pods -n ${JANUS_NS}"
+    if [[ $i -eq 12 ]]; then
+      die "Port-forward started but wizard not responding after 12s.\n\n  Check that janus-webui is running:\n    kubectl --context ${MGMT_CONTEXT} get pods -n ${JANUS_NS}"
     fi
   done
 fi
 
 # ==============================================================================
-# List contexts and let user choose which to include
+# Let user choose which contexts to include in the upload
 # ==============================================================================
-step "Available contexts"
+step "Select contexts to upload"
 
 TMP_DIR=$(mktemp -d)
 if $PF_STARTED; then
@@ -109,19 +161,14 @@ else
   trap 'rm -rf "$TMP_DIR"' EXIT
 fi
 
-# Get all context names from the kubeconfig
-mapfile -t ALL_CONTEXTS < <(KUBECONFIG="$KUBECONFIG_FILE" kubectl config get-contexts -o name 2>/dev/null)
-CURRENT_CTX=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl config current-context 2>/dev/null || echo "")
-
-if [[ ${#ALL_CONTEXTS[@]} -eq 0 ]]; then
-  die "No contexts found in $KUBECONFIG_FILE"
-fi
+# Reuse ALL_CONTEXTS_PRE fetched earlier
+ALL_CONTEXTS=("${ALL_CONTEXTS_PRE[@]}")
 
 echo ""
 for i in "${!ALL_CONTEXTS[@]}"; do
   ctx="${ALL_CONTEXTS[$i]}"
   marker=""
-  [[ "$ctx" == "$CURRENT_CTX" ]] && marker=" ${GREEN}← current${RESET}"
+  [[ "$ctx" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← management${RESET}"
   echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ctx}${RESET}${marker}"
 done
 echo ""
@@ -132,6 +179,7 @@ if [[ ${#ALL_CONTEXTS[@]} -eq 1 ]]; then
 else
   echo -e "  ${DIM}Enter context numbers to include (space-separated), or press Enter to include all.${RESET}"
   echo -e "  ${DIM}Example: ${BOLD}1 3${RESET}${DIM} to include the 1st and 3rd context.${RESET}"
+  echo -e "  ${DIM}The management cluster context will always be included.${RESET}"
   echo ""
   read -rp "  Contexts to include [all]: " SELECTION
 
@@ -148,6 +196,15 @@ else
       fi
     done
     [[ ${#SELECTED_CONTEXTS[@]} -eq 0 ]] && die "No valid contexts selected"
+    # Always ensure management context is included
+    MGMT_ALREADY=false
+    for ctx in "${SELECTED_CONTEXTS[@]}"; do
+      [[ "$ctx" == "$MGMT_CONTEXT" ]] && MGMT_ALREADY=true && break
+    done
+    if ! $MGMT_ALREADY; then
+      SELECTED_CONTEXTS=("$MGMT_CONTEXT" "${SELECTED_CONTEXTS[@]}")
+      warn "Management context added automatically: ${MGMT_CONTEXT}"
+    fi
     ok "Selected: ${SELECTED_CONTEXTS[*]}"
   fi
 fi
