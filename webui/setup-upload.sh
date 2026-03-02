@@ -53,6 +53,98 @@ tty_read() {
   read -r "$varname" </dev/tty
 }
 
+# pick_one TITLE item1 item2 ...  — arrow keys to move, Enter to confirm
+# Sets global PICK_RESULT to the chosen item
+pick_one() {
+  local title="$1"; shift
+  local items=("$@")
+  local cur=0 key esc
+  local UP=$'\x1b[A' DOWN=$'\x1b[B'
+
+  _draw_pick_one() {
+    printf '\033[%dA' "${#items[@]}" >/dev/tty   # move cursor up
+    for i in "${!items[@]}"; do
+      if [[ $i -eq $cur ]]; then
+        printf "  ${GREEN}${BOLD}▶ %s${RESET}\n" "${items[$i]}" >/dev/tty
+      else
+        printf "    ${DIM}%s${RESET}\n" "${items[$i]}" >/dev/tty
+      fi
+    done
+  }
+
+  printf '\n  %s\n' "$title" >/dev/tty
+  for item in "${items[@]}"; do
+    printf "    ${DIM}%s${RESET}\n" "$item" >/dev/tty
+  done
+  _draw_pick_one
+
+  while true; do
+    IFS= read -r -s -n1 key </dev/tty
+    if [[ $key == $'\x1b' ]]; then
+      IFS= read -r -s -n2 key </dev/tty
+      key=$'\x1b'"$key"
+    fi
+    case "$key" in
+      "$UP"|$'\x1b[A')   (( cur > 0 ))                && (( cur-- )); _draw_pick_one ;;
+      "$DOWN"|$'\x1b[B') (( cur < ${#items[@]}-1 ))   && (( cur++ )); _draw_pick_one ;;
+      $'\n'|$'\r')       break ;;
+    esac
+  done
+  PICK_RESULT="${items[$cur]}"
+  printf '\n' >/dev/tty
+}
+
+# pick_many TITLE item1 item2 ...  — arrow keys, Space to toggle, Enter to confirm
+# Sets global PICK_RESULTS array
+pick_many() {
+  local title="$1"; shift
+  local items=("$@")
+  local cur=0
+  local -a selected=()
+  for (( i=0; i<${#items[@]}; i++ )); do selected[$i]=0; done
+
+  _draw_pick_many() {
+    printf '\033[%dA' "${#items[@]}" >/dev/tty
+    for i in "${!items[@]}"; do
+      local check="  " color="$DIM"
+      [[ ${selected[$i]} -eq 1 ]] && check="${GREEN}✔${RESET}" && color=""
+      if [[ $i -eq $cur ]]; then
+        printf "  ${BOLD}▶${RESET} [%b] %b%s${RESET}\n" "$check" "$color" "${items[$i]}" >/dev/tty
+      else
+        printf "    [%b] %b%s${RESET}\n" "$check" "$color" "${items[$i]}" >/dev/tty
+      fi
+    done
+    printf "  ${DIM}Space=toggle  Enter=confirm${RESET}\n" >/dev/tty
+  }
+
+  printf '\n  %s\n' "$title" >/dev/tty
+  for item in "${items[@]}"; do
+    printf "    [ ] ${DIM}%s${RESET}\n" "$item" >/dev/tty
+  done
+  printf "  ${DIM}Space=toggle  Enter=confirm${RESET}\n" >/dev/tty
+  _draw_pick_many
+
+  while true; do
+    IFS= read -r -s -n1 key </dev/tty
+    if [[ $key == $'\x1b' ]]; then
+      IFS= read -r -s -n2 key </dev/tty
+      key=$'\x1b'"$key"
+    fi
+    case "$key" in
+      $'\x1b[A') (( cur > 0 ))               && (( cur-- )); _draw_pick_many ;;
+      $'\x1b[B') (( cur < ${#items[@]}-1 ))  && (( cur++ )); _draw_pick_many ;;
+      ' ')       selected[$cur]=$(( 1 - selected[$cur] )); _draw_pick_many ;;
+      $'\n'|$'\r') break ;;
+    esac
+  done
+
+  PICK_RESULTS=()
+  for i in "${!items[@]}"; do
+    [[ ${selected[$i]} -eq 1 ]] && PICK_RESULTS+=("${items[$i]}")
+  done
+  printf '\n' >/dev/tty
+}
+
 echo ""
 echo -e "${MAGENTA}${BOLD}  ⛩   K 8 s - J A N U S   S E T U P   U P L O A D${RESET}"
 echo -e "${DIM}  Resolves exec-based auth and uploads kubeconfig to the wizard${RESET}"
@@ -80,46 +172,23 @@ CURRENT_CTX_PRE=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl config current-context 2
 
 [[ ${#ALL_CONTEXTS_PRE[@]} -eq 0 ]] && die "No contexts found in $KUBECONFIG_FILE"
 
-echo ""
-for i in "${!ALL_CONTEXTS_PRE[@]}"; do
-  ctx="${ALL_CONTEXTS_PRE[$i]}"
-  marker=""
-  [[ "$ctx" == "$CURRENT_CTX_PRE" ]] && marker=" ${GREEN}← current${RESET}"
-  echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ctx}${RESET}${marker}"
-done
-echo ""
-
 if [[ -z "$MGMT_CONTEXT" ]]; then
   if [[ ${#ALL_CONTEXTS_PRE[@]} -eq 1 ]]; then
     MGMT_CONTEXT="${ALL_CONTEXTS_PRE[0]}"
-    ok "Only one context — using as management: ${MGMT_CONTEXT}"
+    ok "Only one context — using as central: ${MGMT_CONTEXT}"
   else
-    # Pre-select the current context as default
-    DEFAULT_MGMT_NUM=""
-    for i in "${!ALL_CONTEXTS_PRE[@]}"; do
-      [[ "${ALL_CONTEXTS_PRE[$i]}" == "$CURRENT_CTX_PRE" ]] && DEFAULT_MGMT_NUM="$((i+1))" && break
+    # Pre-select current context by moving it to top of list for pick_one
+    SORTED_CTXS=()
+    [[ -n "$CURRENT_CTX_PRE" ]] && SORTED_CTXS+=("$CURRENT_CTX_PRE")
+    for ctx in "${ALL_CONTEXTS_PRE[@]}"; do
+      [[ "$ctx" != "$CURRENT_CTX_PRE" ]] && SORTED_CTXS+=("$ctx")
     done
-
-    echo -e "  ${DIM}The central cluster is where Janus controller + web UI are installed.${RESET}"
-    echo -e "  ${DIM}It will also be the port-forward target.${RESET}"
-    echo ""
-    PROMPT="  Central cluster context (enter number)"
-    [[ -n "$DEFAULT_MGMT_NUM" ]] && PROMPT+=" [${DEFAULT_MGMT_NUM}]"
-    PROMPT+=": "
-    tty_read "$PROMPT" MGMT_NUM
-
-    # Default to current context if user just pressed Enter
-    [[ -z "$MGMT_NUM" && -n "$DEFAULT_MGMT_NUM" ]] && MGMT_NUM="$DEFAULT_MGMT_NUM"
-
-    if [[ "$MGMT_NUM" =~ ^[0-9]+$ ]] && (( MGMT_NUM >= 1 && MGMT_NUM <= ${#ALL_CONTEXTS_PRE[@]} )); then
-      MGMT_CONTEXT="${ALL_CONTEXTS_PRE[$((MGMT_NUM-1))]}"
-    else
-      die "Invalid selection: $MGMT_NUM"
-    fi
+    pick_one "Central cluster (controller + web UI run here) — ↑↓ move, Enter confirm:" "${SORTED_CTXS[@]}"
+    MGMT_CONTEXT="$PICK_RESULT"
   fi
 fi
 
-ok "Management cluster context: ${BOLD}${MGMT_CONTEXT}${RESET}"
+ok "Central cluster: ${BOLD}${MGMT_CONTEXT}${RESET}"
 
 # ==============================================================================
 # Port-forward management (using the management context)
@@ -162,8 +231,6 @@ fi
 # ==============================================================================
 # Let user choose which contexts to include in the upload
 # ==============================================================================
-step "Select contexts to upload"
-
 TMP_DIR=$(mktemp -d)
 if $PF_STARTED; then
   trap 'stop_port_forward; rm -rf "$TMP_DIR"' EXIT
@@ -171,53 +238,43 @@ else
   trap 'rm -rf "$TMP_DIR"' EXIT
 fi
 
-# Reuse ALL_CONTEXTS_PRE fetched earlier
 ALL_CONTEXTS=("${ALL_CONTEXTS_PRE[@]}")
-
-echo ""
-for i in "${!ALL_CONTEXTS[@]}"; do
-  ctx="${ALL_CONTEXTS[$i]}"
-  marker=""
-  [[ "$ctx" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← central (management)${RESET}"
-  echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ctx}${RESET}${marker}"
-done
-echo ""
 
 if [[ ${#ALL_CONTEXTS[@]} -eq 1 ]]; then
   SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
   ok "Only one context — using: ${SELECTED_CONTEXTS[0]}"
 else
-  echo -e "  ${DIM}Select which contexts to register with Janus (central + remotes).${RESET}"
-  echo -e "  ${DIM}Enter numbers space-separated, or press Enter to include all.${RESET}"
-  echo -e "  ${DIM}Example: ${BOLD}8 5 6${RESET}${DIM} → central first, then remote clusters.${RESET}"
-  echo -e "  ${DIM}The central cluster context is always included automatically.${RESET}"
-  echo ""
-  tty_read "  Contexts to register [all]: " SELECTION
+  # Build list with central marked; pre-select all by default in pick_many
+  PICK_LABELS=()
+  for ctx in "${ALL_CONTEXTS[@]}"; do
+    if [[ "$ctx" == "$MGMT_CONTEXT" ]]; then
+      PICK_LABELS+=("${ctx}  (central)")
+    else
+      PICK_LABELS+=("$ctx")
+    fi
+  done
+
+  pick_many "Select contexts to register — ↑↓ move, Space toggle, Enter confirm:" "${PICK_LABELS[@]}"
 
   SELECTED_CONTEXTS=()
-  if [[ -z "$SELECTION" ]]; then
-    SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
-    ok "Including all ${#ALL_CONTEXTS[@]} contexts"
-  else
-    for num in $SELECTION; do
-      if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#ALL_CONTEXTS[@]} )); then
-        SELECTED_CONTEXTS+=("${ALL_CONTEXTS[$((num-1))]}")
-      else
-        warn "Ignoring invalid selection: $num"
-      fi
-    done
-    [[ ${#SELECTED_CONTEXTS[@]} -eq 0 ]] && die "No valid contexts selected"
-    # Always ensure management context is included
-    MGMT_ALREADY=false
-    for ctx in "${SELECTED_CONTEXTS[@]}"; do
-      [[ "$ctx" == "$MGMT_CONTEXT" ]] && MGMT_ALREADY=true && break
-    done
-    if ! $MGMT_ALREADY; then
-      SELECTED_CONTEXTS=("$MGMT_CONTEXT" "${SELECTED_CONTEXTS[@]}")
-      warn "Management context added automatically: ${MGMT_CONTEXT}"
-    fi
-    ok "Selected: ${SELECTED_CONTEXTS[*]}"
+  for label in "${PICK_RESULTS[@]}"; do
+    # Strip the " (central)" suffix if present
+    ctx="${label%  (central)}"
+    SELECTED_CONTEXTS+=("$ctx")
+  done
+
+  # Always ensure central is included
+  MGMT_ALREADY=false
+  for ctx in "${SELECTED_CONTEXTS[@]}"; do
+    [[ "$ctx" == "$MGMT_CONTEXT" ]] && MGMT_ALREADY=true && break
+  done
+  if ! $MGMT_ALREADY; then
+    SELECTED_CONTEXTS=("$MGMT_CONTEXT" "${SELECTED_CONTEXTS[@]}")
+    warn "Central context added automatically: ${MGMT_CONTEXT}"
   fi
+
+  [[ ${#SELECTED_CONTEXTS[@]} -eq 0 ]] && die "No contexts selected"
+  ok "Registering ${#SELECTED_CONTEXTS[@]} context(s)"
 fi
 
 # ==============================================================================
@@ -342,50 +399,157 @@ for c in ctxs:
 ok "Upload successful"
 
 SESSION_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null || echo "")
+CONTEXTS_JSON=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('contexts',[])))" 2>/dev/null || echo "[]")
 
 # ==============================================================================
-# Open browser
+# CLI or browser?
 # ==============================================================================
-step "Opening wizard in browser"
+pick_one "How would you like to continue? — ↑↓ move, Enter confirm:" \
+  "CLI  — run setup now in this terminal (no browser needed)" \
+  "Browser  — open the web wizard to select clusters and watch progress"
 
 SETUP_URL="${WIZARD_URL}/setup${SESSION_ID:+?session=${SESSION_ID}}"
+[[ "$PICK_RESULT" == Browser* ]] && MODE_CHOICE="2" || MODE_CHOICE="1"
 
-if command -v open &>/dev/null; then
-  open "$SETUP_URL" && ok "Opened $SETUP_URL"
-elif command -v xdg-open &>/dev/null; then
-  xdg-open "$SETUP_URL" && ok "Opened $SETUP_URL"
-else
-  echo -e "\n  ${BOLD}Open this URL in your browser:${RESET}"
-  echo -e "  ${CYAN}${SETUP_URL}${RESET}"
-fi
+if [[ "$MODE_CHOICE" == "2" ]]; then
+  # ── Browser mode ──────────────────────────────────────────────────────────
+  step "Opening wizard in browser"
+  if command -v open &>/dev/null; then
+    open "$SETUP_URL" && ok "Opened $SETUP_URL"
+  elif command -v xdg-open &>/dev/null; then
+    xdg-open "$SETUP_URL" && ok "Opened $SETUP_URL"
+  else
+    echo -e "\n  ${BOLD}Open this URL in your browser:${RESET}"
+    echo -e "  ${CYAN}${SETUP_URL}${RESET}"
+  fi
 
-# ==============================================================================
-# Wait for wizard completion, then clean up
-# ==============================================================================
-echo ""
-echo -e "${MAGENTA}${BOLD}  ⛩  Kubeconfig uploaded — complete the wizard in your browser.${RESET}"
-echo ""
-
-if $PF_STARTED; then
-  echo -e "  ${BOLD}Port-forward running in background (PID ${PF_PID}).${RESET}"
-  echo -e "  ${DIM}Complete the wizard in your browser, then press ${RESET}${BOLD}Ctrl+C${DIM} to stop.${RESET}"
-  echo -e "  ${DIM}Or stop it later with:  ${RESET}${BOLD}kill ${PF_PID}${RESET}"
+  echo ""
+  echo -e "${MAGENTA}${BOLD}  ⛩  Kubeconfig uploaded — complete the wizard in your browser.${RESET}"
   echo ""
 
-  trap 'echo ""; stop_port_forward; ok "Port-forward stopped"; exit 0' INT TERM
+  if $PF_STARTED; then
+    echo -e "  ${DIM}Port-forward running (PID ${PF_PID}) — press ${RESET}${BOLD}Ctrl+C${DIM} when done.${RESET}"
+    trap 'echo ""; stop_port_forward; ok "Port-forward stopped"; exit 0' INT TERM
+    elapsed=0
+    while kill -0 "$PF_PID" 2>/dev/null; do
+      sleep 5; elapsed=$((elapsed + 5))
+      (( elapsed % 30 == 0 )) && echo -e "  ${DIM}… port-forward still running (${elapsed}s)${RESET}"
+    done
+    ok "Port-forward exited"
+  else
+    echo -e "  ${DIM}Stop port-forward when done: ${RESET}${BOLD}pkill -f 'port-forward svc/janus-webui'${RESET}"
+  fi
 
-  # Keep alive — print a heartbeat every 30s so user knows it's still running
-  elapsed=0
-  while kill -0 "$PF_PID" 2>/dev/null; do
-    sleep 5
-    elapsed=$((elapsed + 5))
-    if (( elapsed % 30 == 0 )); then
-      echo -e "  ${DIM}… port-forward still running (${elapsed}s) — Ctrl+C to stop${RESET}"
-    fi
-  done
-  ok "Port-forward exited"
 else
-  echo -e "  ${DIM}Port-forward was already running — stop it when done with:${RESET}"
-  echo -e "  ${BOLD}pkill -f 'port-forward svc/janus-webui'${RESET}"
+  # ── CLI mode ───────────────────────────────────────────────────────────────
+  # Parse context names from upload response
+  mapfile -t CTX_NAMES < <(echo "$CONTEXTS_JSON" | python3 -c "
+import sys, json
+for c in json.load(sys.stdin):
+    print(c['name'])
+")
+
+  if [[ ${#CTX_NAMES[@]} -eq 0 ]]; then
+    die "No contexts available from uploaded kubeconfig"
+  fi
+
+  # Central context — pre-sort so MGMT_CONTEXT is at top
+  SORTED_CTX_NAMES=("$MGMT_CONTEXT")
+  for ctx in "${CTX_NAMES[@]}"; do
+    [[ "$ctx" != "$MGMT_CONTEXT" ]] && SORTED_CTX_NAMES+=("$ctx")
+  done
+  pick_one "Central cluster (controller runs here) — ↑↓ move, Enter confirm:" "${SORTED_CTX_NAMES[@]}"
+  CENTRAL_CTX="$PICK_RESULT"
+  ok "Central: ${CENTRAL_CTX}"
+
+  # Remote contexts — exclude the central from the list
+  REMOTE_CANDIDATES=()
+  for ctx in "${CTX_NAMES[@]}"; do
+    [[ "$ctx" != "$CENTRAL_CTX" ]] && REMOTE_CANDIDATES+=("$ctx")
+  done
+
+  REMOTE_CTXS=()
+  if [[ ${#REMOTE_CANDIDATES[@]} -gt 0 ]]; then
+    pick_many "Remote clusters — ↑↓ move, Space toggle, Enter confirm (skip all = central only):" "${REMOTE_CANDIDATES[@]}"
+    REMOTE_CTXS=("${PICK_RESULTS[@]}")
+  fi
+
+  # Build JSON payload
+  CENTRAL_JSON=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$CENTRAL_CTX")
+  REMOTE_JSON="["
+  for ctx in "${REMOTE_CTXS[@]}"; do
+    REMOTE_JSON+=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$ctx")","
+  done
+  REMOTE_JSON="${REMOTE_JSON%,}]"
+
+  RUN_PAYLOAD="{\"session_id\":\"${SESSION_ID}\",\"central_context\":${CENTRAL_JSON},\"remote_contexts\":${REMOTE_JSON}}"
+
+  # Trigger setup
+  step "Running setup"
+  RUN_RESP=$(curl -sf -X POST "${WIZARD_URL}/setup/run" \
+    -H "Content-Type: application/json" \
+    -d "$RUN_PAYLOAD" 2>&1) || die "Failed to start setup: $RUN_RESP"
+
+  RUN_ERR=$(echo "$RUN_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error') or '')" 2>/dev/null || echo "")
+  [[ -n "$RUN_ERR" ]] && die "Setup failed to start: $RUN_ERR"
+
+  # Stream progress via WebSocket (requires python3 websockets or fallback to polling)
+  echo ""
+  python3 - "${WIZARD_URL/http/ws}/ws/setup/${SESSION_ID}" <<'WSEOF'
+import sys, asyncio
+
+async def stream(url):
+    try:
+        import websockets
+    except ImportError:
+        print("  [INFO] websockets not available — watching via HTTP poll")
+        import urllib.request, json, time
+        base = url.replace("ws://","http://").replace("wss://","https://")
+        base = base.replace(f"/ws/setup/", "/setup/status/")
+        for _ in range(360):
+            try:
+                r = urllib.request.urlopen(base, timeout=5)
+                data = json.loads(r.read())
+                for line in data.get("lines", []):
+                    print(f"  {line}")
+                if data.get("done"):
+                    break
+            except Exception:
+                pass
+            time.sleep(2)
+        return
+
+    GREEN="\033[0;32m"; RED="\033[0;31m"; YELLOW="\033[1;33m"
+    CYAN="\033[0;36m"; BOLD="\033[1m"; RESET="\033[0m"
+
+    async with websockets.connect(url) as ws:
+        async for msg in ws:
+            import json as _json
+            try:
+                d = _json.loads(msg)
+            except Exception:
+                print(f"  {msg}")
+                continue
+            text = d.get("text","")
+            if text.startswith("[OK]"):
+                print(f"  {GREEN}{BOLD}{text}{RESET}")
+            elif text.startswith("[ERROR]") or text.startswith("[FATAL]"):
+                print(f"  {RED}{BOLD}{text}{RESET}")
+            elif text.startswith("[WARN]"):
+                print(f"  {YELLOW}{text}{RESET}")
+            elif text.startswith("[DONE]"):
+                print(f"  {GREEN}{BOLD}{text}{RESET}")
+            else:
+                print(f"  {CYAN}{text}{RESET}")
+            sys.stdout.flush()
+            if d.get("type") == "done":
+                break
+
+asyncio.run(stream(sys.argv[1]))
+WSEOF
+
+  echo ""
+  stop_port_forward
+  echo -e "\n${MAGENTA}${BOLD}  ⛩  Setup complete.${RESET}"
 fi
 echo ""
