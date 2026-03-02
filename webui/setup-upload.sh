@@ -46,6 +46,13 @@ ok()   { echo -e "  ${GREEN}✔${RESET}  $*"; }
 warn() { echo -e "  ${YELLOW}⚠${RESET}   $*"; }
 die()  { echo -e "\n  ${RED}✘  $*${RESET}\n"; exit 1; }
 
+# Read from /dev/tty so interactive prompts work even when piped through curl | bash
+tty_read() {
+  local prompt="$1" varname="$2"
+  printf '%s' "$prompt" >/dev/tty
+  read -r "$varname" </dev/tty
+}
+
 echo ""
 echo -e "${MAGENTA}${BOLD}  ⛩   K 8 s - J A N U S   S E T U P   U P L O A D${RESET}"
 echo -e "${DIM}  Resolves exec-based auth and uploads kubeconfig to the wizard${RESET}"
@@ -93,10 +100,13 @@ if [[ -z "$MGMT_CONTEXT" ]]; then
       [[ "${ALL_CONTEXTS_PRE[$i]}" == "$CURRENT_CTX_PRE" ]] && DEFAULT_MGMT_NUM="$((i+1))" && break
     done
 
-    PROMPT="  Which context is the management cluster (where Janus is installed)?"
+    echo -e "  ${DIM}The central cluster is where Janus controller + web UI are installed.${RESET}"
+    echo -e "  ${DIM}It will also be the port-forward target.${RESET}"
+    echo ""
+    PROMPT="  Central cluster context (enter number)"
     [[ -n "$DEFAULT_MGMT_NUM" ]] && PROMPT+=" [${DEFAULT_MGMT_NUM}]"
     PROMPT+=": "
-    read -rp "$PROMPT" MGMT_NUM
+    tty_read "$PROMPT" MGMT_NUM
 
     # Default to current context if user just pressed Enter
     [[ -z "$MGMT_NUM" && -n "$DEFAULT_MGMT_NUM" ]] && MGMT_NUM="$DEFAULT_MGMT_NUM"
@@ -168,7 +178,7 @@ echo ""
 for i in "${!ALL_CONTEXTS[@]}"; do
   ctx="${ALL_CONTEXTS[$i]}"
   marker=""
-  [[ "$ctx" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← management${RESET}"
+  [[ "$ctx" == "$MGMT_CONTEXT" ]] && marker=" ${CYAN}← central (management)${RESET}"
   echo -e "  ${BOLD}$((i+1))${RESET}) ${CYAN}${ctx}${RESET}${marker}"
 done
 echo ""
@@ -177,11 +187,12 @@ if [[ ${#ALL_CONTEXTS[@]} -eq 1 ]]; then
   SELECTED_CONTEXTS=("${ALL_CONTEXTS[@]}")
   ok "Only one context — using: ${SELECTED_CONTEXTS[0]}"
 else
-  echo -e "  ${DIM}Enter context numbers to include (space-separated), or press Enter to include all.${RESET}"
-  echo -e "  ${DIM}Example: ${BOLD}1 3${RESET}${DIM} to include the 1st and 3rd context.${RESET}"
-  echo -e "  ${DIM}The management cluster context will always be included.${RESET}"
+  echo -e "  ${DIM}Select which contexts to register with Janus (central + remotes).${RESET}"
+  echo -e "  ${DIM}Enter numbers space-separated, or press Enter to include all.${RESET}"
+  echo -e "  ${DIM}Example: ${BOLD}8 5 6${RESET}${DIM} → central first, then remote clusters.${RESET}"
+  echo -e "  ${DIM}The central cluster context is always included automatically.${RESET}"
   echo ""
-  read -rp "  Contexts to include [all]: " SELECTION
+  tty_read "  Contexts to register [all]: " SELECTION
 
   SELECTED_CONTEXTS=()
   if [[ -z "$SELECTION" ]]; then
