@@ -407,12 +407,33 @@ async def setup_restart_deployments():
 async def setup_redirect_url(request: Request):
     """
     Return the URL the setup wizard should redirect to on completion.
-    Prefers WEBUI_BASE_URL env (set when ingress/LB is configured), else
-    falls back to the request's host (port-forward scenario).
+    Priority:
+      1. WEBUI_BASE_URL env (explicitly configured — ingress or static LB hostname)
+      2. LoadBalancer IP of the webui Service (auto-detected via in-cluster API)
+      3. Request host fallback (port-forward / local dev)
     """
     base_url = os.environ.get("WEBUI_BASE_URL", "").rstrip("/")
     if not base_url:
-        # Derive from request: works for port-forward (localhost:8080)
+        # Auto-detect LB IP/hostname: find a LoadBalancer Service in JANUS_NAMESPACE
+        # that has an external address (the webui service).
+        try:
+            from k8s import _get_central_core_v1
+            core_v1 = _get_central_core_v1()
+            svcs = core_v1.list_namespaced_service(namespace=JANUS_NAMESPACE)
+            for svc in svcs.items:
+                if svc.spec.type != "LoadBalancer":
+                    continue
+                ingresses = (svc.status.load_balancer.ingress or []) if svc.status.load_balancer else []
+                if ingresses:
+                    lb = ingresses[0]
+                    host = lb.hostname or lb.ip
+                    if host:
+                        base_url = f"http://{host}"
+                        break
+        except Exception:
+            pass
+    if not base_url:
+        # Final fallback: derive from request (works for port-forward)
         scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
         host   = request.headers.get("x-forwarded-host", request.headers.get("host", "localhost"))
         base_url = f"{scheme}://{host}"
@@ -492,6 +513,20 @@ async def admin(request: Request):
     ctx = _base_context(request)
     ctx["access_requests"] = list_access_requests()
     ctx["is_admin"] = True
+    ctx["janus_namespace"] = JANUS_NAMESPACE
+    # Find the webui LoadBalancer service name for the port-forward command
+    webui_svc = "janus-webui"
+    try:
+        from k8s import _get_central_core_v1
+        core_v1 = _get_central_core_v1()
+        svcs = core_v1.list_namespaced_service(namespace=JANUS_NAMESPACE)
+        for svc in svcs.items:
+            if svc.spec.type == "LoadBalancer":
+                webui_svc = svc.metadata.name
+                break
+    except Exception:
+        pass
+    ctx["janus_webui_svc"] = webui_svc
     return templates.TemplateResponse("admin.html", ctx)
 
 

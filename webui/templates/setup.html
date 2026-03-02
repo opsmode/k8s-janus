@@ -1222,6 +1222,14 @@ choco install kubernetes-cli</span>
     // ---------------------------------------------------------------------------
     (async function restoreSession() {
       const params = new URLSearchParams(location.search);
+
+      // Auto-open manage panel when ?manage=1
+      if (params.get('manage') === '1') {
+        history.replaceState(null, '', location.pathname);
+        loadManagePanel();
+        return;
+      }
+
       const sid = params.get('session');
       if (!sid) return;
       try {

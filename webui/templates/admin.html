@@ -365,13 +365,34 @@
         Register remote clusters or re-run setup to add new ones. The wizard applies RBAC on each remote cluster,
         issues a scoped token, and creates the kubeconfig secret on this cluster.
       </p>
-      <a href="/setup" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
-                              background:linear-gradient(135deg,var(--accent),var(--accent-2));
-                              color:#fff;border-radius:8px;font-size:0.875rem;font-weight:600;
-                              text-decoration:none;box-shadow:0 4px 14px var(--accent-glow)">
-        <i data-lucide="wand-2" width="14" height="14"></i>
-        Open Setup Wizard
-      </a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <a href="/setup" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+                                background:linear-gradient(135deg,var(--accent),var(--accent-2));
+                                color:#fff;border-radius:8px;font-size:0.875rem;font-weight:600;
+                                text-decoration:none;box-shadow:0 4px 14px var(--accent-glow)">
+          <i data-lucide="wand-2" width="14" height="14"></i>
+          Add / Reconfigure Clusters
+        </a>
+        <a href="/setup?manage=1" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+                                background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);
+                                color:var(--danger);border-radius:8px;font-size:0.875rem;font-weight:600;
+                                text-decoration:none;">
+          <i data-lucide="server-off" width="14" height="14"></i>
+          Offboard Clusters
+        </a>
+        <button onclick="document.getElementById('setup-cmd-box').classList.toggle('hidden')"
+          style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+                 background:var(--surface-2);border:1px solid var(--border);
+                 color:var(--text-dim);border-radius:8px;font-size:0.875rem;font-weight:600;cursor:pointer;">
+          <i data-lucide="terminal" width="14" height="14"></i>
+          Port-forward command
+        </button>
+      </div>
+      <div id="setup-cmd-box" class="hidden"
+           style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+        <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Run locally, then open http://localhost:8080/setup</div>
+        <code style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--text);white-space:pre-wrap;display:block">kubectl port-forward svc/{{ janus_webui_svc }} -n {{ janus_namespace }} 8080:80</code>
+      </div>
     </div>
 
     <!-- ── Broadcast ── -->
