@@ -393,6 +393,95 @@ def is_setup_complete(clusters: list[dict], janus_namespace: str) -> bool:
 # Cluster removal
 # ---------------------------------------------------------------------------
 
+def _revoke_cluster_access(
+    cluster_name: str,
+    janus_namespace: str,
+    core_v1_central,
+    custom_api,
+    kubeconfig: dict | None,
+    remote_context: str | None,
+) -> list[str]:
+    """
+    Revoke all Active/Approved/Pending AccessRequests targeting cluster_name.
+    For each: delete SA + RoleBinding on remote cluster, delete token Secret on
+    central, and patch AccessRequest status → Revoked.
+    """
+    lines: list[str] = []
+    CRD_GROUP   = "k8s-janus.opsmode.io"
+    CRD_VERSION = "v1alpha1"
+
+    try:
+        result = custom_api.list_cluster_custom_object(
+            group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests",
+        )
+        items = result.get("items", [])
+    except Exception as e:
+        lines.append(f"[WARN]  Could not list AccessRequests: {e}")
+        return lines
+
+    target_phases = {"Active", "Approved", "Pending"}
+    affected = [
+        ar for ar in items
+        if ar.get("spec", {}).get("cluster", "") == cluster_name
+        and ar.get("status", {}).get("phase", "") in target_phases
+    ]
+
+    if not affected:
+        lines.append(f"[INFO]   No active/pending access requests for {cluster_name}")
+        return lines
+
+    lines.append(f"[INFO]   Revoking {len(affected)} access request(s) for {cluster_name}...")
+
+    # Build remote client once if we have credentials
+    core_v1_remote = rbac_v1_remote = None
+    if kubeconfig and remote_context:
+        try:
+            core_v1_remote, rbac_v1_remote = _build_clients_for_context(kubeconfig, remote_context)
+        except Exception as e:
+            lines.append(f"[WARN]  Could not connect to remote for SA/RoleBinding cleanup: {e}")
+
+    for ar in affected:
+        ar_name   = ar.get("metadata", {}).get("name", "")
+        namespace = ar.get("spec", {}).get("namespace", "")
+
+        # Delete RoleBinding on remote
+        if rbac_v1_remote and namespace:
+            try:
+                rbac_v1_remote.delete_namespaced_role_binding(name=ar_name, namespace=namespace)
+            except ApiException as e:
+                if e.status != 404:
+                    lines.append(f"[WARN]  Could not delete RoleBinding {ar_name}: {e.reason}")
+
+        # Delete ServiceAccount on remote (immediately invalidates the token)
+        if core_v1_remote and namespace:
+            try:
+                core_v1_remote.delete_namespaced_service_account(name=ar_name, namespace=namespace)
+            except ApiException as e:
+                if e.status != 404:
+                    lines.append(f"[WARN]  Could not delete SA {ar_name}: {e.reason}")
+
+        # Delete token Secret on central
+        token_secret = ar.get("status", {}).get("tokenSecret", f"janus-token-{ar_name}")
+        if token_secret:
+            try:
+                core_v1_central.delete_namespaced_secret(name=token_secret, namespace=janus_namespace)
+            except ApiException as e:
+                if e.status != 404:
+                    lines.append(f"[WARN]  Could not delete token secret {token_secret}: {e.reason}")
+
+        # Patch AccessRequest status → Revoked
+        try:
+            custom_api.patch_cluster_custom_object_status(
+                group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=ar_name,
+                body={"status": {"phase": "Revoked", "message": f"Cluster {cluster_name} was offboarded"}},
+            )
+            lines.append(f"[OK]   Revoked access request {ar_name}")
+        except Exception as e:
+            lines.append(f"[WARN]  Could not patch status for {ar_name}: {e}")
+
+    return lines
+
+
 def remove_cluster(
     cluster_name: str,
     janus_namespace: str,
@@ -401,17 +490,25 @@ def remove_cluster(
 ) -> list[str]:
     """
     Remove a remote cluster from Janus:
-      1. Delete the kubeconfig Secret on the central cluster.
-      2. If a kubeconfig/context is provided, delete the janus-remote SA,
+      1. Revoke all Active/Approved/Pending AccessRequests targeting the cluster.
+      2. Delete the kubeconfig Secret on the central cluster.
+      3. If a kubeconfig/context is provided, delete the janus-remote SA,
          ClusterRole, ClusterRoleBinding, and the k8s-janus Namespace on the remote.
     Returns a list of log lines.
     """
     lines: list[str] = []
     secret_name = f"{cluster_name}-kubeconfig"
 
-    # Step 1: delete kubeconfig secret on central
+    core_v1 = _get_central_core_v1()
+    custom_api = client.CustomObjectsApi(api_client=core_v1.api_client)
+
+    # Step 1: revoke all access to this cluster immediately
+    lines += _revoke_cluster_access(
+        cluster_name, janus_namespace, core_v1, custom_api, kubeconfig, remote_context
+    )
+
+    # Step 2: delete kubeconfig secret on central
     try:
-        core_v1 = _get_central_core_v1()
         core_v1.delete_namespaced_secret(name=secret_name, namespace=janus_namespace)
         lines.append(f"[OK]   Deleted secret {secret_name}")
     except ApiException as e:
