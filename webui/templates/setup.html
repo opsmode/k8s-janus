@@ -659,11 +659,10 @@ choco install kubernetes-cli</span>
     // ---------------------------------------------------------------------------
     // State
     // ---------------------------------------------------------------------------
-    let _sessionId         = null;
-    let _kubeconfig        = null;
-    let _configuredRemotes = [];   // [{name, displayName}] from server CLUSTERS config
-    let _ws                = null;
-    let _setupHadError     = false;
+    let _sessionId     = null;
+    let _kubeconfig    = null;
+    let _ws            = null;
+    let _setupHadError = false;
 
     // ---------------------------------------------------------------------------
     // Panel management
@@ -762,9 +761,8 @@ choco install kubernetes-cli</span>
         const resp = await fetch('/setup/upload', { method: 'POST', body: formData });
         const data = await resp.json();
         if (data.error) { resetDropZone(); showError('upload', data.error); return; }
-        _sessionId         = data.session_id;
-        _kubeconfig        = data.contexts;
-        _configuredRemotes = data.configured_remotes || [];
+        _sessionId  = data.session_id;
+        _kubeconfig = data.contexts;
         populateContextSelectors(data.contexts);
         showPanel('select');
       } catch (err) {
@@ -841,35 +839,32 @@ choco install kubernetes-cli</span>
           const rItem = document.createElement('div');
           rItem.className = 'context-item remote-sel';
 
-          // Build cluster name select — only visible when checkbox is checked
-          let selectHtml = '';
-          if (_configuredRemotes.length > 0) {
-            const opts = _configuredRemotes.map(r =>
-              `<option value="${escHtml(r.name)}">${escHtml(r.displayName)} (${escHtml(r.name)})</option>`
-            ).join('');
-            selectHtml = `
-              <select name="remote-cluster-name" data-context="${escHtml(ctx.name)}"
-                style="display:none;margin-top:6px;background:var(--surface);border:1px solid var(--border-light);
-                       color:var(--text);border-radius:6px;padding:5px 8px;font-size:0.78rem;width:100%;cursor:pointer">
-                <option value="">— map to configured cluster —</option>
-                ${opts}
-              </select>`;
-          }
-
           rItem.innerHTML = `
             <input type="checkbox" name="remote" value="${escHtml(ctx.name)}">
             <div style="flex:1;min-width:0">
               <div class="context-name">${escHtml(ctx.name)}</div>
               <div class="context-cluster">${escHtml(ctx.cluster)}</div>
-              ${selectHtml}
+              <div class="cluster-name-field" style="display:none;margin-top:8px">
+                <input type="text" name="remote-cluster-name" data-context="${escHtml(ctx.name)}"
+                  placeholder="Cluster name (e.g. prod-eu, lab-2)"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border-light);
+                         color:var(--text);border-radius:6px;padding:6px 10px;font-size:0.82rem;
+                         font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box"
+                  oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:3px">
+                  Used as secret name: <code style="color:var(--accent)">&lt;name&gt;-kubeconfig</code>
+                </div>
+              </div>
             </div>
           `;
 
-          const cb  = rItem.querySelector('input[type="checkbox"]');
-          const sel = rItem.querySelector('select[name="remote-cluster-name"]');
+          const cb        = rItem.querySelector('input[type="checkbox"]');
+          const nameField = rItem.querySelector('.cluster-name-field');
+          const nameInput = rItem.querySelector('input[name="remote-cluster-name"]');
           cb.addEventListener('change', e => {
             rItem.classList.toggle('selected', e.target.checked);
-            if (sel) sel.style.display = e.target.checked ? 'block' : 'none';
+            nameField.style.display = e.target.checked ? 'block' : 'none';
+            if (e.target.checked) nameInput.focus();
           });
           remoteList.appendChild(rItem);
         });
@@ -883,15 +878,18 @@ choco install kubernetes-cli</span>
     async function startSetup() {
       const central = document.querySelector('input[name="central"]:checked')?.value;
       if (!central) return;
-      const remotes = [...document.querySelectorAll('input[name="remote"]:checked')]
-        .map(cb => {
-          const ctx = cb.value;
-          const sel = cb.closest('.context-item')?.querySelector('select[name="remote-cluster-name"]');
-          const cluster_name = sel?.value || '';
-          if (!cluster_name) { showError('select', `Please select a cluster name for: ${ctx}`); return null; }
-          return { context: ctx, cluster_name };
-        })
-        .filter(Boolean);
+      const remotes = [];
+      for (const cb of document.querySelectorAll('input[name="remote"]:checked')) {
+        const ctx        = cb.value;
+        const nameInput  = cb.closest('.context-item')?.querySelector('input[name="remote-cluster-name"]');
+        const cluster_name = nameInput?.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || '';
+        if (!cluster_name) {
+          showError('select', `Enter a name for: ${ctx}`);
+          nameInput?.focus();
+          return;
+        }
+        remotes.push({ context: ctx, cluster_name });
+      }
 
       _setupHadError = false;
       document.getElementById('progress-actions').style.display = 'none';
@@ -1016,9 +1014,8 @@ choco install kubernetes-cli</span>
         if (!resp.ok) return;
         const data = await resp.json();
         if (data.error || !data.contexts?.length) return;
-        _sessionId         = data.session_id;
-        _kubeconfig        = data.contexts;
-        _configuredRemotes = data.configured_remotes || [];
+        _sessionId  = data.session_id;
+        _kubeconfig = data.contexts;
         populateContextSelectors(data.contexts);
         showPanel('select');
         history.replaceState(null, '', location.pathname);

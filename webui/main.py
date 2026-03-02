@@ -311,9 +311,7 @@ async def setup_upload(kubeconfig: UploadFile = File(...)):
 
     session_id = str(uuid.uuid4())
     _setup_kubeconfigs[session_id] = kc
-    # Expose configured cluster names (skip index 0 = central) so UI can map contexts → names
-    configured_remotes = [{"name": c["name"], "displayName": c.get("displayName", c["name"])} for c in CLUSTERS[1:]]
-    return JSONResponse({"session_id": session_id, "contexts": contexts, "configured_remotes": configured_remotes, "error": None})
+    return JSONResponse({"session_id": session_id, "contexts": contexts, "error": None})
 
 
 @app.get("/setup/contexts/{session_id}")
@@ -323,8 +321,7 @@ async def setup_contexts(session_id: str):
         return JSONResponse({"error": "Session not found or expired."}, status_code=404)
     from setup import list_contexts
     contexts = list_contexts(_setup_kubeconfigs[session_id])
-    configured_remotes = [{"name": c["name"], "displayName": c.get("displayName", c["name"])} for c in CLUSTERS[1:]]
-    return JSONResponse({"session_id": session_id, "contexts": contexts, "configured_remotes": configured_remotes, "error": None})
+    return JSONResponse({"session_id": session_id, "contexts": contexts, "error": None})
 
 
 @app.post("/setup/run")
