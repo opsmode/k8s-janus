@@ -30,19 +30,23 @@ rules:
   - apiGroups: [""]
     resources: ["serviceaccounts/token"]
     verbs: ["create"]
-  # Manage token Secrets in JANUS namespace
+  # Manage token Secrets + list kubeconfig Secrets for remote cluster discovery
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "create", "delete"]
+    verbs: ["get", "list", "create", "delete"]
   # Create/delete scoped RoleBindings for approved requests
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["get", "create", "delete"]
-  # Reconcile janus-pod-exec ClusterRole — scoped to that name only
+  # Create janus-pod-exec ClusterRole (resourceNames cannot filter creates)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["create"]
+  # Manage janus-pod-exec ClusterRole — scoped to that name only
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles"]
     resourceNames: ["janus-pod-exec"]
-    verbs: ["get", "create", "update", "patch", "delete", "escalate", "bind"]
+    verbs: ["get", "update", "patch", "delete", "escalate", "bind"]
   # Read pods for validation
   - apiGroups: [""]
     resources: ["pods"]
@@ -171,7 +175,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "create", "delete"]
+    verbs: ["get", "list", "create", "delete"]
   # Rollout restart after setup (patch deployment annotations)
   - apiGroups: ["apps"]
     resources: ["deployments"]

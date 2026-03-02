@@ -32,6 +32,15 @@ _MANAGED_LABEL    = "k8s-janus.opsmode.io/managed"
 _KUBECONFIG_SUFFIX = "-kubeconfig"
 
 
+def _get_central_core_v1() -> client.CoreV1Api:
+    """Return a CoreV1Api for the central (local) cluster."""
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config()
+    return client.CoreV1Api()
+
+
 def _discover_clusters() -> list[dict]:
     """
     Build the live CLUSTERS list:
@@ -123,15 +132,6 @@ def get_cluster_config(cluster_name: str) -> dict | None:
         if c["name"] == cluster_name:
             return c
     return None
-
-
-def _get_central_core_v1() -> client.CoreV1Api:
-    """Return a CoreV1Api for the central (local) cluster."""
-    try:
-        config.load_incluster_config()
-    except config.ConfigException:
-        config.load_kube_config()
-    return client.CoreV1Api()
 
 
 def _build_api_clients(cluster_cfg: dict) -> tuple:

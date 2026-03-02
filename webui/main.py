@@ -391,6 +391,18 @@ async def setup_remove_cluster(request: Request):
     return JSONResponse({"lines": lines, "ok": not had_error})
 
 
+@app.post("/api/setup/restart-deployments")
+async def setup_restart_deployments():
+    """Manually trigger a rollout restart of controller + webui deployments."""
+    from setup import _rollout_restart_deployments
+    loop = asyncio.get_event_loop()
+    try:
+        await loop.run_in_executor(None, _rollout_restart_deployments, JANUS_NAMESPACE)
+        return JSONResponse({"ok": True, "message": "Deployments restarted."})
+    except Exception as e:
+        return JSONResponse({"ok": False, "message": str(e)}, status_code=500)
+
+
 @app.get("/api/setup/redirect-url")
 async def setup_redirect_url(request: Request):
     """

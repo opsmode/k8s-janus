@@ -661,6 +661,9 @@ choco install kubernetes-cli</span>
           <div id="error-progress" class="error-banner" style="margin-top:14px"></div>
           <div id="progress-actions" style="display:none;margin-top:18px;display:none;gap:10px;justify-content:flex-end;align-items:center">
             <span id="progress-actions-hint" style="font-size:0.78rem;color:var(--text-dim)"></span>
+            <button class="btn btn-secondary hidden" id="btn-restart-deployments" onclick="restartDeployments()">
+              <i data-lucide="refresh-cw" width="14" height="14"></i> Restart Deployments
+            </button>
             <a href="/" class="btn btn-primary" id="btn-go-dashboard">
               <i data-lucide="layout-dashboard" width="14" height="14"></i> Go to Dashboard
             </a>
@@ -996,6 +999,10 @@ choco install kubernetes-cli</span>
             if (msg.text.startsWith('[ERROR]') || msg.text.startsWith('[FATAL]')) {
               _setupHadError = true;
             }
+            if (msg.text.includes('No janus deployments found')) {
+              document.getElementById('btn-restart-deployments')?.classList.remove('hidden');
+              lucide.createIcons();
+            }
             if (msg.text.startsWith('[DONE]')) {
               const hint = document.getElementById('progress-actions-hint');
               if (_setupHadError) {
@@ -1126,6 +1133,32 @@ choco install kubernetes-cli</span>
         lucide.createIcons();
       } catch (e) {
         listEl.innerHTML = `<div style="color:var(--danger);font-size:0.82rem">Failed to load clusters: ${escHtml(String(e))}</div>`;
+      }
+    }
+
+    async function restartDeployments() {
+      const btn = document.getElementById('btn-restart-deployments');
+      const hint = document.getElementById('progress-actions-hint');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Restarting…';
+      try {
+        const res = await fetch('/api/setup/restart-deployments', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          appendLog('[OK]   Deployments restarted — pods will be ready shortly.');
+          btn.classList.add('hidden');
+          hint.textContent = 'Setup complete!';
+        } else {
+          appendLog(`[WARN]  Restart failed: ${data.message}`);
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="refresh-cw" width="14" height="14"></i> Restart Deployments';
+          lucide.createIcons();
+        }
+      } catch (e) {
+        appendLog(`[WARN]  Restart failed: ${e}`);
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="refresh-cw" width="14" height="14"></i> Restart Deployments';
+        lucide.createIcons();
       }
     }
 
