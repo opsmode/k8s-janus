@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ⛩  K8s-Janus Setup Upload — resolves exec-based auth and uploads kubeconfig to the wizard
+# ⛩  K8s-Janus Setup — registers remote clusters with the Janus controller
 #
 # Usage:
 #   bash setup-upload.sh [--port 8080] [--namespace k8s-janus] [--kubeconfig ~/.kube/config]
-#                        [--management-context <context-name>]
+#                        [--management-context <context-name>] [--mode cli|browser]
 #
 # Requires: kubectl, python3, curl
 # Optional: gcloud (for GKE), aws (for EKS), az (for AKS)
@@ -17,15 +17,17 @@ PORT=8080
 JANUS_NS="k8s-janus"
 KUBECONFIG_FILE="${KUBECONFIG:-$HOME/.kube/config}"
 MGMT_CONTEXT=""
+MODE=""   # cli | browser
 PF_PID=""
 PF_STARTED=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --port)                PORT="$2";             shift 2 ;;
-    --namespace)           JANUS_NS="$2";         shift 2 ;;
-    --kubeconfig)          KUBECONFIG_FILE="$2";  shift 2 ;;
-    --management-context)  MGMT_CONTEXT="$2";     shift 2 ;;
+    --port)                PORT="$2";            shift 2 ;;
+    --namespace)           JANUS_NS="$2";        shift 2 ;;
+    --kubeconfig)          KUBECONFIG_FILE="$2"; shift 2 ;;
+    --management-context)  MGMT_CONTEXT="$2";    shift 2 ;;
+    --mode)                MODE="$2";            shift 2 ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -51,8 +53,8 @@ tty_read() {
 }
 
 echo ""
-echo -e "${MAGENTA}${BOLD}  ⛩   K 8 s - J A N U S   S E T U P   U P L O A D${RESET}"
-echo -e "${DIM}  Resolves exec-based auth and uploads kubeconfig to the wizard${RESET}"
+echo -e "${MAGENTA}${BOLD}  ⛩   K 8 s - J A N U S   S E T U P${RESET}"
+echo -e "${DIM}  Register remote clusters with the Janus controller${RESET}"
 echo ""
 
 # ==============================================================================
@@ -66,6 +68,20 @@ done
 
 [[ -f "$KUBECONFIG_FILE" ]] || die "kubeconfig not found: $KUBECONFIG_FILE"
 ok "kubeconfig: $KUBECONFIG_FILE"
+
+# ==============================================================================
+# CLI or Browser?
+# ==============================================================================
+if [[ -z "$MODE" ]]; then
+  step "How would you like to run setup?"
+  echo ""
+  echo -e "  ${BOLD}1)${RESET} ${GREEN}CLI${RESET}      — run entirely in this terminal, no browser needed"
+  echo -e "  ${BOLD}2)${RESET} ${CYAN}Browser${RESET}  — open the web wizard (visual progress, manage clusters)"
+  echo ""
+  tty_read "  Choice [1]: " MODE_CHOICE
+  [[ -z "$MODE_CHOICE" ]] && MODE_CHOICE="1"
+  [[ "$MODE_CHOICE" == "2" ]] && MODE="browser" || MODE="cli"
+fi
 
 # ==============================================================================
 # List contexts — pick central cluster
@@ -111,51 +127,12 @@ fi
 ok "Central cluster: ${BOLD}${MGMT_CONTEXT}${RESET}"
 
 # ==============================================================================
-# Port-forward (using the central context)
+# Select which contexts to include
 # ==============================================================================
-step "Checking wizard at ${WIZARD_URL}"
-
-stop_port_forward() {
-  if [[ -n "$PF_PID" ]] && kill -0 "$PF_PID" 2>/dev/null; then
-    kill "$PF_PID" 2>/dev/null || true
-  fi
-}
-
-if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
-  ok "Wizard already reachable — reusing existing port-forward"
-else
-  warn "Wizard not reachable — starting port-forward in background"
-  KUBECONFIG="$KUBECONFIG_FILE" kubectl port-forward svc/janus-webui \
-    --context "$MGMT_CONTEXT" -n "$JANUS_NS" "${PORT}:80" \
-    >/dev/null 2>&1 &
-  PF_PID=$!
-  echo -e "  ${DIM}kubectl port-forward PID: ${PF_PID} (context: ${MGMT_CONTEXT})${RESET}"
-  PF_STARTED=true
-  trap 'stop_port_forward' EXIT
-
-  for i in $(seq 1 12); do
-    sleep 1
-    if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
-      ok "Port-forward ready (PID ${PF_PID})"
-      break
-    fi
-    if [[ $i -eq 12 ]]; then
-      die "Port-forward not responding after 12s.\n\n  Check janus-webui is running:\n    kubectl --context ${MGMT_CONTEXT} get pods -n ${JANUS_NS}"
-    fi
-  done
-fi
-
-# ==============================================================================
-# Select which contexts to include in the upload
-# ==============================================================================
-step "Select contexts to upload"
+step "Select contexts to register"
 
 TMP_DIR=$(mktemp -d)
-if $PF_STARTED; then
-  trap 'stop_port_forward; rm -rf "$TMP_DIR"' EXIT
-else
-  trap 'rm -rf "$TMP_DIR"' EXIT
-fi
+trap 'rm -rf "$TMP_DIR"' EXIT
 
 echo ""
 for i in "${!ALL_CONTEXTS[@]}"; do
@@ -199,7 +176,7 @@ else
 fi
 
 # ==============================================================================
-# Flatten kubeconfig (embed CA data, only selected contexts)
+# Flatten + resolve exec-based auth (needed for both modes)
 # ==============================================================================
 step "Flattening kubeconfig"
 
@@ -220,9 +197,6 @@ fi
 
 ok "Flattened (${#SELECTED_CONTEXTS[@]} context(s))"
 
-# ==============================================================================
-# Detect and resolve exec-based auth
-# ==============================================================================
 step "Resolving exec-based authentication"
 
 RESOLVED="$TMP_DIR/resolved.yaml"
@@ -289,8 +263,232 @@ PYEOF
 ok "Auth resolved"
 
 # ==============================================================================
-# Upload to wizard
+# Branch: CLI mode
 # ==============================================================================
+if [[ "$MODE" == "cli" ]]; then
+
+  step "Running setup via CLI"
+
+  # Determine remote contexts (everything except central)
+  REMOTE_CONTEXTS=()
+  for ctx in "${SELECTED_CONTEXTS[@]}"; do
+    [[ "$ctx" != "$MGMT_CONTEXT" ]] && REMOTE_CONTEXTS+=("$ctx")
+  done
+
+  python3 - "$RESOLVED" "$MGMT_CONTEXT" "$JANUS_NS" "${REMOTE_CONTEXTS[@]}" <<'CLIEOF'
+import sys, os, json, base64, time, re
+import yaml
+
+resolved_path  = sys.argv[1]
+central_ctx    = sys.argv[2]
+janus_ns       = sys.argv[3]
+remote_ctxs    = sys.argv[4:]
+
+GREEN="\033[0;32m"; RED="\033[0;31m"; YELLOW="\033[1;33m"
+CYAN="\033[0;36m"; BOLD="\033[1m"; RESET="\033[0m"
+
+def log(tag, msg):
+    colors = {"OK": GREEN+BOLD, "ERROR": RED+BOLD, "WARN": YELLOW, "INFO": CYAN, "DONE": GREEN+BOLD}
+    c = colors.get(tag, "")
+    print(f"  [{tag}]{c} {msg}{RESET}", flush=True)
+
+try:
+    from kubernetes import client, config
+    from kubernetes.client.rest import ApiException
+except ImportError:
+    log("ERROR", "kubernetes Python package not found.")
+    log("INFO",  "Install it with:  pip install kubernetes")
+    sys.exit(1)
+
+kc = yaml.safe_load(open(resolved_path))
+
+RULES = [
+    {"apiGroups": [""],   "resources": ["namespaces"],              "verbs": ["get","list"]},
+    {"apiGroups": [""],   "resources": ["serviceaccounts"],         "verbs": ["get","create","delete"]},
+    {"apiGroups": [""],   "resources": ["serviceaccounts/token"],   "verbs": ["create"]},
+    {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["rolebindings"],  "verbs": ["get","create","delete"]},
+    {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["clusterroles"],  "verbs": ["get","create","update","patch","delete","escalate","bind"]},
+    {"apiGroups": [""],   "resources": ["pods","pods/log"],         "verbs": ["get","list"]},
+    {"apiGroups": [""],   "resources": ["events"],                  "verbs": ["get","list","create","patch","update"]},
+]
+
+def slugify(name):
+    s = name.lower()
+    s = re.sub(r'[^a-z0-9-]', '-', s)
+    s = re.sub(r'-+', '-', s).strip('-')
+    return s[:63]
+
+def build_clients(ctx):
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".yaml", delete=False)
+    yaml.dump(kc, tmp)
+    tmp.close()
+    cfg = client.Configuration()
+    loader = config.load_kube_config(config_file=tmp.name, context=ctx, client_configuration=cfg)
+    os.unlink(tmp.name)
+    api = client.ApiClient(configuration=cfg)
+    return client.CoreV1Api(api), client.RbacAuthorizationV1Api(api)
+
+def apply_rbac(core, rbac, ns):
+    # Namespace
+    try: core.create_namespace(client.V1Namespace(metadata=client.V1ObjectMeta(name=ns)))
+    except ApiException as e:
+        if e.status != 409: raise
+
+    # ServiceAccount
+    sa = client.V1ServiceAccount(metadata=client.V1ObjectMeta(name="janus-remote", namespace=ns))
+    try: core.create_namespaced_service_account(ns, sa)
+    except ApiException as e:
+        if e.status != 409: raise
+
+    # ClusterRole
+    cr = client.V1ClusterRole(
+        metadata=client.V1ObjectMeta(name="janus-remote"),
+        rules=[client.V1PolicyRule(**r) for r in RULES]
+    )
+    try: rbac.create_cluster_role(cr)
+    except ApiException as e:
+        if e.status == 409: rbac.replace_cluster_role("janus-remote", cr)
+        else: raise
+
+    # ClusterRoleBinding
+    crb = client.V1ClusterRoleBinding(
+        metadata=client.V1ObjectMeta(name="janus-remote"),
+        role_ref=client.V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole", name="janus-remote"),
+        subjects=[client.V1Subject(kind="ServiceAccount", name="janus-remote", namespace=ns)]
+    )
+    try: rbac.create_cluster_role_binding(crb)
+    except ApiException as e:
+        if e.status != 409: raise
+
+def issue_token(core, ns):
+    from kubernetes.client.models import V1TokenRequest, V1TokenRequestSpec
+    resp = core.create_namespaced_service_account_token(
+        "janus-remote", ns,
+        body=V1TokenRequest(spec=V1TokenRequestSpec(expiration_seconds=31_536_000))
+    )
+    return resp.status.token
+
+def get_server_ca(ctx):
+    for c in kc.get("contexts", []):
+        if c["name"] == ctx:
+            cluster_name = c["context"]["cluster"]
+            break
+    for cl in kc.get("clusters", []):
+        if cl["name"] == cluster_name:
+            server = cl["cluster"]["server"]
+            ca = cl["cluster"].get("certificate-authority-data", "")
+            return server, ca
+    raise ValueError(f"cluster not found for context {ctx}")
+
+# Central in-cluster client for creating secrets
+try:
+    config.load_incluster_config()
+except config.ConfigException:
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".yaml", delete=False)
+    yaml.dump(kc, tmp)
+    tmp.close()
+    config.load_kube_config(config_file=tmp.name, context=central_ctx)
+    os.unlink(tmp.name)
+central_core = client.CoreV1Api()
+
+log("INFO", f"Central cluster: {central_ctx} (no secret needed)")
+
+errors = 0
+for i, ctx in enumerate(remote_ctxs, 1):
+    slug = slugify(ctx)
+    log("INFO", f"[{i}/{len(remote_ctxs)}] {ctx} → {slug}")
+    try:
+        log("INFO", "  Checking connectivity...")
+        core, rbac = build_clients(ctx)
+        core.list_namespace(_request_timeout=10)
+        log("OK",   "  Cluster reachable")
+
+        log("INFO", "  Applying RBAC...")
+        apply_rbac(core, rbac, janus_ns)
+        log("OK",   "  RBAC applied")
+
+        log("INFO", "  Issuing token (1 year)...")
+        token = issue_token(core, janus_ns)
+        log("OK",   "  Token issued")
+
+        server, ca = get_server_ca(ctx)
+        kc_dict = {
+            "apiVersion": "v1", "kind": "Config",
+            "clusters": [{"name": slug, "cluster": {"server": server, "certificate-authority-data": ca}}],
+            "users": [{"name": "janus-remote", "user": {"token": token}}],
+            "contexts": [{"name": slug, "context": {"cluster": slug, "user": "janus-remote"}}],
+            "current-context": slug,
+        }
+        secret_name = f"{slug}-kubeconfig"
+        log("INFO", f"  Creating secret '{secret_name}'...")
+        data = {"kubeconfig": base64.b64encode(yaml.dump(kc_dict).encode()).decode()}
+        secret = client.V1Secret(
+            metadata=client.V1ObjectMeta(
+                name=secret_name, namespace=janus_ns,
+                labels={"k8s-janus.opsmode.io/managed": "true"}
+            ),
+            data=data
+        )
+        try: central_core.create_namespaced_secret(janus_ns, secret)
+        except ApiException as e:
+            if e.status == 409: central_core.replace_namespaced_secret(secret_name, janus_ns, secret)
+            else: raise
+        log("OK",   f"  Secret '{secret_name}' ready")
+
+    except Exception as e:
+        log("ERROR", f"{ctx}: {e}")
+        errors += 1
+
+if errors == len(remote_ctxs) and remote_ctxs:
+    log("ERROR", "All remote clusters failed.")
+    sys.exit(1)
+
+log("DONE", "Setup complete — Janus is ready.")
+CLIEOF
+
+  echo ""
+  echo -e "${MAGENTA}${BOLD}  ⛩  Done. Janus controller will start once it detects the secrets.${RESET}"
+  echo ""
+  exit 0
+fi
+
+# ==============================================================================
+# Branch: Browser mode — port-forward + upload + open browser
+# ==============================================================================
+step "Checking wizard at ${WIZARD_URL}"
+
+stop_port_forward() {
+  if [[ -n "$PF_PID" ]] && kill -0 "$PF_PID" 2>/dev/null; then
+    kill "$PF_PID" 2>/dev/null || true
+  fi
+}
+trap 'stop_port_forward; rm -rf "$TMP_DIR"' EXIT
+
+if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
+  ok "Wizard already reachable — reusing existing port-forward"
+else
+  warn "Wizard not reachable — starting port-forward in background"
+  KUBECONFIG="$KUBECONFIG_FILE" kubectl port-forward svc/janus-webui \
+    --context "$MGMT_CONTEXT" -n "$JANUS_NS" "${PORT}:80" \
+    >/dev/null 2>&1 &
+  PF_PID=$!
+  echo -e "  ${DIM}kubectl port-forward PID: ${PF_PID} (context: ${MGMT_CONTEXT})${RESET}"
+  PF_STARTED=true
+
+  for i in $(seq 1 12); do
+    sleep 1
+    if curl -sf --max-time 2 "${WIZARD_URL}/healthz" &>/dev/null; then
+      ok "Port-forward ready (PID ${PF_PID})"
+      break
+    fi
+    if [[ $i -eq 12 ]]; then
+      die "Port-forward not responding after 12s.\n\n  Check janus-webui is running:\n    kubectl --context ${MGMT_CONTEXT} get pods -n ${JANUS_NS}"
+    fi
+  done
+fi
+
 step "Uploading to wizard"
 
 RESPONSE=$(curl -sf -X POST \
@@ -314,9 +512,6 @@ ok "Upload successful"
 
 SESSION_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null || echo "")
 
-# ==============================================================================
-# Open browser
-# ==============================================================================
 step "Opening wizard in browser"
 
 SETUP_URL="${WIZARD_URL}/setup${SESSION_ID:+?session=${SESSION_ID}}"
