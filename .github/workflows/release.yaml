@@ -40,6 +40,21 @@ jobs:
           platforms: linux/amd64
 
 
+  update-dockerhub:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update DockerHub description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: opsmode/k8s-janus
+          readme-filepath: ./README.md
+          short-description: "Just-in-Time kubectl exec access — request, approve, auto-expire. No permanent permissions."
+
   publish-helm:
     needs: build
     runs-on: ubuntu-latest
@@ -171,7 +186,7 @@ jobs:
           git push origin main
 
   release:
-    needs: [build, publish-helm]
+    needs: [build, publish-helm, update-dockerhub]
     runs-on: ubuntu-latest
     permissions:
       contents: write
