@@ -494,7 +494,7 @@
                         title="{{ spec.get('requester', '—') }}">{{ spec.get("requester", "—") }}</span>
                 </td>
                 <td>
-                  <code style="color:var(--text-muted);">{{ ar_cluster_display }}</code>
+                  <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);">{{ ar_cluster_display }}</code>
                   <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;">
                     {% for ns in nss %}<code style="font-size:0.72rem;background:var(--surface-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">{{ ns }}</code>{% endfor %}
                   </div>

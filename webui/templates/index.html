@@ -586,7 +586,7 @@
             <tr>
               <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
               <td>{{ spec.get("requester", "—") }}</td>
-              <td><code>{{ ar_cluster_display }}</code></td>
+              <td><code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);">{{ ar_cluster_display }}</code></td>
               <td>
                 {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
                 {% for ns in nss %}<code>{{ ns }}</code>{% if not loop.last %} {% endif %}{% endfor %}
