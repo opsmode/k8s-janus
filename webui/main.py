@@ -594,6 +594,11 @@ async def submit_request(request: Request):
 
     ttl_seconds = min(ttl_hours * 3600, MAX_TTL_SECONDS)
 
+    # All targets must be for the same cluster (one cluster, multi-NS model)
+    clusters_in_request = {t.get("cluster", "") for t in targets}
+    if len(clusters_in_request) > 1:
+        return JSONResponse({"error": "All namespaces must be on the same cluster."}, status_code=400)
+
     # Validate all targets before creating anything
     for t in targets:
         cluster   = t.get("cluster", "")
