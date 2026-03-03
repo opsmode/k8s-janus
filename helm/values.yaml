@@ -46,6 +46,7 @@ janus:
   defaultTtlSeconds: 3600 # Default access duration in the request form (1h)
   maxTtlSeconds: 28800 # Hard cap engineers cannot exceed (8h)
   crdRetentionSeconds: 86400 # Delete expired/denied/revoked CRDs after (24h)
+  pendingExpirySeconds: 0 # Auto-deny Pending requests after this many seconds (0 = disabled)
   idleTimeoutSeconds: 900 # Terminate idle web terminal sessions (15m)
   # IANA timezone for timestamps in the web UI (e.g. "Europe/Berlin",
   # "America/New_York"). Affects all displayed request times. Default: UTC.

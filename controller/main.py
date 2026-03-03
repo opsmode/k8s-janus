@@ -517,6 +517,9 @@ async def cleanup_access(request_name: str, namespace: str, revoked: bool = Fals
 CLEANUP_TERMINAL_PHASES = {"Expired", "Denied", "Revoked"}
 CLEANUP_RETENTION_SECONDS = int(os.environ.get("CRD_RETENTION_SECONDS", str(24 * 3600)))
 
+# Pending requests older than this are auto-denied (0 = disabled)
+PENDING_EXPIRY_SECONDS = int(os.environ.get("PENDING_EXPIRY_SECONDS", "0"))
+
 
 async def _periodic_crd_cleanup_loop():
     """Background task: delete terminal-phase AccessRequests older than retention period."""
@@ -558,6 +561,58 @@ async def _periodic_crd_cleanup_loop():
         except Exception as e:
             logger.error(f"💥 [periodic] CRD cleanup loop failed: {e}")
         await asyncio.sleep(3600)  # run every hour
+
+
+async def _pending_expiry_loop():
+    """Background task: auto-deny Pending requests older than PENDING_EXPIRY_SECONDS."""
+    await asyncio.sleep(60)  # brief delay after startup
+    while True:
+        try:
+            custom = client.CustomObjectsApi()
+            result = custom.list_cluster_custom_object(
+                group=CRD_GROUP, version="v1alpha1", plural="accessrequests"
+            )
+            now = datetime.now(timezone.utc)
+            expired = 0
+            for ar in result.get("items", []):
+                if ar.get("status", {}).get("phase", "") != "Pending":
+                    continue
+                ts_str = ar.get("metadata", {}).get("creationTimestamp", "")
+                if not ts_str:
+                    continue
+                created = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                age_seconds = (now - created).total_seconds()
+                if age_seconds < PENDING_EXPIRY_SECONDS:
+                    continue
+                name = ar["metadata"]["name"]
+                requester = ar.get("spec", {}).get("requester", "unknown")
+                cluster = ar.get("spec", {}).get("cluster", get_clusters()[0]["name"])
+                try:
+                    custom.patch_cluster_custom_object_status(
+                        group=CRD_GROUP, version="v1alpha1", plural="accessrequests", name=name,
+                        body={"status": {
+                            "phase": "Denied",
+                            "message": f"Auto-denied: no approval within {int(PENDING_EXPIRY_SECONDS // 3600)}h",
+                            "approvedBy": "system",
+                        }},
+                    )
+                    logger.info(f"⏰ [{name}] auto-denied — pending for {age_seconds/3600:.1f}h (limit={PENDING_EXPIRY_SECONDS//3600}h)")
+                    log_audit(name, "request.denied", actor="system",
+                              detail=f"auto-denied after {age_seconds/3600:.1f}h pending — cluster={cluster}")
+                    upsert_request(name, phase="Denied", approved_by="system", denied_at=now,
+                                   cluster=cluster, namespace=ar.get("spec", {}).get("namespace", ""),
+                                   requester=requester, ttl_seconds=ar.get("spec", {}).get("ttlSeconds", 3600),
+                                   denial_reason=f"No approval within {PENDING_EXPIRY_SECONDS // 3600}h",
+                                   created_at=created)
+                    expired += 1
+                except ApiException as e:
+                    if e.status != 404:
+                        logger.error(f"💥 [pending-expiry] failed to auto-deny {name}: {e}")
+            if expired:
+                logger.info(f"⏰ [pending-expiry] auto-denied {expired} stale pending requests")
+        except Exception as e:
+            logger.error(f"💥 [pending-expiry] loop failed: {e}")
+        await asyncio.sleep(300)  # check every 5 minutes
 
 
 # ---------------------------------------------------------------------------
@@ -663,4 +718,12 @@ async def startup(**kwargs):
     # Start periodic CRD cleanup background task
     asyncio.create_task(_periodic_crd_cleanup_loop())
     logger.info(f"🧹 periodic CRD cleanup started (retention={CLEANUP_RETENTION_SECONDS}s, phases={CLEANUP_TERMINAL_PHASES})")
+
+    # Start pending auto-expiry task (only if configured)
+    if PENDING_EXPIRY_SECONDS > 0:
+        asyncio.create_task(_pending_expiry_loop())
+        logger.info(f"⏰ pending auto-expiry started (limit={PENDING_EXPIRY_SECONDS//3600}h)")
+    else:
+        logger.info("⏰ pending auto-expiry disabled (set PENDING_EXPIRY_SECONDS to enable)")
+
     logger.info(f"✅ k8s-janus controller ready on cluster={get_clusters()[0]['name']}")

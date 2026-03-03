@@ -15,7 +15,35 @@ env:
   IMAGE: opsmode/k8s-janus
 
 jobs:
+  update-requirements:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Upgrade all dependencies
+        run: |
+          # Strip version pins, upgrade all packages, re-freeze
+          sed 's/==.*//' requirements.txt > /tmp/deps.txt
+          pip install --quiet $(cat /tmp/deps.txt | tr '\n' ' ')
+          pip freeze --all | grep -Ff /tmp/deps.txt > requirements.txt
+          git config user.email "ci@opsmode.io"
+          git config user.name "opsmode-ci"
+          git add requirements.txt
+          git diff --cached --quiet && echo "requirements up to date" && exit 0
+          git commit -m "chore: update requirements.txt"
+          git push
+
   lint:
+    needs: update-requirements
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
