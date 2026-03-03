@@ -12,7 +12,7 @@
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Operator-326CE5?logo=kubernetes&logoColor=white)
 [![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)](https://opsmode.github.io/k8s-janus)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![License](https://img.shields.io/badge/License-AGPL_v3-blue)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue)
 
 **Engineers request temporary `kubectl exec` access through a web UI.**
 **Admins approve with one click. The token auto-expires.**
@@ -273,6 +273,6 @@ INFO:     10.0.0.1:54321 - "GET /terminal/prod/alice-debug-api HTTP/1.1" 200 OK
 
 <div align="center">
 
-GNU AGPL v3 License · Built with ☕ by [opsmode](https://github.com/opsmode)
+Apache 2.0 License · Built with ☕ by [opsmode](https://github.com/opsmode)
 
 </div>
