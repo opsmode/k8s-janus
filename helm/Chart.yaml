@@ -2,18 +2,18 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 0.1.31
-appVersion: "0.1.31"
+version: 0.1.32
+appVersion: "0.1.32"
 annotations:
   artifacthub.io/changes: |
-    - kind: added
-      description: Web-based setup wizard — browser or CLI mode, no repo clone needed
-    - kind: added
-      description: setup-upload.sh — interactive script with CLI and Browser modes, exec-auth resolution
     - kind: changed
-      description: Controller init container blocks until all kubeconfig secrets are present
+      description: Remote clusters no longer need a Helm agent — setup-upload.sh handles RBAC and token issuance directly
+    - kind: changed
+      description: clusters[] removed from values — cluster discovery is automatic from kubeconfig Secrets
     - kind: fixed
-      description: webui-secrets Role — add list verb for deployments (fixes rollout restart after setup)
+      description: Browser mode POSTs setup/run immediately after upload to avoid exec-auth token expiry
+    - kind: changed
+      description: helm/README.md overhauled — accurate setup flow, screenshots, updated config reference
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/opsmode/k8s-janus
