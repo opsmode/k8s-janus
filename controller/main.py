@@ -230,6 +230,9 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
     logger.info(SEP)
     logger.info(f"🔄 [{name}] phase transition: {old} → {new}  (cluster={cluster} ns={namespace})")
 
+    if new in (None, "Pending", "Active", "Expired", "Failed"):
+        return  # no action needed for these transitions
+
     if new == "Approved":
         # Guard against duplicate grant on kopf retry — check if already Active
         if status.get("tokenSecret"):

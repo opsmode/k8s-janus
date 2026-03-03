@@ -62,4 +62,4 @@ See [SECURITY.md](SECURITY.md) — do not open public issues for vulnerabilities
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [GNU AGPL v3](LICENSE).
+By contributing, you agree that your contributions will be licensed under the [Apache 2.0](LICENSE).

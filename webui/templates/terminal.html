@@ -627,6 +627,7 @@
               <span class="status-dot" id="pane-a-dot"></span>
               <span id="pane-a-status">Disconnected</span>
             </div>
+            <button id="pane-a-disconnect" onclick="disconnectPod('a')" style="display:none;background:none;border:none;color:var(--warning);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.75rem;" title="Disconnect from pod">⏏ Disconnect</button>
             <button id="pane-a-close" onclick="closeSplit()" style="display:none;background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
           </div>
           <div class="tabs" id="pane-a-tabs" style="display:none;">
@@ -669,6 +670,7 @@
               <span class="status-dot" id="pane-b-dot"></span>
               <span id="pane-b-status">Disconnected</span>
             </div>
+            <button id="pane-b-disconnect" onclick="disconnectPod('b')" style="display:none;background:none;border:none;color:var(--warning);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.75rem;" title="Disconnect from pod">⏏ Disconnect</button>
             <button onclick="closeSplit()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
           </div>
           <div class="tabs" id="pane-b-tabs" style="display:none;">
@@ -837,6 +839,7 @@
             this.shellActive = true;
             this._setStatus(true, 'Connected');
             this.podLabel.textContent = `Connected to: ${msg.pod}`;
+            document.getElementById(`pane-${this.id}-disconnect`).style.display = 'inline-block';
             if (this.id === activePaneId) setQuickCmdsEnabled(true);
             return;
           }
@@ -868,6 +871,24 @@
             showBanner('danger', `<strong>🚫 Access revoked${by}</strong> — your session has been terminated. <a href="/status/{{ cluster }}/{{ request_name }}" style="color:inherit;text-decoration:underline;">View status</a>`);
             setQuickCmdsEnabled(false);
             setTimeout(() => { window.location.href = '/status/{{ cluster }}/{{ request_name }}'; }, 4000);
+            return;
+          }
+          if (msg.type === 'expired') {
+            this._retryCount = 999; // stop reconnect loop
+            this._setStatus(false, 'Expired');
+            showBanner('danger', `<strong>🔒 Access expired</strong> — your session is no longer active. <a href="/status/{{ cluster }}/{{ request_name }}" style="color:inherit;text-decoration:underline;">View status</a>`);
+            setQuickCmdsEnabled(false);
+            return;
+          }
+          if (msg.type === 'disconnected_pod') {
+            this.shellActive = false;
+            this.currentPod = null;
+            this._setStatus(false, 'Disconnected');
+            this.podLabel.textContent = 'Select a pod';
+            this.tabBar.style.display = 'none';
+            document.getElementById(`pane-${this.id}-disconnect`).style.display = 'none';
+            if (this.id === activePaneId) setQuickCmdsEnabled(false);
+            if (this.term) this.term.write('\r\n\x1b[33mDisconnected from pod.\x1b[0m\r\n');
             return;
           }
         } catch (_) {}
@@ -1057,6 +1078,12 @@
       setActivePane('a');
       paneA.fit();
       document.getElementById('active-pane-label').textContent = '';
+    }
+
+    function disconnectPod(id) {
+      const pane = id === 'a' ? paneA : paneB;
+      if (!pane || !pane.ws || pane.ws.readyState !== WebSocket.OPEN) return;
+      pane.ws.send(JSON.stringify({type: 'disconnect_pod'}));
     }
 
     // Restore split state from previous session

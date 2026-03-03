@@ -199,7 +199,8 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
     from k8s import get_access_request
     ar = get_access_request(name, cluster)
     if not ar or ar.get("status", {}).get("phase") != "Active":
-        await websocket.send_text("Error: Access not active\r\n")
+        phase = ar.get("status", {}).get("phase", "NotFound") if ar else "NotFound"
+        await websocket.send_text(json.dumps({"type": "expired", "phase": phase}))
         await websocket.close()
         await _unregister_ws(name, websocket)
         return
@@ -375,6 +376,30 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                 read_task = asyncio.ensure_future(_read_pod(loop, websocket, out_q, pod))
                 await websocket.send_text(f"\r\n\x1b[32mConnected to {pod} ({used_shell})\x1b[0m\r\n\r\n")
                 await websocket.send_text(json.dumps({"type": "connected", "pod": pod}))
+
+            elif msg_type == "disconnect_pod":
+                if stop_evt:
+                    stop_evt.set()
+                if read_task and not read_task.done():
+                    read_task.cancel()
+                    try:
+                        await read_task
+                    except asyncio.CancelledError:
+                        pass
+                if resp:
+                    try:
+                        resp.close()
+                    except Exception:
+                        pass
+                    resp = None
+                while not stdin_q.empty():
+                    try:
+                        stdin_q.get_nowait()
+                    except _queue.Empty:
+                        break
+                stop_evt = None
+                read_task = None
+                await websocket.send_text(json.dumps({"type": "disconnected_pod"}))
 
             elif msg_type == "resize":
                 pass  # informational only with sync k8s client
