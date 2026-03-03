@@ -27,7 +27,7 @@ entries:
           description: "add DOCKERHUB.md with short description and gh link"
     apiVersion: v2
     appVersion: 0.1.35
-    created: "2026-03-03T23:49:26.681526606Z"
+    created: "2026-03-04T00:54:03.85555+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 8d94939a8be1ec5117237401ff9f473370c525684fcf1ea9b50a99f0a6be82fb
@@ -87,7 +87,7 @@ entries:
           description: "update READMEs for v0.1.33 multi-namespace support"
     apiVersion: v2
     appVersion: 0.1.34
-    created: "2026-03-03T23:49:26.680842203Z"
+    created: "2026-03-04T00:54:03.85512+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ba3fdeb344eacb4e747c320fab82658d3e0b99a554c90f17505a9917a421f19d
@@ -157,7 +157,7 @@ entries:
           description: "multi-cluster and multi-namespace selection in request form"
     apiVersion: v2
     appVersion: 0.1.33
-    created: "2026-03-03T23:49:26.680070767Z"
+    created: "2026-03-04T00:54:03.854283+01:00"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: e61625a38cf75ba9105feb8aedf9b7aa65a8147b5580386cb47ab8345bff52f9
@@ -507,4 +507,4 @@ entries:
     urls:
     - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.28.tgz
     version: 0.1.28
-generated: "2026-03-03T23:49:26.674407931Z"
+generated: "2026-03-04T00:54:03.853609+01:00"
