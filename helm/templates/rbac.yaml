@@ -8,7 +8,7 @@ metadata:
     {{- include "janus.labels" . | nindent 4 }}
 rules:
   # Manage AccessRequest CRDs
-  - apiGroups: ["k8s-janus.opsmode.io"]
+  - apiGroups: ["k8s-janus.opsmode.pro"]
     resources: ["accessrequests", "accessrequests/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   # Watch kopf-required resources (scoped to what kopf actually needs)
@@ -82,7 +82,7 @@ metadata:
     {{- include "janus.labels" . | nindent 4 }}
 rules:
   # Read and create AccessRequests; patch status for approve/deny/revoke
-  - apiGroups: ["k8s-janus.opsmode.io"]
+  - apiGroups: ["k8s-janus.opsmode.pro"]
     resources: ["accessrequests", "accessrequests/status"]
     verbs: ["get", "list", "watch", "create", "patch"]
   # List namespaces for the dropdown

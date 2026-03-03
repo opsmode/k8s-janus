@@ -35,7 +35,7 @@ jobs:
           sed 's/==.*//' requirements.txt > /tmp/deps.txt
           pip install --quiet $(cat /tmp/deps.txt | tr '\n' ' ')
           pip freeze --all | grep -Ff /tmp/deps.txt > requirements.txt
-          git config user.email "ci@opsmode.io"
+          git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
           git add requirements.txt
           git diff --cached --quiet && echo "requirements up to date" && exit 0
@@ -121,7 +121,7 @@ jobs:
 
           sed -i "s/tag: \"[a-f0-9]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
 
-          git config user.email "ci@opsmode.io"
+          git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
           git add applications/janus.applicationset.yaml
           git diff --cached --quiet && echo "no change" && exit 0

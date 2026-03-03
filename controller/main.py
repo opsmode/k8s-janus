@@ -18,11 +18,11 @@ from db import init_db, upsert_request, log_audit, _now
 JANUS_NAMESPACE = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
 MAX_TTL_SECONDS = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
 MIN_TTL_SECONDS = 600
-CRD_GROUP = "k8s-janus.opsmode.io"
+CRD_GROUP = "k8s-janus.opsmode.pro"
 _CENTRAL_NAME         = os.environ.get("JANUS_CLUSTER_NAME", "local")
 _CENTRAL_DISPLAY_NAME = os.environ.get("JANUS_CLUSTER_DISPLAY_NAME", _CENTRAL_NAME)
 
-_MANAGED_LABEL    = "k8s-janus.opsmode.io/managed"
+_MANAGED_LABEL    = "k8s-janus.opsmode.pro/managed"
 _KUBECONFIG_SUFFIX = "-kubeconfig"
 import time as _time
 _clusters_cache: dict = {"clusters": None, "expires": 0.0}
@@ -59,7 +59,7 @@ def get_clusters() -> list[dict]:
                 continue
             cluster_name = name[: -len(_KUBECONFIG_SUFFIX)]
             display_name = (s.metadata.annotations or {}).get(
-                "k8s-janus.opsmode.io/displayName", cluster_name
+                "k8s-janus.opsmode.pro/displayName", cluster_name
             )
             remotes.append({"name": cluster_name, "displayName": display_name, "secretName": name})
         remotes.sort(key=lambda c: c["name"])
@@ -169,7 +169,7 @@ def get_k8s_clients_for_cluster(cluster_name: str):
 # kopf handlers
 # ---------------------------------------------------------------------------
 
-@kopf.on.create("k8s-janus.opsmode.io", "v1alpha1", "accessrequests")
+@kopf.on.create("k8s-janus.opsmode.pro", "v1alpha1", "accessrequests")
 async def on_create(name, spec, status, patch, **kwargs):
     """New AccessRequest created — validate and notify approvers."""
     requester = spec.get("requester", "unknown")
@@ -220,7 +220,7 @@ async def on_create(name, spec, status, patch, **kwargs):
     log_audit(name, "request.created", actor=requester, detail=f"cluster={cluster} ns={namespace} ttl={ttl}s")
 
 
-@kopf.on.field("k8s-janus.opsmode.io", "v1alpha1", "accessrequests", field="status.phase")
+@kopf.on.field("k8s-janus.opsmode.pro", "v1alpha1", "accessrequests", field="status.phase")
 async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
     """React when phase transitions to Approved, Denied, or Revoked."""
     cluster = spec.get("cluster", get_clusters()[0]["name"])
@@ -293,10 +293,10 @@ async def grant_access(name: str, spec: dict, patch):
     ttl        = int(spec.get("ttlSeconds", 3600))
     expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).isoformat()
     labels     = {
-        "k8s-janus.opsmode.io/request":   name,
-        "k8s-janus.opsmode.io/requester": requester.replace("@", "_at_").replace(".", "-")[:63],
+        "k8s-janus.opsmode.pro/request":   name,
+        "k8s-janus.opsmode.pro/requester": requester.replace("@", "_at_").replace(".", "-")[:63],
     }
-    annotations = {"k8s-janus.opsmode.io/expires-at": expires_at}
+    annotations = {"k8s-janus.opsmode.pro/expires-at": expires_at}
 
     # Resolve server + CA once for this cluster
     _clusters_live = get_clusters()
@@ -497,7 +497,7 @@ async def cleanup_access(request_name: str, namespace: str, revoked: bool = Fals
             core_v1_central, _ = get_k8s_clients()
             custom = client.CustomObjectsApi(api_client=core_v1_central.api_client)
             custom.patch_cluster_custom_object_status(
-                group="k8s-janus.opsmode.io",
+                group="k8s-janus.opsmode.pro",
                 version="v1alpha1",
                 plural="accessrequests",
                 name=request_name,
