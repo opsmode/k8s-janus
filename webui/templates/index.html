@@ -169,6 +169,104 @@
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group.full { grid-column: 1 / -1; }
 
+    /* ── MULTI-SELECT CLUSTER/NS ── */
+    .cluster-ns-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cluster-block {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .cluster-block.has-selection { border-color: var(--accent); }
+    .cluster-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s, background 0.15s;
+    }
+    .cluster-header:hover { background: var(--surface-3); }
+    .cluster-block.expanded .cluster-header { border-bottom-color: var(--border); }
+    .cluster-checkbox {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .cluster-label {
+      flex: 1;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cluster-chevron {
+      color: var(--text-dim);
+      transition: transform 0.2s;
+    }
+    .cluster-block.expanded .cluster-chevron { transform: rotate(180deg); }
+    .ns-panel {
+      display: none;
+      padding: 12px 14px;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .cluster-block.expanded .ns-panel { display: flex; }
+    .ns-loading {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      padding: 4px 0;
+    }
+    .ns-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 6px;
+    }
+    .ns-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .ns-item:hover { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3); }
+    .ns-item.selected { background: rgba(99,102,241,0.12); border-color: var(--accent); }
+    .ns-checkbox {
+      width: 14px; height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .ns-name {
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .selection-summary {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .selection-summary span { color: var(--accent); font-weight: 600; }
+
     label {
       font-size: 0.75rem;
       font-weight: 500;
@@ -432,34 +530,11 @@
         <h2>Request Pod Access 🚪</h2>
       </div>
 
-      <form method="POST" action="/request">
+      <form id="request-form">
         <div class="form-grid">
           <div class="form-group">
             <label for="requester">Your email</label>
             <input type="email" id="requester" name="requester" value="{{ user_email }}" required placeholder="your.email@example.com" />
-          </div>
-          <div class="form-group">
-            <label for="cluster">Target cluster</label>
-            <select id="cluster" name="cluster" required onchange="loadNamespaces(this.value)">
-              <option value="" disabled selected>Select a cluster…</option>
-              {% for c in clusters %}
-              <option value="{{ c.name }}">
-                {{ c.displayName if c.displayName else c.name }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="namespace">Target namespace</label>
-            <select id="namespace" name="namespace" required size="1" onchange="loadPods(); _setSubmitEnabled()">
-              <option value="" disabled selected>— select cluster first —</option>
-            </select>
-          </div>
-          <div class="form-group full" id="pod-preview" style="display:none;">
-            <label>Available Pods in this Namespace</label>
-            <div id="pod-list" style="max-height:150px;overflow-y:auto;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;">
-              <div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Select a namespace to see pods</div>
-            </div>
           </div>
           <div class="form-group">
             <label for="ttl_hours">Duration</label>
@@ -471,14 +546,47 @@
             <small style="color:var(--text-muted,#94a3b8);font-size:0.78rem;">Max {{ max_ttl }} hour{{ 's' if max_ttl > 1 else '' }}</small>
           </div>
           <div class="form-group full">
+            <label>Target clusters &amp; namespaces</label>
+            <div class="cluster-ns-grid" id="cluster-ns-grid">
+              {% for c in clusters %}
+              <div class="cluster-block" id="cb-{{ c.name }}" data-cluster="{{ c.name }}">
+                <div class="cluster-header" onclick="toggleCluster('{{ c.name }}')">
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;" class="cluster-chevron"></i>
+                  <span class="cluster-label">{{ c.displayName if c.displayName else c.name }}</span>
+                  <span class="ns-count-badge" id="ns-count-{{ c.name }}" style="display:none;font-size:0.7rem;color:var(--accent);font-weight:600;"></span>
+                </div>
+                <div class="ns-panel" id="nsp-{{ c.name }}">
+                  <div class="ns-loading" id="nsl-{{ c.name }}">Click to load namespaces…</div>
+                  <div class="ns-grid" id="nsg-{{ c.name }}" style="display:none;"></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="selection-summary" id="selection-summary" style="display:none;">
+              <i data-lucide="check-circle-2" style="width:13px;height:13px;color:var(--accent);"></i>
+              <span id="selection-count">0</span> target(s) selected
+            </div>
+          </div>
+          <div class="form-group full" id="pod-preview" style="display:none;">
+            <label>Pods in <span id="pod-preview-label" style="color:var(--accent);font-family:'JetBrains Mono',monospace;"></span></label>
+            <div id="pod-list" style="max-height:150px;overflow-y:auto;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;">
+              <div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Select a namespace to see pods</div>
+            </div>
+          </div>
+          <div class="form-group full">
             <label for="reason">Business justification (or a really convincing lie)</label>
             <textarea id="reason" name="reason" placeholder="Describe why you need access to this pod… (no, 'just vibing' is not a valid reason)" required maxlength="500"></textarea>
           </div>
         </div>
-        <button type="submit" id="submit-btn" class="submit-btn" disabled title="Select a cluster and namespace first">
-          <i data-lucide="send" style="width:15px;height:15px;"></i>
-          Submit Request
-        </button>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" id="submit-btn" class="submit-btn" disabled
+            title="Select at least one cluster and namespace"
+            onclick="submitMultiRequest()">
+            <i data-lucide="send" style="width:15px;height:15px;"></i>
+            Submit Request
+          </button>
+          <div id="submit-status" style="font-size:0.82rem;color:var(--text-muted);display:none;"></div>
+        </div>
       </form>
     </div>
 
@@ -617,78 +725,206 @@
       _ttlInterval = setInterval(updateTtlRemaining, 1000);
     }
 
-    function _setSubmitEnabled() {
-      const cluster = document.getElementById('cluster').value;
-      const ns = document.getElementById('namespace').value;
-      document.getElementById('submit-btn').disabled = !(cluster && ns);
-    }
+    // ── Multi-cluster/NS selector ──
+    const _nsCache = {};       // clusterName → [ns, ...]
+    const _nsSelected = {};    // clusterName → Set<ns>
 
-    async function loadNamespaces(clusterName) {
-      const sel = document.getElementById('namespace');
-      const podPreview = document.getElementById('pod-preview');
-      const submitBtn = document.getElementById('submit-btn');
-      podPreview.style.display = 'none';
-      submitBtn.disabled = true;
-      sel.innerHTML = '<option value="" disabled selected>Loading…</option>';
-      try {
-        const resp = await fetch('/namespaces/' + encodeURIComponent(clusterName));
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const namespaces = await resp.json();
-        if (!namespaces.length) {
-          sel.innerHTML = '<option value="" disabled selected>No namespaces available</option>';
-          return;
-        }
-        sel.innerHTML = '<option value="" disabled selected>Select a namespace…</option>';
-        namespaces.forEach(ns => {
-          const opt = document.createElement('option');
-          opt.value = ns;
-          opt.textContent = ns;
-          sel.appendChild(opt);
-        });
-      } catch (e) {
-        sel.innerHTML = '<option value="" disabled selected>Failed to load — select cluster again</option>';
+    function _updateSubmitState() {
+      let total = 0;
+      Object.values(_nsSelected).forEach(s => { total += s.size; });
+      document.getElementById('submit-btn').disabled = total === 0;
+      const summary = document.getElementById('selection-summary');
+      const countEl = document.getElementById('selection-count');
+      if (total > 0) {
+        countEl.textContent = total;
+        summary.style.display = 'flex';
+        lucide.createIcons();
+      } else {
+        summary.style.display = 'none';
       }
     }
 
-    async function loadPods() {
-      const cluster = document.getElementById('cluster').value;
-      const namespace = document.getElementById('namespace').value;
-      const podPreview = document.getElementById('pod-preview');
-      const podList = document.getElementById('pod-list');
+    function _updateClusterBadge(clusterName) {
+      const count = (_nsSelected[clusterName] || new Set()).size;
+      const badge = document.getElementById('ns-count-' + clusterName);
+      const block = document.getElementById('cb-' + clusterName);
+      if (count > 0) {
+        badge.textContent = count + ' ns';
+        badge.style.display = '';
+        block.classList.add('has-selection');
+      } else {
+        badge.style.display = 'none';
+        block.classList.remove('has-selection');
+      }
+    }
 
-      if (!cluster || !namespace) {
-        podPreview.style.display = 'none';
+    async function toggleCluster(clusterName) {
+      const block = document.getElementById('cb-' + clusterName);
+      const expanded = block.classList.contains('expanded');
+
+      if (expanded) {
+        block.classList.remove('expanded');
         return;
       }
 
+      block.classList.add('expanded');
+
+      // Load namespaces if not cached
+      if (!_nsCache[clusterName]) {
+        const loading = document.getElementById('nsl-' + clusterName);
+        loading.textContent = 'Loading namespaces…';
+        loading.style.display = '';
+        document.getElementById('nsg-' + clusterName).style.display = 'none';
+        try {
+          const resp = await fetch('/namespaces/' + encodeURIComponent(clusterName));
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          _nsCache[clusterName] = await resp.json();
+        } catch (e) {
+          loading.textContent = 'Failed to load namespaces';
+          loading.style.color = 'var(--danger)';
+          return;
+        }
+        _nsSelected[clusterName] = _nsSelected[clusterName] || new Set();
+        _renderNsList(clusterName);
+        loading.style.display = 'none';
+        document.getElementById('nsg-' + clusterName).style.display = '';
+        lucide.createIcons();
+      }
+    }
+
+    function _renderNsList(clusterName) {
+      const grid = document.getElementById('nsg-' + clusterName);
+      const namespaces = _nsCache[clusterName] || [];
+      const selected = _nsSelected[clusterName] || new Set();
+
+      if (!namespaces.length) {
+        grid.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;">No namespaces available</div>';
+        return;
+      }
+
+      grid.innerHTML = namespaces.map(ns => `
+        <div class="ns-item ${selected.has(ns) ? 'selected' : ''}"
+             onclick="toggleNs('${clusterName}', '${ns}', this)"
+             onmouseenter="previewPods('${clusterName}', '${ns}')">
+          <input type="checkbox" class="ns-checkbox" ${selected.has(ns) ? 'checked' : ''}
+                 onclick="event.stopPropagation();toggleNs('${clusterName}','${ns}',this.parentElement)">
+          <span class="ns-name">${ns}</span>
+        </div>
+      `).join('');
+    }
+
+    function toggleNs(clusterName, ns, itemEl) {
+      if (!_nsSelected[clusterName]) _nsSelected[clusterName] = new Set();
+      const sel = _nsSelected[clusterName];
+      const cb = itemEl.querySelector('.ns-checkbox');
+      if (sel.has(ns)) {
+        sel.delete(ns);
+        itemEl.classList.remove('selected');
+        if (cb) cb.checked = false;
+      } else {
+        sel.add(ns);
+        itemEl.classList.add('selected');
+        if (cb) cb.checked = true;
+      }
+      _updateClusterBadge(clusterName);
+      _updateSubmitState();
+    }
+
+    async function previewPods(clusterName, ns) {
+      const podPreview = document.getElementById('pod-preview');
+      const podList = document.getElementById('pod-list');
+      const label = document.getElementById('pod-preview-label');
+
       podPreview.style.display = 'block';
-      podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Loading pods...</div>';
+      label.textContent = clusterName + ' / ' + ns;
+      podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Loading pods…</div>';
 
       try {
-        const resp = await fetch(`/api/pods/${encodeURIComponent(cluster)}/${encodeURIComponent(namespace)}`);
+        const resp = await fetch('/api/pods/' + encodeURIComponent(clusterName) + '/' + encodeURIComponent(ns));
         const data = await resp.json();
 
-        if (data.error || data.pods.length === 0) {
-          podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">No pods found in this namespace</div>';
+        if (data.error || !data.pods.length) {
+          podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">No pods found</div>';
           return;
         }
 
         let html = '<div style="display:grid;gap:4px;">';
         data.pods.forEach(pod => {
           const statusColor = pod.status === 'Running' ? 'var(--success)' : 'var(--text-dim)';
-          html += `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface-3);border-radius:4px;">
-              <div style="width:6px;height:6px;border-radius:50%;background:${statusColor};"></div>
-              <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text);">${pod.name}</div>
-              <div style="font-size:0.7rem;color:var(--text-dim);">${pod.ready}/${pod.total}</div>
-            </div>
-          `;
+          html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface-3);border-radius:4px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:${statusColor};"></div>
+            <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text);">${pod.name}</div>
+            <div style="font-size:0.7rem;color:var(--text-dim);">${pod.ready}/${pod.total}</div>
+          </div>`;
         });
         html += '</div>';
-        html += `<div style="margin-top:8px;font-size:0.7rem;color:var(--text-dim);text-align:center;">${data.pods.length} pod${data.pods.length !== 1 ? 's' : ''} available</div>`;
+        html += `<div style="margin-top:8px;font-size:0.7rem;color:var(--text-dim);text-align:center;">${data.pods.length} pod${data.pods.length !== 1 ? 's' : ''}</div>`;
         podList.innerHTML = html;
       } catch (e) {
         podList.innerHTML = '<div style="color:var(--danger);font-size:0.8rem;padding:8px;">Failed to load pods</div>';
+      }
+    }
+
+    async function submitMultiRequest() {
+      const requester = document.getElementById('requester').value.trim();
+      const reason    = document.getElementById('reason').value.trim();
+      const ttl_hours = parseInt(document.getElementById('ttl_hours').value, 10);
+
+      if (!requester || !reason) {
+        alert('Please fill in your email and reason.');
+        return;
+      }
+
+      // Build targets list from selected namespaces
+      const targets = [];
+      Object.entries(_nsSelected).forEach(([cluster, nsSet]) => {
+        nsSet.forEach(ns => targets.push({ cluster, namespace: ns }));
+      });
+
+      if (!targets.length) {
+        alert('Please select at least one cluster and namespace.');
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      const statusEl = document.getElementById('submit-status');
+      btn.disabled = true;
+      statusEl.style.display = '';
+      statusEl.textContent = 'Submitting…';
+
+      try {
+        const resp = await fetch('/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requester, reason, ttl_hours, targets }),
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+          statusEl.style.color = 'var(--danger)';
+          statusEl.textContent = data.error;
+          btn.disabled = false;
+          return;
+        }
+
+        let msg = '';
+        if (data.created.length)  msg += `${data.created.length} request(s) submitted. `;
+        if (data.skipped.length)  msg += `${data.skipped.length} skipped (duplicate/not allowed). `;
+        if (data.errors.length)   msg += `${data.errors.length} failed. `;
+
+        statusEl.style.color = data.errors.length && !data.created.length ? 'var(--danger)' : 'var(--success)';
+        statusEl.textContent = msg.trim();
+
+        // Record created requests in history then reload after short delay
+        if (data.created.length) {
+          setTimeout(() => location.reload(), 1200);
+        } else {
+          btn.disabled = false;
+        }
+      } catch (e) {
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = 'Network error. Please try again.';
+        btn.disabled = false;
       }
     }
 
@@ -714,7 +950,6 @@
 
     function recordRequest(name, cluster, clusterDisplay, namespace, phase) {
       const entries = loadHistory();
-      // update if exists, else prepend
       const idx = entries.findIndex(e => e.name === name && e.cluster === cluster);
       const entry = { name, cluster, clusterDisplay, namespace, phase, ts: new Date().toISOString() };
       if (idx >= 0) entries[idx] = entry; else entries.unshift(entry);
@@ -724,7 +959,6 @@
     // Collect live CRD names from the current table
     const _liveNames = new Set();
     document.querySelectorAll('tbody td a').forEach(a => {
-      // href is /status/<cluster>/<name>
       const parts = a.getAttribute('href').split('/');
       if (parts.length >= 4) _liveNames.add(parts[2] + '/' + parts[3]);
     });
@@ -734,7 +968,6 @@
       const card = document.getElementById('history-card');
       const list = document.getElementById('history-list');
 
-      // Only show entries not currently in the live table
       const past = entries.filter(e => !_liveNames.has(e.cluster + '/' + e.name));
       if (past.length === 0) { card.style.display = 'none'; return; }
 
@@ -776,7 +1009,6 @@
     {% set ar_cluster = ar.get("_cluster", "") %}
     {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
     {% set phase = st.get("phase", "Pending") %}
-    // Only record if this email matches the current user
     (function() {
       const myEmail = {{ user_email | tojson }};
       const requester = {{ spec.get("requester", "") | tojson }};
@@ -786,19 +1018,7 @@
     })();
     {% endfor %}
 
-    // Save to history on form submit
-    document.querySelector('form[action="/request"]').addEventListener('submit', function() {
-      const email = document.getElementById('requester').value.trim().toLowerCase();
-      const cluster = document.getElementById('cluster').value;
-      const namespace = document.getElementById('namespace').value;
-      // We don't have the CRD name yet (assigned server-side), so store a pending marker
-      // The actual name will be recorded on next page load via the live table sync above
-      // Nothing to do here — the status page redirect will reload index on back-navigation
-    });
-
-    // Render on load (after email field may be pre-filled)
     renderHistory();
-    // Re-render when email changes (switches user context)
     document.getElementById('requester').addEventListener('change', renderHistory);
     document.getElementById('requester').addEventListener('blur', renderHistory);
   </script>

@@ -562,117 +562,135 @@ async def namespaces(cluster_name: str):
     return JSONResponse(ns_list)
 
 
-@app.post("/request", response_class=HTMLResponse)
-async def submit_request(
-    request: Request,
-    cluster: str   = Form(...),
-    namespace: str = Form(...),
-    reason: str    = Form(...),
-    ttl_hours: int = Form(...),
-    requester: str = Form(default=""),
-):
-    user_from_auth, _ = _get_user(request)
-    requester = user_from_auth or requester
-    if not requester:
-        return HTMLResponse("<h2>Unauthorized: no authenticated user found.</h2>", status_code=401)
+@app.post("/request")
+async def submit_request(request: Request):
+    """Accept a multi-cluster/multi-namespace access request as JSON.
 
-    if not get_cluster_config(cluster):
-        return HTMLResponse(f"<h2>Unknown cluster: {cluster}</h2>", status_code=400)
-
-    if not _valid_ns(namespace):
-        return HTMLResponse(f"<h2>Invalid namespace: {namespace}</h2>", status_code=400)
-
-    reason = reason.strip()[:500]
-
-    # Validate TTL — must be a positive number within bounds
-    if ttl_hours < 1:
-        return HTMLResponse("<h2>Invalid TTL: must be at least 1 hour.</h2>", status_code=400)
-    ttl_seconds = ttl_hours * 3600
-    if ttl_seconds > MAX_TTL_SECONDS:
-        ttl_seconds = MAX_TTL_SECONDS
-        logger.info(f"⏱️  TTL capped to {MAX_TTL_SECONDS}s for {requester}")
-
-    allowed = get_allowed_namespaces(cluster)
-    if namespace not in allowed:
-        ctx = _base_context(request)
-        ctx["error"] = f"Namespace '{namespace}' is not allowed."
-        ctx["access_requests"] = [
-            ar for ar in list_access_requests()
-            if ar.get("spec", {}).get("requester", "").lower() == requester.lower()
-        ]
-        ctx["is_admin"] = False
-        return templates.TemplateResponse("index.html", ctx, status_code=400)
-
-    ts = datetime.now(timezone.utc).strftime("%m%d%H%M%S")
-    safe_requester = requester.split("@")[0].lower().replace(".", "-")[:20]
-    name = f"k8s-janus-{safe_requester}-{ts}"
-
-    body = {
-        "apiVersion": f"{CRD_GROUP}/{CRD_VERSION}",
-        "kind": "AccessRequest",
-        "metadata": {"name": name},
-        "spec": {
-            "requester": requester,
-            "namespace": namespace,
-            "reason": reason,
-            "ttlSeconds": ttl_seconds,
-            "cluster": cluster,
-        },
+    Body: {
+      "requester": str,          # may be overridden by auth header
+      "targets": [{"cluster": str, "namespace": str}, ...],
+      "reason": str,
+      "ttl_hours": int,
     }
 
-    # Rate limit: max 10 pending/approved/active requests per user
+    Returns JSON: {"created": [str], "skipped": [str], "errors": [str]}
+    """
+    user_from_auth, _ = _get_user(request)
+
+    body = await request.json()
+    requester  = user_from_auth or body.get("requester", "").strip()
+    reason     = body.get("reason", "").strip()[:500]
+    ttl_hours  = int(body.get("ttl_hours", 1))
+    targets    = body.get("targets", [])  # list of {"cluster": str, "namespace": str}
+
+    if not requester:
+        return JSONResponse({"error": "Unauthorized: no authenticated user found."}, status_code=401)
+    if not targets:
+        return JSONResponse({"error": "No targets specified."}, status_code=400)
+    if not reason:
+        return JSONResponse({"error": "Reason is required."}, status_code=400)
+    if ttl_hours < 1:
+        return JSONResponse({"error": "TTL must be at least 1 hour."}, status_code=400)
+
+    ttl_seconds = min(ttl_hours * 3600, MAX_TTL_SECONDS)
+
+    # Validate all targets before creating anything
+    for t in targets:
+        cluster   = t.get("cluster", "")
+        namespace = t.get("namespace", "")
+        if not _valid_cluster(cluster) or not get_cluster_config(cluster):
+            return JSONResponse({"error": f"Unknown cluster: {cluster}"}, status_code=400)
+        if not _valid_ns(namespace):
+            return JSONResponse({"error": f"Invalid namespace: {namespace}"}, status_code=400)
+
     all_requests = list_access_requests()
+
+    # Rate limit: max 10 active/pending/approved across all requests
     active_count = sum(
         1 for ar in all_requests
         if ar.get("spec", {}).get("requester") == requester
         and ar.get("status", {}).get("phase", "") in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
     )
-    if active_count >= 10:
-        ctx = _base_context(request)
-        ctx["error"] = "Too many active requests. Wait for existing requests to expire or be revoked."
-        ctx["access_requests"] = [ar for ar in all_requests if ar.get("spec", {}).get("requester", "").lower() == requester.lower()]
-        ctx["is_admin"] = False
-        return templates.TemplateResponse("index.html", ctx, status_code=429)
-
-    # Block duplicate active/pending requests
-    for ar in all_requests:
-        ar_spec  = ar.get("spec", {})
-        ar_phase = ar.get("status", {}).get("phase", "")
-        if (
-            ar_spec.get("requester") == requester
-            and ar_spec.get("cluster") == cluster
-            and ar_spec.get("namespace") == namespace
-            and ar_phase in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
-        ):
-            existing_name = ar["metadata"]["name"]
-            logger.info(f"🚫 Duplicate request blocked for {requester} — existing {existing_name} is {ar_phase}")
-            return RedirectResponse(url=f"/status/{cluster}/{existing_name}", status_code=303)
-
-    try:
-        central_api, _ = get_api_clients(get_clusters()[0]["name"])
-        central_api.create_cluster_custom_object(
-            group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", body=body,
+    remaining_slots = 10 - active_count
+    if remaining_slots <= 0:
+        return JSONResponse(
+            {"error": "Too many active requests. Wait for existing requests to expire or be revoked."},
+            status_code=429,
         )
-        logger.info(f"🎫 Created AccessRequest {name} for {requester} on cluster {cluster}")
-        upsert_request(
-            name,
-            cluster=cluster, namespace=namespace, requester=requester,
-            ttl_seconds=ttl_seconds, reason=reason, phase=Phase.PENDING, created_at=_now(),
-        )
-        log_audit(name, "request.created", actor=requester,
-                  detail=f"cluster={cluster} ns={namespace} ttl={ttl_seconds}s")
-    except ApiException as e:
-        logger.error(f"💥 Failed to create AccessRequest: {e}")
-        ctx = _base_context(request)
-        ctx["error"] = "Failed to submit request. Please try again."
-        ctx["access_requests"] = [
-            ar for ar in all_requests
-            if ar.get("spec", {}).get("requester", "").lower() == requester.lower()
-        ]
-        ctx["is_admin"] = False
-        return templates.TemplateResponse("index.html", ctx, status_code=500)
+    if len(targets) > remaining_slots:
+        targets = targets[:remaining_slots]
 
-    return RedirectResponse(url=f"/status/{cluster}/{name}", status_code=303)
+    central_api, _ = get_api_clients(get_clusters()[0]["name"])
+    safe_requester  = requester.split("@")[0].lower().replace(".", "-")[:20]
+
+    created: list[str] = []
+    skipped: list[str] = []
+    errors:  list[str] = []
+    ts_base  = datetime.now(timezone.utc).strftime("%m%d%H%M%S")
+
+    for idx, t in enumerate(targets):
+        cluster   = t["cluster"]
+        namespace = t["namespace"]
+
+        # Skip if namespace not allowed on this cluster
+        allowed = get_allowed_namespaces(cluster)
+        if namespace not in allowed:
+            skipped.append(f"{cluster}/{namespace} (namespace not allowed)")
+            continue
+
+        # Skip duplicates: existing active/pending/approved request for same cluster+ns
+        dup = next(
+            (ar for ar in all_requests
+             if ar.get("spec", {}).get("requester") == requester
+             and ar.get("spec", {}).get("cluster") == cluster
+             and ar.get("spec", {}).get("namespace") == namespace
+             and ar.get("status", {}).get("phase", "") in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)),
+            None,
+        )
+        if dup:
+            skipped.append(f"{cluster}/{namespace} (already has active request {dup['metadata']['name']})")
+            continue
+
+        suffix = f"{ts_base}{idx:02d}"
+        name   = f"k8s-janus-{safe_requester}-{suffix}"
+
+        ar_body = {
+            "apiVersion": f"{CRD_GROUP}/{CRD_VERSION}",
+            "kind": "AccessRequest",
+            "metadata": {"name": name},
+            "spec": {
+                "requester": requester,
+                "namespace": namespace,
+                "reason": reason,
+                "ttlSeconds": ttl_seconds,
+                "cluster": cluster,
+            },
+        }
+
+        try:
+            central_api.create_cluster_custom_object(
+                group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", body=ar_body,
+            )
+            logger.info(f"🎫 Created AccessRequest {name} for {requester} on {cluster}/{namespace}")
+            upsert_request(
+                name,
+                cluster=cluster, namespace=namespace, requester=requester,
+                ttl_seconds=ttl_seconds, reason=reason, phase=Phase.PENDING, created_at=_now(),
+            )
+            log_audit(name, "request.created", actor=requester,
+                      detail=f"cluster={cluster} ns={namespace} ttl={ttl_seconds}s")
+            created.append(name)
+        except ApiException as e:
+            logger.error(f"💥 Failed to create AccessRequest for {cluster}/{namespace}: {e}")
+            errors.append(f"{cluster}/{namespace}: API error")
+
+    if not created and not skipped:
+        return JSONResponse(
+            {"error": "All requests failed.", "errors": errors},
+            status_code=500,
+        )
+
+    return JSONResponse({"created": created, "skipped": skipped, "errors": errors})
 
 
 @app.get("/status/{cluster}/{name}", response_class=HTMLResponse)
