@@ -88,7 +88,7 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
 
-          git clone git@github.com:devcops-xyz/argocd.git /tmp/argocd
+          git clone git@github.com:opsmode/argocd.git /tmp/argocd
           cd /tmp/argocd
 
           sed -i "s/tag: \"[a-f0-9]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
