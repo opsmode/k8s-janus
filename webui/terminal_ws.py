@@ -105,7 +105,7 @@ def _open_shell(core_v1, pod: str, namespace: str):
                 _preload_content=True,
             )
             if 'ok' not in (probe or ''):
-                logger.info(f"🔍 Terminal: {shell} probe failed on {pod}")
+                logger.debug(f"🔍 Terminal: {shell} probe failed on {pod}")
                 continue
             s = stream(
                 core_v1.connect_get_namespaced_pod_exec,
