@@ -15,7 +15,7 @@ from kubernetes.client.rest import ApiException
 
 from db import (
     init_db, upsert_request, log_audit, get_audit_log,
-    get_recent_audit_logs, get_session_commands, _now, db_enabled,
+    get_recent_audit_logs, _now, db_enabled,
 )
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
@@ -1058,26 +1058,6 @@ async def audit_for_request(name: str):
     return JSONResponse(get_audit_log(name))
 
 
-@app.get("/api/commands/{name}")
-async def commands_for_request(request: Request, name: str):
-    """Return typed commands for an access request. Caller must be the requester or admin."""
-    if not _valid_name(name):
-        return JSONResponse({"error": "Invalid request name"}, status_code=400)
-    user_email, _ = _get_user(request)
-    _clusters = get_clusters()
-    ar = get_access_request(name, _clusters[0]["name"])
-    if ar is None:
-        # Try all clusters
-        for c in _clusters:
-            ar = get_access_request(name, c["name"])
-            if ar:
-                break
-    if ar is None:
-        return JSONResponse({"error": "Not found", "commands": []}, status_code=404)
-    requester = ar.get("spec", {}).get("requester", "").lower()
-    if user_email.lower() != requester and not _is_admin(user_email):
-        return JSONResponse({"error": "Forbidden"}, status_code=403)
-    return JSONResponse(get_session_commands(name))
 
 
 # ---------------------------------------------------------------------------
