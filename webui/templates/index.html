@@ -850,8 +850,11 @@
         statusEl.style.color = data.errors.length && !data.created.length ? 'var(--danger)' : 'var(--success)';
         statusEl.textContent = msg.trim();
 
-        if (data.created.length) { setTimeout(() => location.reload(), 1200); }
-        else { btn.disabled = false; }
+        if (data.created.length) {
+          setTimeout(() => {
+            window.location.href = `/status/${encodeURIComponent(_currentCluster)}/${encodeURIComponent(data.created[0])}`;
+          }, 600);
+        } else { btn.disabled = false; }
       } catch (e) {
         statusEl.style.color = 'var(--danger)';
         statusEl.textContent = 'Network error. Please try again.';

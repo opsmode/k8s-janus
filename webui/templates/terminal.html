@@ -546,18 +546,28 @@
       <div class="sidebar-header">
         <h2>Pods</h2>
         {% if namespaces | length > 1 %}
-        <div id="ns-tabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;">
-          {% for ns in namespaces %}
-          <button onclick="switchNamespace('{{ ns }}')"
-                  class="ns-tab{% if loop.first %} active{% endif %}"
-                  data-ns="{{ ns }}"
-                  style="padding:3px 10px;font-size:0.72rem;font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;transition:color 0.15s,border-color 0.15s,background 0.15s;">{{ ns }}</button>
-          {% endfor %}
+        <div style="margin-top:10px;">
+          <div style="font-size:0.68rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+            <i data-lucide="layers" style="width:11px;height:11px;"></i>
+            Namespace
+          </div>
+          <div id="ns-tabs" style="display:flex;gap:4px;flex-wrap:wrap;">
+            {% for ns in namespaces %}
+            <button onclick="switchNamespace('{{ ns }}')"
+                    class="ns-tab{% if loop.first %} active{% endif %}"
+                    data-ns="{{ ns }}"
+                    title="Switch to namespace: {{ ns }}"
+                    style="padding:4px 10px;font-size:0.73rem;font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;color:var(--text-dim);cursor:pointer;transition:color 0.15s,border-color 0.15s,background 0.15s;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ ns }}">{{ ns }}</button>
+            {% endfor %}
+          </div>
         </div>
         {% else %}
-        <p style="font-size:0.78rem;color:var(--text-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;">{{ namespace }}</p>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
+          <i data-lucide="layers" style="width:12px;height:12px;color:var(--text-dim);flex-shrink:0;"></i>
+          <span style="font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ namespace }}</span>
+        </div>
         {% endif %}
-        <p id="pod-count" style="margin-top:6px;">Loading pods...</p>
+        <p id="pod-count" style="margin-top:8px;font-size:0.75rem;color:var(--text-dim);"></p>
       </div>
       <div class="pod-list" id="pod-list">
         <div class="loading-pods">
@@ -712,9 +722,10 @@
       activeNs = ns;
       document.querySelectorAll('.ns-tab').forEach(btn => {
         const active = btn.dataset.ns === ns;
-        btn.style.background    = active ? 'rgba(99,102,241,0.12)' : 'var(--surface-2)';
+        btn.style.background    = active ? 'rgba(99,102,241,0.15)' : 'var(--surface-2)';
         btn.style.borderColor   = active ? 'var(--accent)' : 'var(--border)';
-        btn.style.color         = active ? 'var(--accent)' : 'var(--text-dim)';
+        btn.style.color         = active ? '#a5b4fc' : 'var(--text-dim)';
+        btn.style.fontWeight    = active ? '600' : '400';
       });
       loadPods();
     }
@@ -902,14 +913,15 @@
         this.podLabel.textContent = `Connecting to: ${podName}`;
 
         const doSend = () => {
+          const msg = JSON.stringify({type: 'select_pod', pod: podName, namespace: activeNs});
           if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({type: 'select_pod', pod: podName}));
+            this.ws.send(msg);
           } else {
             // WS not ready yet — wait for onopen then send once
             const prev = this.ws.onopen;
             this.ws.onopen = (e) => {
               if (prev) prev.call(this.ws, e);
-              this.ws.send(JSON.stringify({type: 'select_pod', pod: podName}));
+              this.ws.send(msg);
             };
           }
         };
@@ -1141,6 +1153,9 @@
           document.getElementById('pod-list').innerHTML = '<div class="loading-pods" style="color:var(--danger);">Failed to load pods</div>';
         });
     }
+
+    // Apply initial active styling to the first NS tab
+    if (namespaces.length > 1) switchNamespace(activeNs);
 
     loadPods();
     refreshInterval = setInterval(loadPods, 5000);

@@ -430,9 +430,12 @@
 
         <span class="fact-label">
           <i data-lucide="layers" style="width:12px;height:12px;"></i>
-          Namespace
+          Namespace{{ "s" if (spec.get("namespaces") or []) | length > 1 else "" }}
         </span>
-        <span class="fact-value"><code>{{ spec.get("namespace", "—") }}</code></span>
+        <span class="fact-value" style="flex-wrap:wrap;gap:4px;">
+          {% set ns_list = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
+          {% for ns in ns_list %}<code>{{ ns }}</code>{% else %}<span>—</span>{% endfor %}
+        </span>
 
         <span class="fact-label">
           <i data-lucide="clock" style="width:12px;height:12px;"></i>
@@ -558,8 +561,9 @@
         </div>
         <h2>Access Granted 🎉</h2>
       </div>
+      {% set ns_list = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
       <p class="token-sub">
-        Scoped to <code>{{ spec.get("namespace") }}</code> only.
+        Scoped to {% for ns in ns_list %}<code>{{ ns }}</code>{% if not loop.last %}, {% endif %}{% endfor %} only.
         Expires at <strong>{{ status.get("expiresAt") | to_berlin }}</strong>.
       </p>
 
@@ -571,7 +575,7 @@
 
       <div class="security-note" style="margin-top:16px;">
         <i data-lucide="alert-triangle" style="width:15px;height:15px;"></i>
-        <span>Scoped to <code style="color:#fcd34d;">pods/exec</code> in <code style="color:#fcd34d;">{{ spec.get("namespace") }}</code> only. Access is revoked automatically on expiry.</span>
+        <span>Scoped to <code style="color:#fcd34d;">pods/exec</code> in {% for ns in ns_list %}<code style="color:#fcd34d;">{{ ns }}</code>{% if not loop.last %}, {% endif %}{% endfor %} only. Access is revoked automatically on expiry.</span>
       </div>
     </div>
     {% endif %}

@@ -196,19 +196,40 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
         await _unregister_ws(name, websocket)
         return
 
-    namespace   = ar.get("spec", {}).get("namespace", "")
-    ar_status   = ar.get("status", {})
-    secret_name = ar_status.get("tokenSecret", "")
+    ar_status = ar.get("status", {})
+    ar_spec   = ar.get("spec", {})
 
-    if not namespace or not secret_name:
+    # Build namespace list (support both new namespaces[] and legacy namespace field)
+    namespaces_list = ar_spec.get("namespaces") or []
+    if not namespaces_list:
+        legacy_ns = ar_spec.get("namespace", "")
+        if legacy_ns:
+            namespaces_list = [legacy_ns]
+
+    # tokenSecrets map: {namespace: secret_name}; fall back to legacy tokenSecret
+    token_secrets_map = ar_status.get("tokenSecrets") or {}
+    legacy_secret     = ar_status.get("tokenSecret", "")
+
+    if not namespaces_list:
         await websocket.send_text("Error: Missing namespace or token\r\n")
         await websocket.close()
         await _unregister_ws(name, websocket)
         return
 
-    try:
+    # Default namespace for initial audit log
+    namespace = namespaces_list[0]
+
+    def _get_core_v1_for_ns(ns: str):
+        """Build a CoreV1Api client scoped to the token for the given namespace."""
+        secret_name = token_secrets_map.get(ns) or legacy_secret
+        if not secret_name:
+            raise ValueError(f"No token secret for namespace '{ns}'")
         token, server, ca = read_token_secret(secret_name)
-        core_v1 = get_client_with_token(cluster, token, server, ca)
+        return get_client_with_token(cluster, token, server, ca)
+
+    # Validate that we can build a client for at least the first namespace
+    try:
+        _get_core_v1_for_ns(namespace)
     except Exception as e:
         logger.error(f"💥 Terminal setup error: {e}")
         await websocket.send_text(f"\r\nError: {e}\r\n")
@@ -217,7 +238,7 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
         return
 
     from db import log_audit
-    requester = ar.get("spec", {}).get("requester", "unknown")
+    requester = ar_spec.get("requester", "unknown")
     log_audit(name, "session.opened", actor=requester,
               detail=f"cluster={cluster} ns={namespace}")
     logger.info(f"🖥️  [{name}] terminal session opened — requester={requester} cluster={cluster} ns={namespace}")
@@ -286,8 +307,19 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                 if not pod:
                     continue
 
+                # Resolve the namespace for this pod selection
+                requested_ns = msg.get("namespace", "")
+                active_ns = requested_ns if requested_ns in namespaces_list else namespace
+
                 last_activity = time.monotonic()
                 idle_warned = False
+
+                # Build a client for the selected namespace
+                try:
+                    core_v1 = await loop.run_in_executor(None, _get_core_v1_for_ns, active_ns)
+                except Exception as e:
+                    await websocket.send_text(f"\r\n\x1b[31mError: cannot get token for namespace '{active_ns}': {e}\x1b[0m\r\n")
+                    continue
 
                 # Stop previous stream
                 if stop_evt:
@@ -312,7 +344,7 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
 
                 await websocket.send_text(f"\r\n\x1b[33mConnecting to {pod}…\x1b[0m\r\n")
                 new_resp, used_shell = await loop.run_in_executor(
-                    None, _open_shell, core_v1, pod, namespace
+                    None, _open_shell, core_v1, pod, active_ns
                 )
 
                 if new_resp is None:
@@ -363,8 +395,9 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
         except Exception:
             pass
         await _unregister_ws(name, websocket)
+        ns_summary = ",".join(namespaces_list) if namespaces_list else namespace
         log_audit(name, "session.closed", actor=requester,
-                  detail=f"cluster={cluster} ns={namespace}")
+                  detail=f"cluster={cluster} ns={ns_summary}")
         logger.info(f"📴 [{name}] terminal session closed — requester={requester} cluster={cluster}")
 
 

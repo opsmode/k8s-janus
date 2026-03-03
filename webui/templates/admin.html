@@ -463,13 +463,10 @@
           <table id="requests-table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Requester</th>
-                <th>Cluster</th>
-                <th>Namespace</th>
+                <th>Cluster · Namespace</th>
                 <th>TTL / Remaining</th>
                 <th>Status</th>
-                <th>Actioned by</th>
                 <th>Created</th>
                 <th>Action</th>
               </tr>
@@ -482,17 +479,27 @@
               {% set ttl = spec.get("ttlSeconds", 3600) %}
               {% set ar_cluster = ar.get("_cluster", "") %}
               {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
+              {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
               <tr class="req-row"
                   data-requester="{{ spec.get('requester', '') | lower }}"
                   data-namespace="{{ spec.get('namespace', '') | lower }}"
                   data-cluster="{{ ar_cluster }}"
                   data-phase="{{ phase }}"
                   data-ts="{{ ar.metadata.creationTimestamp }}">
-                <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
-                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ spec.get('requester', '—') }}">{{ spec.get("requester", "—") }}</td>
-                <td><code>{{ ar_cluster_display }}</code></td>
-                <td><code>{{ spec.get("namespace", "—") }}</code></td>
                 <td>
+                  <a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}"
+                     style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);display:block;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;"
+                     title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</a>
+                  <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:block;"
+                        title="{{ spec.get('requester', '—') }}">{{ spec.get("requester", "—") }}</span>
+                </td>
+                <td>
+                  <code style="color:var(--text-muted);">{{ ar_cluster_display }}</code>
+                  <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;">
+                    {% for ns in nss %}<code style="font-size:0.72rem;background:var(--surface-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">{{ ns }}</code>{% endfor %}
+                  </div>
+                </td>
+                <td style="white-space:nowrap;">
                   {% if phase == "Active" and st.get("expiresAt") %}
                     <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
                   {% else %}
@@ -505,14 +512,7 @@
                     {{ phase }}
                   </span>
                 </td>
-                <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ st.get('approvedBy', '') }}">
-                  {% if st.get('approvedBy') %}
-                    <span style="font-size:0.8rem;color:var(--text-dim);">{{ st.get('approvedBy') }}</span>
-                  {% else %}
-                    <span style="color:var(--text-dim);">—</span>
-                  {% endif %}
-                </td>
-                <td style="white-space:nowrap;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
+                <td style="white-space:nowrap;font-size:0.78rem;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
                 <td>
                   {% set requester = spec.get("requester", "") %}
                   {% if phase == "Pending" %}
