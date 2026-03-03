@@ -63,6 +63,7 @@ Choose **CLI mode** (terminal only) or **Browser mode** (web wizard with live pr
 | `janus.defaultTtlSeconds` | Default access duration | `3600` |
 | `janus.maxTtlSeconds` | Maximum access duration a user can request | `28800` |
 | `janus.idleTimeoutSeconds` | Auto-revoke terminal after this many seconds idle | `900` |
+| `janus.pendingExpirySeconds` | Auto-deny Pending requests after this many seconds (0 = disabled) | `0` |
 | `janus.excludedNamespaces` | Namespaces hidden from the request form | see values.yaml |
 | `janus.displayTimezone` | Timezone for UI timestamps | `Europe/Berlin` |
 
@@ -93,7 +94,9 @@ Choose **CLI mode** (terminal only) or **Browser mode** (web wizard with live pr
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `networkPolicy.enabled` | Deploy NetworkPolicy for all pods | `true` |
 | `pdb.minAvailable` | Min available pods during disruptions (requires `replicaCount > 1`) | `1` |
-| `remote.enabled` | Deploy as remote agent only — advanced use, setup script preferred | `false` |
+| `remote.enabled` | Deploy as remote agent only — advanced use, setup wizard preferred | `false` |
+| `remote.serviceAccountName` | ServiceAccount name created on the remote cluster | `janus-remote` |
+| `remote.tokenDuration` | Lifetime of the static kubeconfig token | `8760h` |
 
 ## Security
 

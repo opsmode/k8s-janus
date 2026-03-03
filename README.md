@@ -54,6 +54,7 @@ In most Kubernetes environments, granting pod access means either:
 | ✅ | **One-Click Approval** | Approvers get a notification — approve or deny without leaving the browser |
 | ⏱️ | **Auto-Cleanup** | ServiceAccount + RoleBinding + token Secret deleted automatically on TTL expiry |
 | ⚡ | **Instant Revoke** | Terminate any active session immediately from the admin dashboard |
+| ⏰ | **Pending Auto-Expiry** | Optionally auto-deny requests that go unapproved beyond a configurable time limit |
 | 🛡️ | **Security Hardened** | Non-root, read-only FS, all capabilities dropped, NetworkPolicy |
 | 🔒 | **No Token Leakage** | Per-namespace scoped tokens stored in K8s Secrets only — never in CRD status or logs |
 
@@ -210,6 +211,7 @@ Janus logs everything — startup, every access request lifecycle event, cleanup
 [INFO] 🚀 k8s-janus controller starting up on cluster=gke_project_region_cluster
 [INFO] DB initialised (SQLite (ephemeral))
 [INFO] 🧹 periodic CRD cleanup started (retention=86400s, phases={'Expired', 'Denied', 'Revoked'})
+[INFO] ⏰ pending auto-expiry started (limit=4h)
 [INFO] ✅ k8s-janus controller ready on cluster=gke_project_region_cluster
 [INFO] 🛡️  updated janus-pod-exec ClusterRole on cluster=gke_project_region_cluster
 
@@ -243,6 +245,9 @@ Janus logs everything — startup, every access request lifecycle event, cleanup
 # Admin revokes an active session
 [INFO] 🚫 [alice-debug-api] revoked by admin — triggering immediate cleanup on cluster=prod ns=default
 [INFO] 🔒 Revoke signal sent to 1 terminal session(s) for alice-debug-api
+
+# Pending request auto-denied after limit
+[INFO] ⏰ [alice-debug-api] auto-denied — pending for 4.1h (limit=4h)
 
 # Hourly cleanup of old CRDs
 [INFO] ✨ [periodic] cleanup done — no stale CRDs found
