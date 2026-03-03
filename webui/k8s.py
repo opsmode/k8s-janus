@@ -101,8 +101,11 @@ def get_clusters() -> list[dict]:
 
 
 def invalidate_clusters_cache() -> None:
-    """Force a refresh on the next get_clusters() call."""
+    """Force a refresh on the next get_clusters() call.
+    Also clears the client cache since cluster config (display names, secrets) may have changed.
+    """
     _clusters_cache["expires"] = 0.0
+    _CLIENT_CACHE.clear()
 
 
 # Eagerly populate on first import (used by terminal_ws and other direct imports)

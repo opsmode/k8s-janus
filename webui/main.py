@@ -23,7 +23,7 @@ from k8s import (
     get_clusters, invalidate_clusters_cache,
     CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
 )
-from terminal_ws import terminal_websocket_handler, broadcast_to_all, notify_revoked
+from terminal_ws import terminal_websocket_handler, notify_revoked
 
 # ---------------------------------------------------------------------------
 # Setup wizard — in-memory session state
@@ -89,6 +89,7 @@ logging.getLogger("uvicorn.access").addFilter(_AccessLogFilter())
 # Phase enum
 # ---------------------------------------------------------------------------
 
+
 class Phase(str, Enum):
     PENDING  = "Pending"
     APPROVED = "Approved"
@@ -118,6 +119,7 @@ def _valid_ns(s: str) -> bool:
 
 def _valid_cluster(s: str) -> bool:
     return bool(s and _CLUSTER_RE.match(s))
+
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -165,6 +167,7 @@ async def on_startup():
     else:
         logger.info("ℹ️  No namespaces excluded (EXCLUDED_NAMESPACES not set)")
     # Schedule periodic DB cleanup every 24h
+
     async def _db_cleanup_loop():
         while True:
             await asyncio.sleep(86400)
@@ -362,7 +365,8 @@ async def setup_run(request: Request):
     kc = _setup_kubeconfigs[session_id]
     q: asyncio.Queue = asyncio.Queue()
     _setup_queues[session_id] = q
-    asyncio.ensure_future(_run_setup_task(session_id, kc, central, central_display or central_name or central, remotes, JANUS_NAMESPACE, q))
+    display = central_display or central_name or central
+    asyncio.ensure_future(_run_setup_task(session_id, kc, central, display, remotes, JANUS_NAMESPACE, q))
     return JSONResponse({"ok": True})
 
 
@@ -505,7 +509,6 @@ async def setup_redirect_url(request: Request):
         host   = request.headers.get("x-forwarded-host", request.headers.get("host", "localhost"))
         base_url = f"{scheme}://{host}"
     return JSONResponse({"url": f"{base_url}/"})
-
 
 
 @app.websocket("/ws/setup/{session_id}")
@@ -985,7 +988,6 @@ async def revoke(request: Request, cluster: str, name: str):
     return RedirectResponse(url="/admin", status_code=303)
 
 
-
 @app.get("/terminal/{cluster}/{name}", response_class=HTMLResponse)
 async def terminal(request: Request, cluster: str, name: str):
     ar = get_access_request(name, cluster)
@@ -1045,14 +1047,15 @@ async def list_pods(cluster: str, name: str, namespace: str = ""):
 
 
 @app.get("/api/terminal/{cluster}/{name}/{pod}/logs")
-async def get_pod_logs(cluster: str, name: str, pod: str, namespace: str = ""):
+async def get_pod_logs(cluster: str, name: str, pod: str, namespace: str = "", tail: int = 100):
     if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "logs": ""}, status_code=400)
+    tail = max(10, min(tail, 5000))
     core_v1, resolved_ns = _token_client(name, cluster, namespace)
     if core_v1 is None:
         return JSONResponse({"error": "Access not active or request not found", "logs": ""})
     try:
-        logs = core_v1.read_namespaced_pod_log(name=pod, namespace=resolved_ns, tail_lines=100, timestamps=True)
+        logs = core_v1.read_namespaced_pod_log(name=pod, namespace=resolved_ns, tail_lines=tail, timestamps=True)
         return JSONResponse({"logs": logs or "", "error": None})
     except Exception as e:
         logger.error(f"💥 Failed to get logs for {cluster}/{resolved_ns}/{pod}: {e}")
@@ -1107,8 +1110,6 @@ async def audit_for_request(name: str):
     return JSONResponse(get_audit_log(name))
 
 
-
-
 # ---------------------------------------------------------------------------
 # Phase polling (for status page auto-redirect on revoke/expire)
 # ---------------------------------------------------------------------------
@@ -1122,27 +1123,6 @@ async def api_request_phase(cluster: str, name: str):
     if not ar:
         return JSONResponse({"phase": "NotFound"})
     return JSONResponse({"phase": ar.get("status", {}).get("phase", "Pending")})
-
-
-# ---------------------------------------------------------------------------
-# Broadcast (admin only)
-# ---------------------------------------------------------------------------
-
-@app.post("/admin/broadcast")
-async def admin_broadcast(request: Request, message: str = Form(...)):
-    if (err := _require_admin(request)):
-        return err
-    sender, _ = _get_user(request)
-    sender    = sender or "admin"
-    message   = message.strip()[:500]
-    if not message:
-        return RedirectResponse(url="/admin", status_code=303)
-    count = await broadcast_to_all(message, sender)
-    logger.info(f"📣 Broadcast from {sender} to {count} terminal sessions: {message[:80]}")
-    log_audit("system", "broadcast.sent", actor=sender, detail=f"recipients={count} msg={message[:100]}")
-    if count == 0:
-        logger.warning("📣 Broadcast sent but no active terminal sessions connected")
-    return RedirectResponse(url="/admin", status_code=303)
 
 
 # ---------------------------------------------------------------------------

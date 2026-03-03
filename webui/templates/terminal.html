@@ -727,6 +727,10 @@
         btn.style.color         = active ? '#a5b4fc' : 'var(--text-dim)';
         btn.style.fontWeight    = active ? '600' : '400';
       });
+      // Reset pod selection state so panes don't show stale pod from previous namespace
+      paneA.currentPod = null;
+      paneA.podLabel.textContent = 'No pod selected';
+      if (paneB) { paneB.currentPod = null; paneB.podLabel.textContent = 'No pod selected'; }
       loadPods();
     }
 
@@ -755,6 +759,14 @@
         setTimeout(tick, 1000);
       }
       tick();
+      // Re-sync expiry time from server every 30s to prevent clock drift
+      setInterval(async () => {
+        try {
+          const d = await fetch(`/api/status/${cluster}/${requestName}`).then(r => r.json());
+          const ea = d?.status?.expiresAt;
+          if (ea) { expires.setTime(new Date(ea).getTime()); }
+        } catch(_) {}
+      }, 30000);
     })();
 
     // ========================================================================
@@ -805,7 +817,8 @@
           this._retryCount++;
           if (this._retryCount > 10) {
             this._setStatus(false, 'Reconnect failed');
-            if (this.term) this.term.write('\r\n\x1b[31mMax reconnect attempts reached. Reload to retry.\x1b[0m\r\n');
+            if (this.term) this.term.write('\r\n\x1b[31mConnection lost — max retries exceeded.\x1b[0m\r\n');
+            showBanner('error', '🔌 Terminal disconnected — <a href="" onclick="location.reload();return false;" style="color:#fca5a5;text-decoration:underline;">Reload to reconnect</a>', 0);
             return;
           }
           const delay = Math.min(2000 * Math.pow(1.5, this._retryCount - 1), 30000);
@@ -994,8 +1007,9 @@
       destroy() {
         clearInterval(this._activityTimer);
         clearTimeout(this._reconnectTimer);
-        if (this.ws) { try { this.ws.close(); } catch(_){} }
-        if (this.term) { try { this.term.dispose(); } catch(_){} }
+        if (this.ws) { try { this.ws.close(); } catch(_){} this.ws = null; }
+        if (this.term) { try { this.term.dispose(); } catch(_){} this.term = null; }
+        if (this.termEl) { this.termEl.innerHTML = ''; }
       }
     }
 
