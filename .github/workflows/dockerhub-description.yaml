@@ -1,0 +1,23 @@
+name: DockerHub Description
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+
+jobs:
+  update-dockerhub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update DockerHub description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: opsmode/k8s-janus
+          readme-filepath: ./README.md
+          short-description: "Just-in-Time kubectl exec access — request, approve, auto-expire. No permanent permissions."
