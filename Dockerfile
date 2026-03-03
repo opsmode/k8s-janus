@@ -2,8 +2,9 @@ FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Build deps for psycopg2-binary and native extensions
-RUN apk add --no-cache libpq gcc musl-dev
+# Upgrade all packages to pick up security patches, then install build deps
+RUN apk upgrade --no-cache && \
+    apk add --no-cache libpq gcc musl-dev
 
 # Combined requirements
 COPY requirements.txt .
