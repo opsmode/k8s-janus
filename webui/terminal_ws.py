@@ -130,6 +130,7 @@ def _stream_thread(exec_resp, pod_name: str,
                    request_name: str):
     """Single thread owns all stream I/O + command capture."""
     cmd_buf: list[str] = []
+    in_esc = False   # True while consuming an escape sequence
     try:
         while not stop_evt.is_set() and exec_resp.is_open():
             # Drain keystrokes
@@ -139,7 +140,14 @@ def _stream_thread(exec_resp, pod_name: str,
                     exec_resp.write_stdin(data)
                     # Command capture — reconstruct lines from raw keystrokes
                     for ch in data:
-                        if ch in ('\r', '\n'):
+                        if in_esc:
+                            # Escape sequences end at a letter (A-Z, a-z) or '~'
+                            if ch.isalpha() or ch == '~':
+                                in_esc = False
+                            continue
+                        if ch == '\x1b':            # ESC — start of escape sequence
+                            in_esc = True
+                        elif ch in ('\r', '\n'):
                             line = ''.join(cmd_buf).strip()
                             if line:
                                 log_command(request_name, pod_name, line)
@@ -149,7 +157,7 @@ def _stream_thread(exec_resp, pod_name: str,
                                 cmd_buf.pop()
                         elif ch == '\x03':          # Ctrl-C
                             cmd_buf.clear()
-                        elif not ch.startswith('\x1b') and ch.isprintable():
+                        elif ch.isprintable():
                             cmd_buf.append(ch)
                 except _queue.Empty:
                     break
