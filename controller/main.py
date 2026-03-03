@@ -603,10 +603,10 @@ async def _setup_remote_clusterroles():
     """Best-effort background task: ensure janus-pod-exec ClusterRole on all remote clusters.
     Skips the central cluster — its ClusterRole is managed by Helm."""
     _clusters_live = get_clusters()
-    central_name = _clusters_live[0]["name"]
+    central_name   = _clusters_live[0]["name"]
     for cluster in _clusters_live:
         cname = cluster.get("name", "")
-        if not cname or cname == _clusters_live[0]["name"]:
+        if not cname or cname == central_name:
             continue
         try:
             _, remote_rbac = get_k8s_clients_for_cluster(cname)
