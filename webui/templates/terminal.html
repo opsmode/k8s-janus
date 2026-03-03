@@ -544,8 +544,20 @@
   <div class="main-container">
     <div class="sidebar">
       <div class="sidebar-header">
-        <h2>Pods in <code>{{ namespace }}</code></h2>
-        <p id="pod-count">Loading pods...</p>
+        <h2>Pods</h2>
+        {% if namespaces | length > 1 %}
+        <div id="ns-tabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;">
+          {% for ns in namespaces %}
+          <button onclick="switchNamespace('{{ ns }}')"
+                  class="ns-tab{% if loop.first %} active{% endif %}"
+                  data-ns="{{ ns }}"
+                  style="padding:3px 10px;font-size:0.72rem;font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;transition:color 0.15s,border-color 0.15s,background 0.15s;">{{ ns }}</button>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size:0.78rem;color:var(--text-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;">{{ namespace }}</p>
+        {% endif %}
+        <p id="pod-count" style="margin-top:6px;">Loading pods...</p>
       </div>
       <div class="pod-list" id="pod-list">
         <div class="loading-pods">
@@ -692,8 +704,20 @@
     // ── Constants ──
     const cluster     = {{ cluster | tojson }};
     const requestName = {{ request_name | tojson }};
-    const namespace   = {{ namespace | tojson }};
+    const namespaces  = {{ namespaces | tojson }};
+    let   activeNs    = namespaces[0] || {{ namespace | tojson }};
     const WS_URL      = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal/${cluster}/${requestName}`;
+
+    function switchNamespace(ns) {
+      activeNs = ns;
+      document.querySelectorAll('.ns-tab').forEach(btn => {
+        const active = btn.dataset.ns === ns;
+        btn.style.background    = active ? 'rgba(99,102,241,0.12)' : 'var(--surface-2)';
+        btn.style.borderColor   = active ? 'var(--accent)' : 'var(--border)';
+        btn.style.color         = active ? 'var(--accent)' : 'var(--text-dim)';
+      });
+      loadPods();
+    }
 
     // ── Utilities ──
     function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
@@ -918,7 +942,7 @@
         const el = document.getElementById(`pane-${this.id}-logs`);
         el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">Loading logs…</div>';
         try {
-          const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/logs`).then(r => r.json());
+          const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/logs?namespace=${encodeURIComponent(activeNs)}`).then(r => r.json());
           if (d.error) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">Error: ${d.error}</div>`; return; }
           // Add section breaks before lines that start with a timestamp (ISO-8601 or k8s log format)
           const _tsRe = /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
@@ -943,7 +967,7 @@
         const el = document.getElementById(`pane-${this.id}-events`);
         el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">Loading events…</div>';
         try {
-          const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/events`).then(r => r.json());
+          const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/events?namespace=${encodeURIComponent(activeNs)}`).then(r => r.json());
           if (d.error) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">Error: ${d.error}</div>`; return; }
           if (d.forbidden) { el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">⚠️ Events not available.</div>'; return; }
           if (!d.events.length) { el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">No events found.</div>'; return; }
@@ -1053,7 +1077,7 @@
     let refreshInterval = null;
 
     function loadPods() {
-      fetch(`/api/terminal/${cluster}/${requestName}/pods`)
+      fetch(`/api/terminal/${cluster}/${requestName}/pods?namespace=${encodeURIComponent(activeNs)}`)
         .then(r => r.json())
         .then(data => {
           const podList  = document.getElementById('pod-list');

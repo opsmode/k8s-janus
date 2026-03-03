@@ -175,7 +175,13 @@
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 6px;
       margin-top: 4px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 2px;
     }
+    .ns-grid::-webkit-scrollbar { width: 4px; }
+    .ns-grid::-webkit-scrollbar-track { background: transparent; }
+    .ns-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     .ns-item {
       display: flex;
       align-items: center;
@@ -187,15 +193,25 @@
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       user-select: none;
+      position: relative;
     }
     .ns-item:hover { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3); }
-    .ns-item.selected { background: rgba(99,102,241,0.12); border-color: var(--accent); }
-    .ns-checkbox {
+    .ns-item.selected { background: rgba(16,185,129,0.08); border-color: var(--success); }
+    .ns-check {
       width: 14px; height: 14px;
-      accent-color: var(--accent);
-      cursor: pointer;
+      border: 1.5px solid var(--border-light);
+      border-radius: 3px;
       flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+      background: var(--surface-3);
     }
+    .ns-item.selected .ns-check {
+      background: var(--success);
+      border-color: var(--success);
+    }
+    .ns-check svg { display: none; }
+    .ns-item.selected .ns-check svg { display: block; }
     .ns-name {
       font-size: 0.78rem;
       font-family: 'JetBrains Mono', monospace;
@@ -503,11 +519,15 @@
             <div id="ns-loading" style="font-size:0.8rem;color:var(--text-dim);padding:6px 0;">Loading…</div>
             <div class="ns-grid" id="ns-grid" style="display:none;"></div>
           </div>
-          <div class="form-group full" id="pod-preview" style="display:none;">
-            <label>Pods in <span id="pod-preview-label" style="color:var(--accent);font-family:'JetBrains Mono',monospace;"></span></label>
-            <div id="pod-list" style="max-height:150px;overflow-y:auto;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;">
-              <div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Hover a namespace to see pods</div>
+          <!-- Pod popover: fixed-position, no layout impact -->
+          <div id="pod-preview" style="display:none;position:fixed;z-index:200;width:260px;
+               background:var(--surface-3);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+               box-shadow:0 8px 24px rgba(0,0,0,0.4);padding:10px;pointer-events:none;">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;
+                 font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              <span id="pod-preview-label"></span>
             </div>
+            <div id="pod-list" style="max-height:140px;overflow-y:auto;display:grid;gap:3px;"></div>
           </div>
           <div class="form-group full">
             <label for="reason">Business justification (or a really convincing lie)</label>
@@ -567,7 +587,11 @@
               <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
               <td>{{ spec.get("requester", "—") }}</td>
               <td><code>{{ ar_cluster_display }}</code></td>
-              <td><code>{{ spec.get("namespace", "—") }}</code></td>
+              <td>
+                {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
+                {% for ns in nss %}<code>{{ ns }}</code>{% if not loop.last %} {% endif %}{% endfor %}
+                {% if not nss %}—{% endif %}
+              </td>
               <td>
                 {% if phase == "Active" and st.get("expiresAt") %}
                   <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
@@ -672,12 +696,10 @@
       if (count > 0) {
         countEl.textContent = count + ' selected';
         countEl.style.display = '';
-        document.getElementById('submit-label').textContent =
-          count === 1 ? 'Submit Request' : `Submit ${count} Requests`;
       } else {
         countEl.style.display = 'none';
-        document.getElementById('submit-label').textContent = 'Submit Request';
       }
+      document.getElementById('submit-label').textContent = 'Submit Request';
     }
 
     async function onClusterChange(clusterName) {
@@ -711,9 +733,13 @@
 
         grid.innerHTML = namespaces.map(ns => `
           <div class="ns-item" onclick="toggleNs('${ns.replace(/'/g,"\\'")}', this)"
-               onmouseenter="previewPods('${ns.replace(/'/g,"\\'")}')">
-            <input type="checkbox" class="ns-checkbox"
-                   onclick="event.stopPropagation();toggleNs('${ns.replace(/'/g,"\\'")}',this.parentElement)">
+               onmouseenter="previewPods('${ns.replace(/'/g,"\\'")}', this)"
+               onmouseleave="hidePreview()">
+            <div class="ns-check">
+              <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
             <span class="ns-name">${ns}</span>
           </div>
         `).join('');
@@ -726,50 +752,63 @@
     }
 
     function toggleNs(ns, itemEl) {
-      const cb = itemEl.querySelector('.ns-checkbox');
       if (_nsSelected.has(ns)) {
         _nsSelected.delete(ns);
         itemEl.classList.remove('selected');
-        if (cb) cb.checked = false;
       } else {
         _nsSelected.add(ns);
         itemEl.classList.add('selected');
-        if (cb) cb.checked = true;
       }
       _updateSubmitState();
     }
 
-    async function previewPods(ns) {
+    function _positionPopover(triggerEl) {
+      const podPreview = document.getElementById('pod-preview');
+      const rect = triggerEl.getBoundingClientRect();
+      const pw = 260;
+      let left = rect.right + 8;
+      if (left + pw > window.innerWidth - 8) left = rect.left - pw - 8;
+      podPreview.style.left = left + 'px';
+      podPreview.style.top  = Math.min(rect.top, window.innerHeight - 200) + 'px';
+    }
+
+    let _previewTimer = null;
+    async function previewPods(ns, triggerEl) {
       if (!_currentCluster) return;
+      clearTimeout(_previewTimer);
       const podPreview = document.getElementById('pod-preview');
       const podList    = document.getElementById('pod-list');
       const label      = document.getElementById('pod-preview-label');
 
-      podPreview.style.display = 'block';
       label.textContent = ns;
-      podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">Loading pods…</div>';
+      podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.75rem;padding:4px;">Loading…</div>';
+      podPreview.style.display = 'block';
+      if (triggerEl) _positionPopover(triggerEl);
 
       try {
         const resp = await fetch('/api/pods/' + encodeURIComponent(_currentCluster) + '/' + encodeURIComponent(ns));
         const data = await resp.json();
         if (data.error || !data.pods.length) {
-          podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">No pods found</div>';
+          podList.innerHTML = '<div style="color:var(--text-dim);font-size:0.75rem;padding:4px;">No pods</div>';
           return;
         }
-        let html = '<div style="display:grid;gap:4px;">';
-        data.pods.forEach(pod => {
+        podList.innerHTML = data.pods.map(pod => {
           const sc = pod.status === 'Running' ? 'var(--success)' : 'var(--text-dim)';
-          html += `<div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface-3);border-radius:4px;">
-            <div style="width:6px;height:6px;border-radius:50%;background:${sc};"></div>
-            <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text);">${pod.name}</div>
-            <div style="font-size:0.7rem;color:var(--text-dim);">${pod.ready}/${pod.total}</div>
+          return `<div style="display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--surface-2);border-radius:4px;">
+            <div style="width:5px;height:5px;border-radius:50%;background:${sc};flex-shrink:0;"></div>
+            <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${pod.name}</div>
+            <div style="font-size:0.68rem;color:var(--text-dim);">${pod.ready}/${pod.total}</div>
           </div>`;
-        });
-        html += `</div><div style="margin-top:8px;font-size:0.7rem;color:var(--text-dim);text-align:center;">${data.pods.length} pod${data.pods.length !== 1 ? 's' : ''}</div>`;
-        podList.innerHTML = html;
+        }).join('');
       } catch (e) {
-        podList.innerHTML = '<div style="color:var(--danger);font-size:0.8rem;padding:8px;">Failed to load pods</div>';
+        podList.innerHTML = '<div style="color:var(--danger);font-size:0.75rem;padding:4px;">Failed</div>';
       }
+    }
+
+    function hidePreview() {
+      _previewTimer = setTimeout(() => {
+        document.getElementById('pod-preview').style.display = 'none';
+      }, 150);
     }
 
     async function submitMultiRequest() {

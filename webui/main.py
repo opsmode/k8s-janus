@@ -251,17 +251,35 @@ def _patch_status(name: str, body: dict) -> None:
     )
 
 
-def _token_client(name: str, cluster: str):
-    """Return (core_v1_with_token, namespace) for the given AccessRequest."""
+def _token_client(name: str, cluster: str, namespace: str = ""):
+    """Return (core_v1_with_token, namespace) for the given AccessRequest.
+
+    If namespace is given, uses the token secret for that specific namespace.
+    Otherwise falls back to the first namespace in the spec.
+    """
     from k8s import get_client_with_token
     ar = get_access_request(name, cluster)
     if not ar:
         return None, None
     if ar.get("status", {}).get("phase") != Phase.ACTIVE:
         return None, None
-    namespace   = ar.get("spec", {}).get("namespace", "")
-    secret_name = ar.get("status", {}).get("tokenSecret", "")
-    if not namespace or not secret_name:
+
+    # Resolve which namespace and which secret to use
+    token_secrets = ar.get("status", {}).get("tokenSecrets", {})
+    namespaces    = ar.get("spec", {}).get("namespaces") or []
+    if not namespaces:
+        ns = ar.get("spec", {}).get("namespace", "")
+        namespaces = [ns] if ns else []
+
+    if namespace and namespace in namespaces:
+        resolved_ns = namespace
+    elif namespaces:
+        resolved_ns = namespaces[0]
+    else:
+        return None, None
+
+    secret_name = token_secrets.get(resolved_ns) or ar.get("status", {}).get("tokenSecret", "")
+    if not secret_name:
         return None, None
     try:
         token, server, ca = read_token_secret(secret_name)
@@ -269,7 +287,7 @@ def _token_client(name: str, cluster: str):
         logger.error(f"🔑 Failed to read token secret {secret_name}: {e}")
         return None, None
     core_v1 = get_client_with_token(cluster, token, server, ca)
-    return core_v1, namespace
+    return core_v1, resolved_ns
 
 
 # ---------------------------------------------------------------------------
@@ -564,7 +582,7 @@ async def namespaces(cluster_name: str):
 
 @app.post("/request")
 async def submit_request(request: Request):
-    """Accept a multi-cluster/multi-namespace access request as JSON.
+    """Accept a single-cluster multi-namespace access request as JSON.
 
     Body: {
       "requester": str,          # may be overridden by auth header
@@ -573,6 +591,7 @@ async def submit_request(request: Request):
       "ttl_hours": int,
     }
 
+    Creates one AccessRequest CRD with namespaces[] for all selected namespaces.
     Returns JSON: {"created": [str], "skipped": [str], "errors": [str]}
     """
     user_from_auth, _ = _get_user(request)
@@ -594,108 +613,81 @@ async def submit_request(request: Request):
 
     ttl_seconds = min(ttl_hours * 3600, MAX_TTL_SECONDS)
 
-    # All targets must be for the same cluster (one cluster, multi-NS model)
+    # All targets must be for the same cluster
     clusters_in_request = {t.get("cluster", "") for t in targets}
     if len(clusters_in_request) > 1:
         return JSONResponse({"error": "All namespaces must be on the same cluster."}, status_code=400)
 
-    # Validate all targets before creating anything
+    cluster = targets[0]["cluster"]
+    if not _valid_cluster(cluster) or not get_cluster_config(cluster):
+        return JSONResponse({"error": f"Unknown cluster: {cluster}"}, status_code=400)
+
+    allowed = get_allowed_namespaces(cluster)
+    skipped: list[str] = []
+    errors:  list[str] = []
+
+    namespaces = []
     for t in targets:
-        cluster   = t.get("cluster", "")
-        namespace = t.get("namespace", "")
-        if not _valid_cluster(cluster) or not get_cluster_config(cluster):
-            return JSONResponse({"error": f"Unknown cluster: {cluster}"}, status_code=400)
-        if not _valid_ns(namespace):
-            return JSONResponse({"error": f"Invalid namespace: {namespace}"}, status_code=400)
+        ns = t.get("namespace", "")
+        if not _valid_ns(ns):
+            skipped.append(f"{ns} (invalid name)")
+            continue
+        if ns not in allowed:
+            skipped.append(f"{ns} (not allowed)")
+            continue
+        namespaces.append(ns)
 
+    if not namespaces:
+        return JSONResponse({"error": "No valid namespaces.", "skipped": skipped, "errors": errors}, status_code=400)
+
+    # Rate limit: max 10 active/pending/approved
     all_requests = list_access_requests()
-
-    # Rate limit: max 10 active/pending/approved across all requests
     active_count = sum(
         1 for ar in all_requests
         if ar.get("spec", {}).get("requester") == requester
         and ar.get("status", {}).get("phase", "") in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
     )
-    remaining_slots = 10 - active_count
-    if remaining_slots <= 0:
+    if active_count >= 10:
         return JSONResponse(
             {"error": "Too many active requests. Wait for existing requests to expire or be revoked."},
             status_code=429,
         )
-    if len(targets) > remaining_slots:
-        targets = targets[:remaining_slots]
 
     central_api, _ = get_api_clients(get_clusters()[0]["name"])
     safe_requester  = requester.split("@")[0].lower().replace(".", "-")[:20]
+    ts_base         = datetime.now(timezone.utc).strftime("%m%d%H%M%S")
+    name            = f"k8s-janus-{safe_requester}-{ts_base}"
 
-    created: list[str] = []
-    skipped: list[str] = []
-    errors:  list[str] = []
-    ts_base  = datetime.now(timezone.utc).strftime("%m%d%H%M%S")
+    ar_body = {
+        "apiVersion": f"{CRD_GROUP}/{CRD_VERSION}",
+        "kind": "AccessRequest",
+        "metadata": {"name": name},
+        "spec": {
+            "requester":   requester,
+            "namespaces":  namespaces,
+            "namespace":   namespaces[0],  # backwards compat field
+            "reason":      reason,
+            "ttlSeconds":  ttl_seconds,
+            "cluster":     cluster,
+        },
+    }
 
-    for idx, t in enumerate(targets):
-        cluster   = t["cluster"]
-        namespace = t["namespace"]
-
-        # Skip if namespace not allowed on this cluster
-        allowed = get_allowed_namespaces(cluster)
-        if namespace not in allowed:
-            skipped.append(f"{cluster}/{namespace} (namespace not allowed)")
-            continue
-
-        # Skip duplicates: existing active/pending/approved request for same cluster+ns
-        dup = next(
-            (ar for ar in all_requests
-             if ar.get("spec", {}).get("requester") == requester
-             and ar.get("spec", {}).get("cluster") == cluster
-             and ar.get("spec", {}).get("namespace") == namespace
-             and ar.get("status", {}).get("phase", "") in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)),
-            None,
+    try:
+        central_api.create_cluster_custom_object(
+            group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", body=ar_body,
         )
-        if dup:
-            skipped.append(f"{cluster}/{namespace} (already has active request {dup['metadata']['name']})")
-            continue
-
-        suffix = f"{ts_base}{idx:02d}"
-        name   = f"k8s-janus-{safe_requester}-{suffix}"
-
-        ar_body = {
-            "apiVersion": f"{CRD_GROUP}/{CRD_VERSION}",
-            "kind": "AccessRequest",
-            "metadata": {"name": name},
-            "spec": {
-                "requester": requester,
-                "namespace": namespace,
-                "reason": reason,
-                "ttlSeconds": ttl_seconds,
-                "cluster": cluster,
-            },
-        }
-
-        try:
-            central_api.create_cluster_custom_object(
-                group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", body=ar_body,
-            )
-            logger.info(f"🎫 Created AccessRequest {name} for {requester} on {cluster}/{namespace}")
-            upsert_request(
-                name,
-                cluster=cluster, namespace=namespace, requester=requester,
-                ttl_seconds=ttl_seconds, reason=reason, phase=Phase.PENDING, created_at=_now(),
-            )
-            log_audit(name, "request.created", actor=requester,
-                      detail=f"cluster={cluster} ns={namespace} ttl={ttl_seconds}s")
-            created.append(name)
-        except ApiException as e:
-            logger.error(f"💥 Failed to create AccessRequest for {cluster}/{namespace}: {e}")
-            errors.append(f"{cluster}/{namespace}: API error")
-
-    if not created and not skipped:
-        return JSONResponse(
-            {"error": "All requests failed.", "errors": errors},
-            status_code=500,
+        logger.info(f"🎫 Created AccessRequest {name} for {requester} on {cluster} ns={namespaces}")
+        upsert_request(
+            name,
+            cluster=cluster, namespace=namespaces[0], requester=requester,
+            ttl_seconds=ttl_seconds, reason=reason, phase=Phase.PENDING, created_at=_now(),
         )
-
-    return JSONResponse({"created": created, "skipped": skipped, "errors": errors})
+        log_audit(name, "request.created", actor=requester,
+                  detail=f"cluster={cluster} ns={namespaces} ttl={ttl_seconds}s")
+        return JSONResponse({"created": [name], "skipped": skipped, "errors": errors})
+    except ApiException as e:
+        logger.error(f"💥 Failed to create AccessRequest for {cluster} ns={namespaces}: {e}")
+        return JSONResponse({"error": "Failed to create request.", "errors": [str(e)]}, status_code=500)
 
 
 @app.get("/status/{cluster}/{name}", response_class=HTMLResponse)
@@ -937,12 +929,15 @@ async def terminal(request: Request, cluster: str, name: str):
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
     _, user_name    = _get_user(request)
+    spec       = ar.get("spec", {})
+    namespaces = spec.get("namespaces") or ([spec["namespace"]] if spec.get("namespace") else [])
     return templates.TemplateResponse("terminal.html", {
         "request": request,
         "cluster": cluster,
         "cluster_display": cluster_display,
         "request_name": name,
-        "namespace": ar.get("spec", {}).get("namespace", ""),
+        "namespace": namespaces[0] if namespaces else "",
+        "namespaces": namespaces,
         "expires_at": ar.get("status", {}).get("expiresAt", ""),
         "user_name": user_name,
     })
@@ -958,51 +953,54 @@ async def terminal_websocket(websocket: WebSocket, cluster: str, name: str):
 # ---------------------------------------------------------------------------
 
 @app.get("/api/terminal/{cluster}/{name}/pods")
-async def list_pods(cluster: str, name: str):
+async def list_pods(cluster: str, name: str, namespace: str = ""):
     if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "pods": []}, status_code=400)
-    core_v1, namespace = _token_client(name, cluster)
+    core_v1, resolved_ns = _token_client(name, cluster, namespace)
     if core_v1 is None:
         return JSONResponse({"error": "Access not active or request not found", "pods": []})
     try:
-        pods = core_v1.list_namespaced_pod(namespace=namespace)
+        pods = core_v1.list_namespaced_pod(namespace=resolved_ns)
         DISTROLESS = ("distroless", "scratch", "gcr.io/distroless", "chainguard")
         pod_list = []
         for pod in pods.items:
-            images   = [c.image or "" for c in pod.spec.containers]
+            images    = [c.image or "" for c in pod.spec.containers]
             has_shell = not any(any(d in img.lower() for d in DISTROLESS) for img in images)
-            pod_list.append({"name": pod.metadata.name, "status": pod.status.phase, "hasShell": has_shell})
-        return JSONResponse({"pods": pod_list, "error": None})
+            pod_list.append({
+                "name": pod.metadata.name, "status": pod.status.phase,
+                "hasShell": has_shell, "namespace": resolved_ns,
+            })
+        return JSONResponse({"pods": pod_list, "namespace": resolved_ns, "error": None})
     except Exception as e:
-        logger.error(f"💥 Failed to list pods in {cluster}/{namespace}: {e}")
+        logger.error(f"💥 Failed to list pods in {cluster}/{resolved_ns}: {e}")
         return JSONResponse({"error": "Failed to list pods", "pods": []})
 
 
 @app.get("/api/terminal/{cluster}/{name}/{pod}/logs")
-async def get_pod_logs(cluster: str, name: str, pod: str):
+async def get_pod_logs(cluster: str, name: str, pod: str, namespace: str = ""):
     if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "logs": ""}, status_code=400)
-    core_v1, namespace = _token_client(name, cluster)
+    core_v1, resolved_ns = _token_client(name, cluster, namespace)
     if core_v1 is None:
         return JSONResponse({"error": "Access not active or request not found", "logs": ""})
     try:
-        logs = core_v1.read_namespaced_pod_log(name=pod, namespace=namespace, tail_lines=100, timestamps=True)
+        logs = core_v1.read_namespaced_pod_log(name=pod, namespace=resolved_ns, tail_lines=100, timestamps=True)
         return JSONResponse({"logs": logs or "", "error": None})
     except Exception as e:
-        logger.error(f"💥 Failed to get logs for {cluster}/{namespace}/{pod}: {e}")
+        logger.error(f"💥 Failed to get logs for {cluster}/{resolved_ns}/{pod}: {e}")
         return JSONResponse({"error": "Failed to retrieve pod logs", "logs": ""})
 
 
 @app.get("/api/terminal/{cluster}/{name}/{pod}/events")
-async def get_pod_events(cluster: str, name: str, pod: str):
+async def get_pod_events(cluster: str, name: str, pod: str, namespace: str = ""):
     if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "events": []}, status_code=400)
-    core_v1, namespace = _token_client(name, cluster)
+    core_v1, resolved_ns = _token_client(name, cluster, namespace)
     if core_v1 is None:
         return JSONResponse({"error": "Access not active or request not found", "events": []})
     try:
         events = core_v1.list_namespaced_event(
-            namespace=namespace, field_selector=f"involvedObject.name={pod}"
+            namespace=resolved_ns, field_selector=f"involvedObject.name={pod}"
         )
         event_list = [
             {
@@ -1016,12 +1014,12 @@ async def get_pod_events(cluster: str, name: str, pod: str):
         return JSONResponse({"events": event_list, "error": None})
     except ApiException as e:
         if e.status == 403:
-            logger.warning(f"⛔ Events forbidden for {cluster}/{namespace}/{pod}")
+            logger.warning(f"⛔ Events forbidden for {cluster}/{resolved_ns}/{pod}")
             return JSONResponse({"events": [], "forbidden": True, "error": None})
-        logger.error(f"💥 Failed to get events for {cluster}/{namespace}/{pod}: {e}")
+        logger.error(f"💥 Failed to get events for {cluster}/{resolved_ns}/{pod}: {e}")
         return JSONResponse({"error": "Failed to retrieve pod events", "events": []})
     except Exception as e:
-        logger.error(f"💥 Failed to get events for {cluster}/{namespace}/{pod}: {e}")
+        logger.error(f"💥 Failed to get events for {cluster}/{resolved_ns}/{pod}: {e}")
         return JSONResponse({"error": "Failed to retrieve pod events", "events": []})
 
 

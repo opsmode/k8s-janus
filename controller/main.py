@@ -429,10 +429,13 @@ async def grant_access(name: str, spec: dict, patch):
         audit("access.failed", name, requester=requester, cluster=target_cluster, error=str(e))
 
 
-async def cleanup_after_ttl(request_name: str, namespace: str, ttl: int, target_cluster: str = ""):
-    logger.info(f"⏳ [{request_name}] TTL cleanup scheduled in {ttl}s for cluster={target_cluster} ns={namespace}")
+async def cleanup_after_ttl(request_name: str, namespace, ttl: int, target_cluster: str = ""):
+    """namespace may be a str or list[str]."""
+    namespaces = namespace if isinstance(namespace, list) else [namespace]
+    logger.info(f"⏳ [{request_name}] TTL cleanup scheduled in {ttl}s for cluster={target_cluster} ns={namespaces}")
     await asyncio.sleep(ttl)
-    await cleanup_access(request_name, namespace, target_cluster=target_cluster)
+    for ns in namespaces:
+        await cleanup_access(request_name, ns, target_cluster=target_cluster)
 
 
 async def cleanup_access(request_name: str, namespace: str, revoked: bool = False, target_cluster: str = ""):
