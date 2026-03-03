@@ -175,7 +175,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list", "create", "update", "delete"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
   # Rollout restart after setup (patch deployment annotations)
   - apiGroups: ["apps"]
     resources: ["deployments"]
