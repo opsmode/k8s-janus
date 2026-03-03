@@ -22,31 +22,32 @@ spec:
           properties:
             spec:
               type: object
-              required: ["requester", "namespace", "reason", "ttlSeconds"]
+              required: ["requester", "reason", "ttlSeconds"]
               properties:
                 requester:
                   type: string
-                  description: "Email or username of the requester"
                 namespace:
                   type: string
-                  description: "Target namespace to grant access to"
+                  description: "Deprecated: use namespaces[]"
+                namespaces:
+                  type: array
+                  items:
+                    type: string
+                  description: "Target namespaces to grant access to"
                 reason:
                   type: string
-                  description: "Business justification for access"
                 ttlSeconds:
                   type: integer
-                  description: "How long access should last in seconds"
                   minimum: 600
                   maximum: 28800
                 cluster:
                   type: string
-                  description: "Target cluster name"
             status:
               type: object
               properties:
                 phase:
                   type: string
-                  enum: ["Pending", "Approved", "Denied", "Expired", "Active", "Revoked"]
+                  enum: ["Pending", "Approved", "Denied", "Expired", "Active", "Revoked", "Failed"]
                 approvedBy:
                   type: string
                 approvedAt:
@@ -59,7 +60,11 @@ spec:
                   type: string
                 tokenSecret:
                   type: string
-                  description: "Name of the Kubernetes Secret holding the time-limited token"
+                  description: "Deprecated: use tokenSecrets"
+                tokenSecrets:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                  description: "Map of namespace → Secret name"
                 message:
                   type: string
       subresources:
@@ -68,9 +73,9 @@ spec:
         - name: Requester
           type: string
           jsonPath: .spec.requester
-        - name: Namespace
+        - name: Cluster
           type: string
-          jsonPath: .spec.namespace
+          jsonPath: .spec.cluster
         - name: Phase
           type: string
           jsonPath: .status.phase

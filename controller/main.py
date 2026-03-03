@@ -73,6 +73,15 @@ def get_clusters() -> list[dict]:
     return result
 
 
+def _spec_namespaces(spec: dict) -> list[str]:
+    """Return the list of namespaces from spec, supporting both old and new format."""
+    nss = spec.get("namespaces", [])
+    if nss:
+        return [str(n) for n in nss]
+    ns = spec.get("namespace", "")
+    return [ns] if ns else []
+
+
 # Module-level alias for compatibility
 CLUSTERS: list[dict] = get_clusters()
 
@@ -165,9 +174,10 @@ async def on_create(name, spec, status, patch, **kwargs):
     """New AccessRequest created — validate and notify approvers."""
     requester = spec.get("requester", "unknown")
     cluster = spec.get("cluster", get_clusters()[0]["name"])
-    namespace = spec.get("namespace", "unknown")
+    namespaces = _spec_namespaces(spec)
+    namespace = namespaces[0] if namespaces else "unknown"
     logger.info(SEP)
-    logger.info(f"📥 New AccessRequest [{name}] from {requester} → cluster={cluster} ns={namespace}")
+    logger.info(f"📥 New AccessRequest [{name}] from {requester} → cluster={cluster} ns={namespaces}")
 
     # If phase is already set (controller restarted and re-fired on_create),
     # skip to avoid sending duplicate notifications.
@@ -214,7 +224,8 @@ async def on_create(name, spec, status, patch, **kwargs):
 async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
     """React when phase transitions to Approved, Denied, or Revoked."""
     cluster = spec.get("cluster", get_clusters()[0]["name"])
-    namespace = spec.get("namespace", "unknown")
+    namespaces = _spec_namespaces(spec)
+    namespace = namespaces[0] if namespaces else "unknown"
     requester = spec.get("requester", "unknown")
     logger.info(SEP)
     logger.info(f"🔄 [{name}] phase transition: {old} → {new}  (cluster={cluster} ns={namespace})")
@@ -244,185 +255,177 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
                        cluster=cluster, namespace=namespace, requester=requester,
                        ttl_seconds=spec.get("ttlSeconds", 3600), created_at=_now())
         log_audit(name, "access.revoked", actor=approver, detail=f"cluster={cluster} ns={namespace}")
-        await cleanup_access(name, namespace, revoked=True, target_cluster=cluster)
+        for ns in namespaces:
+            await cleanup_access(name, ns, revoked=True, target_cluster=cluster)
 
 
 async def grant_access(name: str, spec: dict, patch):
-    """Create SA + RoleBinding + TokenRequest on target cluster, store token in Secret on central cluster."""
+    """Create SA + RoleBinding + token per namespace on target cluster."""
     target_cluster = spec.get("cluster", get_clusters()[0]["name"])
-    requester = spec.get("requester", "unknown")
-    namespace = spec.get("namespace", "default")
-    logger.info(SEP)
+    requester      = spec.get("requester", "unknown")
+    namespaces     = _spec_namespaces(spec)
+    if not namespaces:
+        logger.error(f"💥 [{name}] no namespaces in spec")
+        patch.status["phase"] = "Failed"
+        patch.status["message"] = "No namespaces specified"
+        return
 
-    logger.info(f"🔑 [{name}] granting access for {requester} on cluster={target_cluster} ns={namespace}")
+    logger.info(SEP)
+    logger.info(f"🔑 [{name}] granting access for {requester} on cluster={target_cluster} ns={namespaces}")
 
     try:
         core_v1_remote, rbac_v1_remote = get_k8s_clients_for_cluster(target_cluster)
-        logger.info(f"🌐 [{name}] connected to cluster={target_cluster}")
     except ValueError as e:
         logger.error(f"💥 [{name}] unknown cluster '{target_cluster}': {e}")
-        # Keep current phase (likely "Approved"), just set error message
-        patch.status["message"] = f"❌ Error: Unknown cluster: {target_cluster}"
-        audit("access.failed", name, requester=spec.get("requester", "unknown"), cluster=target_cluster, error=str(e))
+        patch.status["phase"] = "Failed"
+        patch.status["message"] = f"Unknown cluster: {target_cluster}"
+        audit("access.failed", name, requester=requester, cluster=target_cluster, error=str(e))
         return
     except Exception as e:
         logger.error(f"💥 [{name}] failed to connect to cluster={target_cluster}: {e}")
-        # Keep current phase, set error message
-        patch.status["message"] = f"❌ Error: Could not connect to cluster {target_cluster}: {e}"
+        patch.status["phase"] = "Failed"
+        patch.status["message"] = f"Could not connect to cluster {target_cluster}: {e}"
         return
 
+    ttl        = int(spec.get("ttlSeconds", 3600))
+    expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).isoformat()
+    labels     = {
+        "k8s-janus.opsmode.io/request":   name,
+        "k8s-janus.opsmode.io/requester": requester.replace("@", "_at_").replace(".", "-")[:63],
+    }
+    annotations = {"k8s-janus.opsmode.io/expires-at": expires_at}
+
+    # Resolve server + CA once for this cluster
+    _clusters_live = get_clusters()
+    cluster_cfg    = next((c for c in _clusters_live if c["name"] == target_cluster), None)
+    server_url = ""
+    ca_data    = ""
     try:
-        ttl = int(spec.get("ttlSeconds", 3600))
-        expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).isoformat()
+        if target_cluster == _clusters_live[0]["name"]:
+            host       = os.environ.get("KUBERNETES_SERVICE_HOST", "")
+            port       = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
+            server_url = f"https://{host}:{port}"
+            ca_path    = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            if os.path.exists(ca_path):
+                with open(ca_path, "rb") as f:
+                    ca_data = base64.b64encode(f.read()).decode()
+        else:
+            secret_name_cfg = (cluster_cfg or {}).get("secretName") or f"{target_cluster}-kubeconfig"
+            core_v1_central, _ = get_k8s_clients()
+            kc_secret  = core_v1_central.read_namespaced_secret(name=secret_name_cfg, namespace=JANUS_NAMESPACE)
+            kc         = yaml.safe_load(base64.b64decode(kc_secret.data["kubeconfig"]))
+            cluster_entry = kc.get("clusters", [{}])[0].get("cluster", {})
+            server_url = cluster_entry.get("server", "")
+            ca_data    = cluster_entry.get("certificate-authority-data", "")
+    except Exception as e:
+        logger.warning(f"⚠️  [{name}] could not resolve server/CA: {e}")
 
-        sa_name = name
-        rb_name = name
-        secret_name = f"janus-token-{name}"
+    core_v1_central, _ = get_k8s_clients()
+    import base64 as b64
+    import re as _re
 
-        labels = {
-            "k8s-janus.opsmode.io/request": name,
-            "k8s-janus.opsmode.io/requester": requester.replace("@", "_at_").replace(".", "-")[:63],
-        }
-        annotations = {"k8s-janus.opsmode.io/expires-at": expires_at}
+    token_secrets: dict[str, str] = {}
+    first_secret = ""
 
-        # 1. Create ServiceAccount on target cluster
-        sa = client.V1ServiceAccount(
-            metadata=client.V1ObjectMeta(name=sa_name, namespace=namespace, labels=labels, annotations=annotations)
-        )
-        try:
-            core_v1_remote.create_namespaced_service_account(namespace=namespace, body=sa)
-            logger.info(f"👤 [{name}] created ServiceAccount={sa_name} in cluster={target_cluster} ns={namespace}")
-        except ApiException as e:
-            if e.status != 409:
-                raise
-            logger.info(f"👤 [{name}] ServiceAccount={sa_name} already exists in cluster={target_cluster} ns={namespace}")
+    try:
+        for namespace in namespaces:
+            sa_name = name
+            rb_name = name
+            ns_slug = _re.sub(r'[^a-z0-9]', '-', namespace.lower())[:20].strip('-')
+            secret_name = f"janus-token-{name}-{ns_slug}"
 
-        # 2. Create RoleBinding on target cluster
-        rb = client.V1RoleBinding(
-            metadata=client.V1ObjectMeta(name=rb_name, namespace=namespace, labels=labels, annotations=annotations),
-            role_ref=client.V1RoleRef(
-                api_group="rbac.authorization.k8s.io",
-                kind="ClusterRole",
-                name="janus-pod-exec",
-            ),
-            subjects=[client.RbacV1Subject(kind="ServiceAccount", name=sa_name, namespace=namespace)]
-        )
-        try:
-            rbac_v1_remote.create_namespaced_role_binding(namespace=namespace, body=rb)
-            logger.info(f"🔗 [{name}] created RoleBinding={rb_name} in cluster={target_cluster} ns={namespace}")
-        except ApiException as e:
-            if e.status != 409:
-                raise
-            logger.info(f"🔗 [{name}] RoleBinding={rb_name} already exists in cluster={target_cluster} ns={namespace}")
+            # ServiceAccount
+            sa = client.V1ServiceAccount(
+                metadata=client.V1ObjectMeta(name=sa_name, namespace=namespace, labels=labels, annotations=annotations)
+            )
+            try:
+                core_v1_remote.create_namespaced_service_account(namespace=namespace, body=sa)
+            except ApiException as e:
+                if e.status != 409:
+                    raise
 
-        # 3. Resolve server URL and CA for the target cluster.
-        #    Central cluster: read from the in-cluster service account files.
-        #    Remote clusters: parse from the kubeconfig Secret.
-        _clusters_live = get_clusters()
-        cluster_cfg = next((c for c in _clusters_live if c["name"] == target_cluster), None)
-        server_url = ""
-        ca_data = ""
+            # RoleBinding
+            rb = client.V1RoleBinding(
+                metadata=client.V1ObjectMeta(name=rb_name, namespace=namespace, labels=labels, annotations=annotations),
+                role_ref=client.V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole", name="janus-pod-exec"),
+                subjects=[client.RbacV1Subject(kind="ServiceAccount", name=sa_name, namespace=namespace)],
+            )
+            try:
+                rbac_v1_remote.create_namespaced_role_binding(namespace=namespace, body=rb)
+            except ApiException as e:
+                if e.status != 409:
+                    raise
 
-        try:
-            if target_cluster == _clusters_live[0]["name"]:
-                # In-cluster: host is injected as KUBERNETES_SERVICE_HOST/PORT
-                host = os.environ.get("KUBERNETES_SERVICE_HOST", "")
-                port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
-                server_url = f"https://{host}:{port}"
-                ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-                if os.path.exists(ca_path):
-                    with open(ca_path, "rb") as f:
-                        ca_data = base64.b64encode(f.read()).decode()
-                logger.info(f"🗺️  [{name}] resolved server URL for central cluster: {server_url}")
-            else:
-                secret_name_cfg = cluster_cfg.get("secretName") or f"{target_cluster}-kubeconfig"
-                if secret_name_cfg:
-                    core_v1_central, _ = get_k8s_clients()
-                    kc_secret = core_v1_central.read_namespaced_secret(name=secret_name_cfg, namespace=JANUS_NAMESPACE)
-                    kubeconfig_raw = base64.b64decode(kc_secret.data["kubeconfig"])
-                    kc = yaml.safe_load(kubeconfig_raw)
-                    cluster_entry = kc.get("clusters", [{}])[0].get("cluster", {})
-                    server_url = cluster_entry.get("server", "")
-                    ca_b64 = cluster_entry.get("certificate-authority-data", "")
-                    ca_data = ca_b64  # already base64-encoded
-                    logger.info(f"🗺️  [{name}] resolved server URL for cluster={target_cluster}: {server_url}")
-        except Exception as e:
-            logger.warning(f"⚠️  [{name}] could not resolve server/CA for cluster={target_cluster}: {e}")
+            # Token
+            tr = core_v1_remote.create_namespaced_service_account_token(
+                name=sa_name, namespace=namespace,
+                body=client.AuthenticationV1TokenRequest(
+                    spec=client.V1TokenRequestSpec(audiences=[], expiration_seconds=ttl)
+                ),
+            )
+            token = tr.status.token
 
-        # 4. Issue TokenRequest on the remote cluster.
-        #    Use audiences=[] so GKE defaults to the cluster's own OIDC issuer URL,
-        #    which is the only audience each GKE cluster accepts for SA tokens.
-        token_request = client.AuthenticationV1TokenRequest(
-            spec=client.V1TokenRequestSpec(audiences=[], expiration_seconds=ttl)
-        )
-        tr = core_v1_remote.create_namespaced_service_account_token(
-            name=sa_name, namespace=namespace, body=token_request
-        )
-        token = tr.status.token
-        logger.info(f"🎟️  [{name}] issued token for SA={sa_name} in cluster={target_cluster}, ttl={ttl}s, expires={expires_at}")
+            # Secret on central cluster
+            secret = client.V1Secret(
+                metadata=client.V1ObjectMeta(
+                    name=secret_name, namespace=JANUS_NAMESPACE,
+                    labels=labels, annotations=annotations,
+                ),
+                data={
+                    "token":     b64.b64encode(token.encode()).decode(),
+                    "server":    b64.b64encode(server_url.encode()).decode(),
+                    "ca":        ca_data if ca_data else "",
+                    "namespace": b64.b64encode(namespace.encode()).decode(),
+                },
+            )
+            try:
+                core_v1_central.create_namespaced_secret(namespace=JANUS_NAMESPACE, body=secret)
+            except ApiException as e:
+                if e.status == 409:
+                    core_v1_central.replace_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE, body=secret)
+                else:
+                    raise
 
-        # 5. Store token + connection info in Secret on central cluster
-        import base64 as b64
-        core_v1_central, _ = get_k8s_clients()
-        secret = client.V1Secret(
-            metadata=client.V1ObjectMeta(
-                name=secret_name,
-                namespace=JANUS_NAMESPACE,
-                labels=labels,
-                annotations=annotations,
-            ),
-            data={
-                "token": b64.b64encode(token.encode()).decode(),
-                "server": b64.b64encode(server_url.encode()).decode(),
-                "ca": ca_data if ca_data else "",
-                "namespace": b64.b64encode(namespace.encode()).decode(),
-            }
-        )
-        try:
-            core_v1_central.create_namespaced_secret(namespace=JANUS_NAMESPACE, body=secret)
-            logger.info(f"🔐 [{name}] stored token Secret={secret_name} in ns={JANUS_NAMESPACE}")
-        except ApiException as e:
-            if e.status == 409:
-                core_v1_central.replace_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE, body=secret)
-                logger.info(f"🔐 [{name}] replaced existing token Secret={secret_name} in ns={JANUS_NAMESPACE}")
+            token_secrets[namespace] = secret_name
+            if not first_secret:
+                first_secret = secret_name
+            logger.info(f"✅ [{name}] ns={namespace} granted, secret={secret_name}")
 
-        patch.status["serviceAccount"] = sa_name
-        patch.status["tokenSecret"] = secret_name
-        patch.status["expiresAt"] = expires_at
-        patch.status["phase"] = "Active"
-        patch.status["message"] = f"Access granted until {expires_at}"
+        patch.status["tokenSecrets"]   = token_secrets
+        patch.status["tokenSecret"]    = first_secret   # backwards compat
+        patch.status["serviceAccount"] = name
+        patch.status["expiresAt"]      = expires_at
+        patch.status["phase"]          = "Active"
+        patch.status["message"]        = f"Access granted until {expires_at}"
 
-        audit("access.granted", name, requester=requester, cluster=target_cluster, namespace=namespace, expires_at=expires_at)
-        logger.info(f"✅ [{name}] access GRANTED — requester={requester} cluster={target_cluster} ns={namespace} expires={expires_at}")
+        audit("access.granted", name, requester=requester, cluster=target_cluster,
+              namespaces=namespaces, expires_at=expires_at)
+        logger.info(f"✅ [{name}] access GRANTED — {requester} cluster={target_cluster} ns={namespaces} expires={expires_at}")
 
         try:
             expires_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
         except Exception:
             expires_dt = None
+
+        # upsert with first namespace for DB (single-ns schema in DB)
         upsert_request(
-            name,
-            phase="Active",
-            cluster=target_cluster,
-            namespace=namespace,
-            requester=requester,
-            ttl_seconds=ttl,
-            reason=spec.get("reason", ""),
+            name, phase="Active", cluster=target_cluster,
+            namespace=namespaces[0], requester=requester,
+            ttl_seconds=ttl, reason=spec.get("reason", ""),
             approved_by=spec.get("approvedBy", ""),
-            service_account=sa_name,
-            token_secret=secret_name,
-            active_at=_now(),
-            expires_at=expires_dt,
-            created_at=_now(),
+            service_account=name,
+            token_secret=first_secret,
+            active_at=_now(), expires_at=expires_dt, created_at=_now(),
         )
         log_audit(name, "access.granted", actor=requester,
-                  detail=f"cluster={target_cluster} ns={namespace} expires={expires_at}")
+                  detail=f"cluster={target_cluster} ns={namespaces} expires={expires_at}")
 
-        asyncio.create_task(cleanup_after_ttl(name, namespace, ttl, target_cluster))
+        asyncio.create_task(cleanup_after_ttl(name, namespaces, ttl, target_cluster))
 
     except Exception as e:
-        logger.error(f"💥 [{name}] FAILED to grant access on cluster={target_cluster} ns={namespace}: {type(e).__name__}: {e}")
-        patch.status["phase"] = "Failed"
-        patch.status["message"] = "❌ Access grant failed — check controller logs"
+        logger.error(f"💥 [{name}] FAILED to grant access: {type(e).__name__}: {e}")
+        patch.status["phase"]   = "Failed"
+        patch.status["message"] = "Access grant failed — check controller logs"
         audit("access.failed", name, requester=requester, cluster=target_cluster, error=str(e))
 
 
