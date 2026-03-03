@@ -33,7 +33,7 @@ rules:
   # Manage token Secrets + list kubeconfig Secrets for remote cluster discovery
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list", "create", "delete"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
   # Create/delete scoped RoleBindings for approved requests
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
