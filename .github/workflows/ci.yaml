@@ -76,3 +76,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
+
+      - name: Update ArgoCD image tag
+        env:
+          ARGOCD_DEPLOY_KEY: ${{ secrets.ARGOCD_DEPLOY_KEY }}
+          SHA: ${{ steps.tag.outputs.sha }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
+          chmod 600 ~/.ssh/argocd_deploy
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
+
+          git clone git@github.com:devcops-xyz/argocd.git /tmp/argocd
+          cd /tmp/argocd
+
+          sed -i "s/tag: \"[a-f0-9]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
+
+          git config user.email "ci@opsmode.io"
+          git config user.name "opsmode-ci"
+          git add applications/janus.applicationset.yaml
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "ci: bump k8s-janus image tag to ${SHA}"
+          git push
