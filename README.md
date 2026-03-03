@@ -48,13 +48,14 @@ In most Kubernetes environments, granting pod access means either:
 
 | | Feature | Detail |
 |-|---------|--------|
-| 🌐 | **Web Terminal** | Browser-based `kubectl exec` shell — multi-pane split view, no local tools needed |
+| 🌐 | **Web Terminal** | Browser-based `kubectl exec` shell — multi-pane split view, namespace switcher, no local tools needed |
 | 🏢 | **Multi-Cluster** | One instance manages multiple clusters — any distribution, any cloud |
+| 📦 | **Multi-Namespace** | Request access to multiple namespaces in a single CRD — one approval, one terminal, namespace tabs |
 | ✅ | **One-Click Approval** | Approvers get a notification — approve or deny without leaving the browser |
 | ⏱️ | **Auto-Cleanup** | ServiceAccount + RoleBinding + token Secret deleted automatically on TTL expiry |
 | ⚡ | **Instant Revoke** | Terminate any active session immediately from the admin dashboard |
 | 🛡️ | **Security Hardened** | Non-root, read-only FS, all capabilities dropped, NetworkPolicy |
-| 🔒 | **No Token Leakage** | Token stored in K8s Secret only — never in CRD status or logs |
+| 🔒 | **No Token Leakage** | Per-namespace scoped tokens stored in K8s Secrets only — never in CRD status or logs |
 
 ---
 
@@ -64,13 +65,14 @@ In most Kubernetes environments, granting pod access means either:
 Engineer             Web UI              Controller           Approver
    │                   │                     │                   │
    │── submit ────────▶│                     │                   │
-   │                   │── create CRD ──────▶│                   │
+   │  (ns=['a','b'])   │── create CRD ──────▶│                   │
    │                   │                     │── notify ────────▶│
    │                   │                     │    (clicks Approve)│
    │                   │                     │◀── callback ──────│
-   │                   │  create SA + RoleBinding + token         │
+   │                   │  per-NS: SA + RoleBinding + token Secret │
    │◀── terminal ──────│                     │                   │
-   │   (TTL expires)   │   delete SA + RoleBinding + Secret       │
+   │  (namespace tabs) │                     │                   │
+   │   (TTL expires)   │  delete all SA + RoleBinding + Secrets   │
 ```
 
 ### Access Lifecycle
@@ -211,24 +213,32 @@ Janus logs everything — startup, every access request lifecycle event, cleanup
 [INFO] ✅ k8s-janus controller ready on cluster=gke_project_region_cluster
 [INFO] 🛡️  updated janus-pod-exec ClusterRole on cluster=gke_project_region_cluster
 
-# Engineer submits a request
-[INFO] 📥 New AccessRequest [alice-debug-api] from alice@example.com → cluster=prod ns=default
+# Engineer submits a request for two namespaces
+[INFO] 📥 New AccessRequest [alice-debug-api] from alice@example.com → cluster=prod ns=['default','payments']
 
-# Admin approves → credentials provisioned automatically
-[INFO] 🔄 [alice-debug-api] phase transition: Pending → Approved  (cluster=prod ns=default)
+# Admin approves → credentials provisioned per namespace automatically
+[INFO] 🔄 [alice-debug-api] phase transition: Pending → Approved  (cluster=prod ns=['default','payments'])
 [INFO] 🔑 [alice-debug-api] granting access for alice@example.com on cluster=prod ns=default
 [INFO] 👤 [alice-debug-api] created ServiceAccount=janus-alice-debug-api in cluster=prod ns=default
 [INFO] 🔗 [alice-debug-api] created RoleBinding=janus-alice-debug-api in cluster=prod ns=default
-[INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s, expires=2026-02-26T22:08:56Z
-[INFO] 🔐 [alice-debug-api] stored token Secret=janus-token-alice-debug-api in ns=k8s-janus
-[INFO] ✅ [alice-debug-api] access GRANTED — requester=alice@example.com cluster=prod ns=default expires=2026-02-26T22:08:56Z
+[INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s, expires=2026-03-03T22:08:56Z
+[INFO] 🔐 [alice-debug-api] stored token Secret=janus-token-alice-debug-api-default-3a1f9c in ns=k8s-janus
+[INFO] 🔑 [alice-debug-api] granting access for alice@example.com on cluster=prod ns=payments
+[INFO] 👤 [alice-debug-api] created ServiceAccount=janus-alice-debug-api in cluster=prod ns=payments
+[INFO] 🔗 [alice-debug-api] created RoleBinding=janus-alice-debug-api in cluster=prod ns=payments
+[INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s, expires=2026-03-03T22:08:56Z
+[INFO] 🔐 [alice-debug-api] stored token Secret=janus-token-alice-debug-api-payments-7c4e2b in ns=k8s-janus
+[INFO] ✅ [alice-debug-api] access GRANTED — requester=alice@example.com cluster=prod ns=['default','payments'] expires=2026-03-03T22:08:56Z
 
-# TTL expires → automatic cleanup, no manual action needed
-[INFO] 🧹 [alice-debug-api] starting cleanup (TTL expired) on cluster=prod ns=default
+# TTL expires → automatic cleanup of all namespaces, no manual action needed
+[INFO] 🧹 [alice-debug-api] starting cleanup (TTL expired) on cluster=prod ns=['default','payments']
 [INFO] 🗑️  [alice-debug-api] deleted RoleBinding=janus-alice-debug-api from cluster=prod ns=default
 [INFO] 🗑️  [alice-debug-api] deleted ServiceAccount=janus-alice-debug-api from cluster=prod ns=default
-[INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api from ns=k8s-janus
-[INFO] 💀 [alice-debug-api] marked as Expired — all credentials removed from cluster=prod ns=default
+[INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api-default-3a1f9c from ns=k8s-janus
+[INFO] 🗑️  [alice-debug-api] deleted RoleBinding=janus-alice-debug-api from cluster=prod ns=payments
+[INFO] 🗑️  [alice-debug-api] deleted ServiceAccount=janus-alice-debug-api from cluster=prod ns=payments
+[INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api-payments-7c4e2b from ns=k8s-janus
+[INFO] 💀 [alice-debug-api] marked as Expired — all credentials removed from cluster=prod ns=['default','payments']
 
 # Admin revokes an active session
 [INFO] 🚫 [alice-debug-api] revoked by admin — triggering immediate cleanup on cluster=prod ns=default

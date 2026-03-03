@@ -9,6 +9,7 @@ Engineers request temporary pod access through a web UI. Admins approve with one
 
 - **Central cluster** — runs the controller, web UI, and CRDs. Admins approve requests here. Engineers open browser terminals here.
 - **Remote clusters** — no Janus workload deployed. The setup script applies a minimal `janus-remote` ServiceAccount + RBAC, issues a scoped token, and stores it as a kubeconfig Secret on the central cluster. The controller reaches out on-demand when access is granted.
+- **Multi-namespace** — a single AccessRequest can span multiple namespaces. The controller provisions isolated SA + RoleBinding + token Secret per namespace. The terminal shows a namespace tab strip — one browser session covers all requested namespaces.
 
 ## Prerequisites
 
@@ -32,8 +33,6 @@ bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui
 ```
 
 Choose **CLI mode** (terminal only) or **Browser mode** (web wizard with live progress). The script resolves exec-based kubeconfig auth (GKE, EKS, AKS), applies RBAC on each remote cluster, issues scoped tokens, and creates kubeconfig Secrets — no repo clone, no manual YAML.
-
-The controller init container blocks until all kubeconfig Secrets exist — it won't start until setup is complete.
 
 **Select clusters and set display names:**
 
