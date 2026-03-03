@@ -381,16 +381,38 @@ async def setup_rename_cluster(request: Request):
     if not cluster_name or not display_name:
         return JSONResponse({"error": "cluster_name and display_name are required."}, status_code=400)
 
-    secret_name = f"{cluster_name}-kubeconfig"
+    from kubernetes import client as k8s_client, config as k8s_config
+    from k8s import _CENTRAL_NAME
+    is_central  = (cluster_name == _CENTRAL_NAME)
+    secret_name = "janus-central-display" if is_central else f"{cluster_name}-kubeconfig"
+
     try:
-        from kubernetes import client as k8s_client, config as k8s_config
         k8s_config.load_incluster_config()
         core = k8s_client.CoreV1Api()
-        core.patch_namespaced_secret(
-            name=secret_name,
-            namespace=JANUS_NAMESPACE,
-            body={"metadata": {"annotations": {"k8s-janus.opsmode.io/displayName": display_name}}},
-        )
+        if is_central:
+            # Upsert the dedicated central display override secret
+            body = k8s_client.V1Secret(
+                metadata=k8s_client.V1ObjectMeta(
+                    name=secret_name,
+                    namespace=JANUS_NAMESPACE,
+                    labels={"k8s-janus.opsmode.io/managed": "true"},
+                    annotations={"k8s-janus.opsmode.io/displayName": display_name},
+                ),
+                type="Opaque",
+            )
+            try:
+                core.create_namespaced_secret(namespace=JANUS_NAMESPACE, body=body)
+            except k8s_client.exceptions.ApiException as e:
+                if e.status == 409:
+                    core.patch_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE, body=body)
+                else:
+                    raise
+        else:
+            core.patch_namespaced_secret(
+                name=secret_name,
+                namespace=JANUS_NAMESPACE,
+                body={"metadata": {"annotations": {"k8s-janus.opsmode.io/displayName": display_name}}},
+            )
         invalidate_clusters_cache()
         return JSONResponse({"ok": True})
     except Exception as e:

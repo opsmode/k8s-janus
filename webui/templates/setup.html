@@ -1142,20 +1142,24 @@ choco install kubernetes-cli</span>
       try {
         const resp = await fetch('/api/clusters');
         const clusters = await resp.json();
-        const remotes = clusters.slice(1); // skip central
-        if (remotes.length === 0) {
-          listEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.82rem">No remote clusters configured.</div>';
+        listEl.innerHTML = '';
+        if (clusters.length === 0) {
+          listEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.82rem">No clusters found.</div>';
           return;
         }
-        listEl.innerHTML = '';
-        remotes.forEach(c => {
+        clusters.forEach((c, idx) => {
+          const isCentral = idx === 0;
           const row = document.createElement('div');
           row.dataset.clusterName = c.name;
           row.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px';
           row.innerHTML = `
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
               <div style="min-width:0">
-                <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:3px;font-family:'JetBrains Mono',monospace">${escHtml(c.name)}-kubeconfig</div>
+                <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:3px;font-family:'JetBrains Mono',monospace">
+                  ${isCentral
+                    ? `<span style="color:var(--accent);font-weight:600">central</span> &nbsp;·&nbsp; management cluster`
+                    : `${escHtml(c.name)}-kubeconfig`}
+                </div>
                 <div style="display:flex;align-items:center;gap:8px">
                   <input type="text" class="rename-input" value="${escHtml(c.displayName || c.name)}"
                     style="background:var(--surface);border:1px solid var(--border-light);color:var(--text);
@@ -1169,10 +1173,11 @@ choco install kubernetes-cli</span>
                   </button>
                 </div>
               </div>
+              ${isCentral ? '' : `
               <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0"
                 onclick="removeCluster('${escHtml(c.name)}', this)">
                 <i data-lucide="trash-2" width="13" height="13"></i> Remove
-              </button>
+              </button>`}
             </div>
           `;
           listEl.appendChild(row);

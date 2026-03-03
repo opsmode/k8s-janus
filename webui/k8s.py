@@ -60,6 +60,14 @@ def _discover_clusters() -> list[dict]:
         logger.warning(f"_discover_clusters: could not list secrets: {e}")
         return [central]
 
+    # Check for a runtime display name override for the central cluster
+    for s in secrets.items:
+        if s.metadata.name == "janus-central-display":
+            override = (s.metadata.annotations or {}).get("k8s-janus.opsmode.io/displayName", "")
+            if override:
+                central["displayName"] = override
+            break
+
     remotes: list[dict] = []
     for s in secrets.items:
         name = s.metadata.name or ""
