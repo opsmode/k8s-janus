@@ -7,7 +7,7 @@
 ### *Just-in-Time Kubernetes Pod Access*
 
 [![CI](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml/badge.svg)](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/helm/k8s-janus/k8s-janusf)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/helm/k8s-janus/k8s-janus)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Operator-326CE5?logo=kubernetes&logoColor=white)
 [![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)](https://opsmode.github.io/k8s-janus)
@@ -51,7 +51,7 @@ In most Kubernetes environments, granting pod access means either:
 | 🌐 | **Web Terminal** | Browser-based `kubectl exec` shell — multi-pane split view, namespace switcher, no local tools needed |
 | 🏢 | **Multi-Cluster** | One instance manages multiple clusters — any distribution, any cloud |
 | 📦 | **Multi-Namespace** | Request access to multiple namespaces in a single CRD — one approval, one terminal, namespace tabs |
-| ✅ | **One-Click Approval** | Approvers get a notification — approve or deny without leaving the browser |
+| ✅ | **One-Click Approval** | Admins see pending requests in the dashboard — approve or deny without leaving the browser |
 | ⏱️ | **Auto-Cleanup** | ServiceAccount + RoleBinding + token Secret deleted automatically on TTL expiry |
 | ⚡ | **Instant Revoke** | Terminate any active session immediately from the admin dashboard |
 | ⏰ | **Pending Auto-Expiry** | Optionally auto-deny requests that go unapproved beyond a configurable time limit |
@@ -177,13 +177,13 @@ No cloud-specific setup, no IAM bindings, no repo clone needed.
 
 ![Configuring clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-configuring.jpeg)
 
-**Remove clusters at any time by re-running the wizard:**
+**Rename or remove clusters at any time from the Edit Clusters panel:**
 
 ![Remove clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-offboarding.jpeg)
 
 **Optional — exclude additional namespaces from the request form:**
 
-System and GKE namespaces are excluded by default. Add any others to your values:
+System namespaces are excluded by default. Add any others to your values:
 
 ```yaml
 janus:

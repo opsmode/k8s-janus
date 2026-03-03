@@ -2,6 +2,9 @@
 
 [GitHub](https://github.com/opsmode/k8s-janus) · [Artifact Hub](https://artifacthub.io/packages/search?repo=k8s-janus)
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/helm/k8s-janus/k8s-janus)
+[![GitHub release](https://img.shields.io/github/v/release/opsmode/k8s-janus)](https://github.com/opsmode/k8s-janus/releases/latest)
+
 **Just-in-Time `kubectl exec` access for Kubernetes.**
 Engineers request temporary pod access through a web UI. Admins approve with one click. The token auto-expires. No permanent permissions. Ever.
 
@@ -15,7 +18,7 @@ Engineers request temporary pod access through a web UI. Admins approve with one
 
 - Kubernetes 1.24+
 - Helm 3.x
-- `kubectl`, `python3`, `curl`
+- `kubectl` (for port-forwarding to the setup wizard)
 
 ## Install
 
@@ -26,13 +29,19 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
 ```
 
-Then run the setup script to register your clusters:
+Then port-forward and open the setup wizard:
+
+```bash
+kubectl port-forward svc/k8s-janus-webui -n k8s-janus 8080:80
+```
+
+Open **http://localhost:8080/setup** — upload your kubeconfig, select your clusters, and the wizard applies RBAC on each remote cluster, issues scoped tokens, and creates kubeconfig Secrets automatically. No repo clone, no manual YAML.
+
+Alternatively, use the CLI script:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
 ```
-
-Choose **CLI mode** (terminal only) or **Browser mode** (web wizard with live progress). The script resolves exec-based kubeconfig auth (GKE, EKS, AKS), applies RBAC on each remote cluster, issues scoped tokens, and creates kubeconfig Secrets — no repo clone, no manual YAML.
 
 **Select clusters and set display names:**
 
@@ -42,7 +51,7 @@ Choose **CLI mode** (terminal only) or **Browser mode** (web wizard with live pr
 
 ![Configuring clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-configuring.jpeg)
 
-**Remove clusters at any time via the wizard:**
+**Rename or remove clusters at any time from the Edit Clusters panel:**
 
 ![Remove clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-offboarding.jpeg)
 
