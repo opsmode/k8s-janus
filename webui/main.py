@@ -640,12 +640,31 @@ async def submit_request(request: Request):
     if not namespaces:
         return JSONResponse({"error": "No valid namespaces.", "skipped": skipped, "errors": errors}, status_code=400)
 
-    # Rate limit: max 10 active/pending/approved
+    # Dedup: reject namespaces already covered by a live request from this requester on this cluster
     all_requests = list_access_requests()
+    live_phases  = (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
+    busy_ns: set[str] = set()
+    for ar in all_requests:
+        sp = ar.get("spec", {})
+        if (sp.get("requester") == requester
+                and sp.get("cluster") == cluster
+                and ar.get("status", {}).get("phase", "") in live_phases):
+            ar_nss = sp.get("namespaces") or ([sp["namespace"]] if sp.get("namespace") else [])
+            busy_ns.update(ar_nss)
+
+    duplicate_ns = [ns for ns in namespaces if ns in busy_ns]
+    if duplicate_ns:
+        dupes = ", ".join(duplicate_ns)
+        return JSONResponse(
+            {"error": f"You already have an active request for: {dupes}. Wait for it to expire or ask an admin to revoke it."},
+            status_code=409,
+        )
+
+    # Rate limit: max 10 active/pending/approved
     active_count = sum(
         1 for ar in all_requests
         if ar.get("spec", {}).get("requester") == requester
-        and ar.get("status", {}).get("phase", "") in (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
+        and ar.get("status", {}).get("phase", "") in live_phases
     )
     if active_count >= 10:
         return JSONResponse(
