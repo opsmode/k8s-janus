@@ -3,6 +3,76 @@ entries:
   k8s-janus:
   - annotations:
       artifacthub.io/changes: |
+        - kind: removed
+          description: "command history from status page and API endpoint"
+        - kind: fixed
+          description: "remove duplicate skip block and unused var in _setup_remote_clusterroles"
+        - kind: fixed
+          description: "skip central cluster in _setup_remote_clusterroles"
+        - kind: fixed
+          description: "strip ANSI escape sequences from command history capture"
+        - kind: changed
+          description: "demote shell probe-failed log to DEBUG"
+        - kind: fixed
+          description: "reject duplicate NS requests from same requester"
+        - kind: fixed
+          description: "unique token secret names per namespace + remove NS tab truncation"
+        - kind: fixed
+          description: "correct argocd repo org in ci (opsmode not devcops-xyz)"
+        - kind: changed
+          description: "bold amber cluster name chips in request tables and status page"
+        - kind: fixed
+          description: "add update+patch to controller ClusterRole secrets verbs"
+        - kind: fixed
+          description: "multi-namespace terminal and status page"
+        - kind: changed
+          description: "auto-update ArgoCD image tag after successful build"
+        - kind: added
+          description: "single CRD multi-namespace access + ns selector UI"
+        - kind: changed
+          description: "remove wait-for-kubeconfigs init container"
+        - kind: added
+          description: "multi-namespace access grants + controller init container for setup gating"
+        - kind: changed
+          description: "single cluster + multi-NS selection in request form"
+        - kind: added
+          description: "multi-cluster and multi-namespace selection in request form"
+    apiVersion: v2
+    appVersion: 0.1.33
+    created: "2026-03-03T12:31:55.155834199Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: e61625a38cf75ba9105feb8aedf9b7aa65a8147b5580386cb47ab8345bff52f9
+    home: https://opsmode.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@opsmode.io
+      name: OpsMode
+    name: k8s-janus
+    sources:
+    - https://github.com/opsmode/k8s-janus
+    type: application
+    urls:
+    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.33.tgz
+    version: 0.1.33
+  - annotations:
+      artifacthub.io/changes: |
         - kind: changed
           description: "bump chart to v0.1.32"
         - kind: changed
@@ -17,7 +87,7 @@ entries:
           description: "remove clusters[] — secrets created by wizard, not Helm"
     apiVersion: v2
     appVersion: 0.1.32
-    created: "2026-03-03T07:02:28.779751129Z"
+    created: "2026-03-03T12:31:55.154609412Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: d022ee8d395a38d316995cdfa8be93e9292bc026445a39fa50d85585c95feb4a
@@ -155,7 +225,7 @@ entries:
           description: "update artifacthub.io/changes for v0.1.30"
     apiVersion: v2
     appVersion: 0.1.31
-    created: "2026-03-03T07:02:28.778990848Z"
+    created: "2026-03-03T12:31:55.153912867Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 109e5b5e29c8f9bb4322d755bd334026b0650261d55dcfd3fd9ba7e3f913ffd8
@@ -209,7 +279,7 @@ entries:
           description: "remove unused imports and dead assignments in terminal_ws.py (flake8)"
     apiVersion: v2
     appVersion: 0.1.30
-    created: "2026-03-03T07:02:28.77799191Z"
+    created: "2026-03-03T12:31:55.153028914Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: aed9ec97fbacf0485ffcc93769d307ae530038c23a7c6b08220ebd7358a98e38
@@ -249,7 +319,7 @@ entries:
           description: "apply audit improvements across webui, helm, and CI"
     apiVersion: v2
     appVersion: 0.1.29
-    created: "2026-03-03T07:02:28.776377559Z"
+    created: "2026-03-03T12:31:55.152216163Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 88cfb7d9b00d3618497407f821a90a6d1ccc4025fe7618b14bd7427a958d72b4
@@ -287,7 +357,7 @@ entries:
           description: "use target_cluster (not undefined cluster_name) when deriving kubeconfig secret name"
     apiVersion: v2
     appVersion: 0.1.28
-    created: "2026-03-03T07:02:28.775456166Z"
+    created: "2026-03-03T12:31:55.151373527Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: e840e10efe0660328872514a1817b04879eec2ae9df1f07695060c656d4b467b
@@ -319,4 +389,4 @@ entries:
     urls:
     - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.28.tgz
     version: 0.1.28
-generated: "2026-03-03T07:02:28.774466362Z"
+generated: "2026-03-03T12:31:55.150409425Z"
