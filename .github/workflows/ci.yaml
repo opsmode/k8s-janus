@@ -10,11 +10,27 @@ on:
       - 'controller/**'
       - 'webui/**'
       - '.github/workflows/ci.yaml'
+      - 'README.md'
 
 env:
   IMAGE: opsmode/k8s-janus
 
 jobs:
+  update-dockerhub:
+    runs-on: ubuntu-latest
+    if: contains(toJSON(github.event.commits.*.modified), 'README.md') || contains(toJSON(github.event.commits.*.added), 'README.md')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update DockerHub description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: opsmode/k8s-janus
+          readme-filepath: ./README.md
+          short-description: "Just-in-Time kubectl exec access — request, approve, auto-expire. No permanent permissions."
+
   lint:
     runs-on: ubuntu-latest
     steps:
