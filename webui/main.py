@@ -349,9 +349,10 @@ async def setup_run(request: Request):
     body = await request.json()
     session_id    = body.get("session_id", "")
     central       = body.get("central", "")
-    central_name  = body.get("central_name", "")   # display name for central cluster
-    # remotes: list of {"context": str, "cluster_name": str}
-    remotes       = body.get("remotes", [])
+    central_name    = body.get("central_name", "")     # internal slug for central cluster
+    central_display = body.get("central_display", "")  # display name for central cluster
+    # remotes: list of {"context": str, "cluster_name": str, "display_name": str}
+    remotes         = body.get("remotes", [])
 
     if not session_id or session_id not in _setup_kubeconfigs:
         return JSONResponse({"error": "Session not found. Please re-upload your kubeconfig."}, status_code=400)
@@ -361,7 +362,7 @@ async def setup_run(request: Request):
     kc = _setup_kubeconfigs[session_id]
     q: asyncio.Queue = asyncio.Queue()
     _setup_queues[session_id] = q
-    asyncio.ensure_future(_run_setup_task(session_id, kc, central, central_name, remotes, JANUS_NAMESPACE, q))
+    asyncio.ensure_future(_run_setup_task(session_id, kc, central, central_display or central_name or central, remotes, JANUS_NAMESPACE, q))
     return JSONResponse({"ok": True})
 
 

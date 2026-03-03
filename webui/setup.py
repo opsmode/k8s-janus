@@ -327,10 +327,15 @@ def _upsert_kubeconfig_secret(
     secret_name: str,
     namespace: str,
     kc_dict: dict,
+    display_name: str = "",
 ) -> None:
     """Create or replace the kubeconfig Secret on the central cluster."""
     kc_yaml = yaml.dump(kc_dict)
     kc_b64 = base64.b64encode(kc_yaml.encode()).decode()
+
+    annotations = {}
+    if display_name:
+        annotations["k8s-janus.opsmode.io/displayName"] = display_name
 
     secret = client.V1Secret(
         metadata=client.V1ObjectMeta(
@@ -340,6 +345,7 @@ def _upsert_kubeconfig_secret(
                 "k8s-janus.opsmode.io/managed": "true",
                 "app.kubernetes.io/managed-by": "janus-setup-wizard",
             },
+            annotations=annotations or None,
         ),
         type="Opaque",
         data={"kubeconfig": kc_b64},
@@ -694,7 +700,7 @@ async def run_setup(
     kubeconfig: dict,
     central_context: str,
     central_name: str,       # optional display name / slug for central cluster
-    remote_contexts: list,   # list of {"context": str, "cluster_name": str}
+    remote_contexts: list,   # list of {"context": str, "cluster_name": str, "display_name": str}
     janus_namespace: str,
 ) -> AsyncIterator[str]:
     """
@@ -716,8 +722,9 @@ async def run_setup(
     for i, remote in enumerate(remote_contexts, 1):
         context_name = remote["context"]
         cluster_name = remote["cluster_name"]
+        display_name = remote.get("display_name") or context_name
         secret_name  = f"{cluster_name}-kubeconfig"
-        yield f"[INFO] [{i}/{total}] {context_name} → {cluster_name}"
+        yield f"[INFO] [{i}/{total}] {context_name} → {cluster_name} (display: {display_name})"
 
         # --- Connectivity check ---
         try:
@@ -777,7 +784,7 @@ async def run_setup(
             central_core_v1 = await loop.run_in_executor(None, _get_central_core_v1)
             await loop.run_in_executor(
                 None, _upsert_kubeconfig_secret,
-                central_core_v1, secret_name, janus_namespace, kc_dict,
+                central_core_v1, secret_name, janus_namespace, kc_dict, display_name,
             )
             yield f"[OK]    Secret {secret_name!r} ready"
         except Exception as e:

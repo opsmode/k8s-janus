@@ -608,19 +608,22 @@ choco install kubernetes-cli</span>
             <div class="context-list" id="central-list"></div>
             <div id="central-name-row" style="display:none;padding:12px 16px;background:var(--surface-2);
                   border:1px solid rgba(99,102,241,0.2);border-top:1px solid var(--border);
-                  border-radius:0 0 10px 10px">
-              <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:5px;font-weight:500">
-                <i data-lucide="tag" width="12" height="12" style="vertical-align:-2px;margin-right:3px;color:var(--accent)"></i>
-                Display name for this cluster in the UI
-              </label>
-              <input type="text" id="central-cluster-name"
-                placeholder="e.g. lab-central, prod-eu, my-cluster"
-                style="width:100%;background:var(--surface);border:1px solid var(--border-light);
-                       color:var(--text);border-radius:6px;padding:7px 10px;font-size:0.82rem;
-                       font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box"
-                oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
-              <div style="font-size:0.7rem;color:var(--text-dim);margin-top:3px">
-                Optional — leave blank to use the context name as-is
+                  border-radius:0 0 10px 10px;display:none;flex-direction:column;gap:8px">
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Internal ID <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;used as secret name prefix</span></div>
+                <input type="text" id="central-cluster-name"
+                  style="width:100%;background:var(--surface);border:1px solid var(--accent);
+                         color:var(--text);border-radius:6px;padding:7px 10px;font-size:0.82rem;
+                         font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box"
+                  oninput="this._userEdited=true;this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Display name <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;shown in the UI</span></div>
+                <input type="text" id="central-display-name"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border-light);
+                         color:var(--text);border-radius:6px;padding:7px 10px;font-size:0.82rem;
+                         font-family:'Inter',sans-serif;outline:none;box-sizing:border-box"
+                  oninput="this._userEdited=true;this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
               </div>
             </div>
           </div>
@@ -902,7 +905,16 @@ choco install kubernetes-cli</span>
         item.classList.toggle('selected', item.querySelector('input').checked);
       });
       btnStart.disabled = !central;
-      if (centralNameRow) centralNameRow.style.display = central ? 'block' : 'none';
+      if (centralNameRow) {
+        centralNameRow.style.display = central ? 'flex' : 'none';
+        if (central) {
+          const slugInput    = document.getElementById('central-cluster-name');
+          const displayInput = document.getElementById('central-display-name');
+          const defaultSlug  = central.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 52);
+          if (slugInput && !slugInput._userEdited)    { slugInput.value    = defaultSlug; slugInput.style.borderColor = 'var(--accent)'; }
+          if (displayInput && !displayInput._userEdited) { displayInput.value = central; }
+        }
+      }
 
       remoteList.innerHTML = '';
       const others = (_kubeconfig || []).filter(c => c.name !== central);
@@ -914,6 +926,7 @@ choco install kubernetes-cli</span>
         noRemotes.classList.add('hidden');
         remoteList.classList.remove('hidden');
         others.forEach((ctx) => {
+          const defaultSlug = ctx.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 52);
           const rItem = document.createElement('div');
           rItem.className = 'context-item remote-sel';
 
@@ -922,26 +935,37 @@ choco install kubernetes-cli</span>
             <div style="flex:1;min-width:0">
               <div class="context-name">${escHtml(ctx.name)}</div>
               <div class="context-cluster">${escHtml(ctx.cluster)}</div>
-              <div class="cluster-name-field" style="display:none;margin-top:8px">
-                <input type="text" name="remote-cluster-name" data-context="${escHtml(ctx.name)}"
-                  placeholder="Cluster name (e.g. prod-eu, lab-2)"
-                  style="width:100%;background:var(--surface);border:1px solid var(--border-light);
-                         color:var(--text);border-radius:6px;padding:6px 10px;font-size:0.82rem;
-                         font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box"
-                  oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
-                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:3px">
-                  Used as secret name: <code style="color:var(--accent)">&lt;name&gt;-kubeconfig</code>
+              <div class="cluster-name-field" style="display:none;margin-top:10px;display:none;flex-direction:column;gap:7px">
+                <div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Internal ID <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;used as secret name prefix</span></div>
+                  <input type="text" name="remote-cluster-name" data-context="${escHtml(ctx.name)}"
+                    value="${escHtml(defaultSlug)}"
+                    style="width:100%;background:var(--surface);border:1px solid var(--border-light);
+                           color:var(--text);border-radius:6px;padding:6px 10px;font-size:0.82rem;
+                           font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box;
+                           border-color:var(--accent)"
+                    oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+                </div>
+                <div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Display name <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;shown in the UI</span></div>
+                  <input type="text" name="remote-display-name" data-context="${escHtml(ctx.name)}"
+                    value="${escHtml(ctx.name)}"
+                    placeholder="${escHtml(ctx.name)}"
+                    style="width:100%;background:var(--surface);border:1px solid var(--border-light);
+                           color:var(--text);border-radius:6px;padding:6px 10px;font-size:0.82rem;
+                           font-family:'Inter',sans-serif;outline:none;box-sizing:border-box"
+                    oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
                 </div>
               </div>
             </div>
           `;
 
-          const cb        = rItem.querySelector('input[type="checkbox"]');
-          const nameField = rItem.querySelector('.cluster-name-field');
-          const nameInput = rItem.querySelector('input[name="remote-cluster-name"]');
+          const cb           = rItem.querySelector('input[type="checkbox"]');
+          const nameField    = rItem.querySelector('.cluster-name-field');
+          const nameInput    = rItem.querySelector('input[name="remote-cluster-name"]');
           cb.addEventListener('change', e => {
             rItem.classList.toggle('selected', e.target.checked);
-            nameField.style.display = e.target.checked ? 'block' : 'none';
+            nameField.style.display = e.target.checked ? 'flex' : 'none';
             if (e.target.checked) nameInput.focus();
           });
           remoteList.appendChild(rItem);
@@ -957,20 +981,20 @@ choco install kubernetes-cli</span>
       const central = document.querySelector('input[name="central"]:checked')?.value;
       if (!central) return;
 
-      const centralNameRaw = document.getElementById('central-cluster-name')?.value.trim() || '';
-      const central_name   = centralNameRaw.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || '';
+      const centralNameRaw    = document.getElementById('central-cluster-name')?.value.trim() || '';
+      const central_name      = centralNameRaw.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || '';
+      const centralDisplayRaw = document.getElementById('central-display-name')?.value.trim() || '';
+      const central_display   = centralDisplayRaw || central || '';
 
       const remotes = [];
       for (const cb of document.querySelectorAll('input[name="remote"]:checked')) {
-        const ctx        = cb.value;
-        const nameInput  = cb.closest('.context-item')?.querySelector('input[name="remote-cluster-name"]');
-        const cluster_name = nameInput?.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || '';
-        if (!cluster_name) {
-          showError('select', `Enter a name for: ${ctx}`);
-          nameInput?.focus();
-          return;
-        }
-        remotes.push({ context: ctx, cluster_name });
+        const ctx          = cb.value;
+        const item         = cb.closest('.context-item');
+        const nameInput    = item?.querySelector('input[name="remote-cluster-name"]');
+        const displayInput = item?.querySelector('input[name="remote-display-name"]');
+        const cluster_name = nameInput?.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || ctx.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 52);
+        const display_name = displayInput?.value.trim() || ctx;
+        remotes.push({ context: ctx, cluster_name, display_name });
       }
 
       _setupHadError = false;
@@ -981,7 +1005,7 @@ choco install kubernetes-cli</span>
         const resp = await fetch('/setup/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: _sessionId, central, central_name, remotes }),
+          body: JSON.stringify({ session_id: _sessionId, central, central_name, central_display, remotes }),
         });
         if (!resp.ok) {
           showError('progress', `Failed to start setup: ${await resp.text()}`);
