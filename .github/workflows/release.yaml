@@ -160,6 +160,17 @@ jobs:
             --url https://opsmode.github.io/k8s-janus/ \
             --merge gh-pages-dir/index.yaml
 
+      - name: Prune old Helm chart versions (keep 3)
+        run: |
+          cd gh-pages-dir
+          # List versioned tarballs oldest-first, delete all but the 3 newest
+          ls -1 k8s-janus-*.tgz 2>/dev/null | sort -V | head -n -3 | while read f; do
+            echo "Removing old chart: $f"
+            rm -f "$f" "${f%.tgz}.tgz.prov"
+          done
+          # Rebuild index without deleted entries
+          helm repo index . --url https://opsmode.github.io/k8s-janus/ --merge index.yaml
+
       - name: Push to gh-pages
         run: |
           cd gh-pages-dir
@@ -184,8 +195,62 @@ jobs:
           git diff --cached --quiet || git commit -m "ci: bump chart to ${VERSION}"
           git push origin main
 
+  prune-dockerhub:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune old DockerHub tags (keep 3 versioned + latest)
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, re, sys, urllib.request, urllib.error
+
+          IMAGE = "opsmode/k8s-janus"
+          user  = os.environ["DOCKERHUB_USERNAME"]
+          token = os.environ["DOCKERHUB_TOKEN"]
+
+          # Authenticate
+          req = urllib.request.Request(
+              "https://hub.docker.com/v2/users/login",
+              data=json.dumps({"username": user, "password": token}).encode(),
+              headers={"Content-Type": "application/json"},
+          )
+          jwt = json.loads(urllib.request.urlopen(req).read())["token"]
+          headers = {"Authorization": f"Bearer {jwt}", "Content-Type": "application/json"}
+
+          # Fetch all tags
+          tags, url = [], f"https://hub.docker.com/v2/repositories/{IMAGE}/tags/?page_size=100"
+          while url:
+              r = urllib.request.Request(url, headers=headers)
+              data = json.loads(urllib.request.urlopen(r).read())
+              tags.extend(data["results"])
+              url = data.get("next")
+
+          # Categorise
+          versioned = sorted(
+              [t for t in tags if re.match(r'^v\d+\.\d+\.\d+$', t["name"])],
+              key=lambda t: list(map(int, t["name"].lstrip("v").split("."))),
+          )
+          keep = {"latest"} | {t["name"] for t in versioned[-3:]}
+          to_delete = [t["name"] for t in tags if t["name"] not in keep]
+
+          print(f"Keeping: {sorted(keep)}")
+          print(f"Deleting {len(to_delete)} tag(s): {sorted(to_delete)}")
+
+          for name in to_delete:
+              url = f"https://hub.docker.com/v2/repositories/{IMAGE}/tags/{name}/"
+              req = urllib.request.Request(url, headers=headers, method="DELETE")
+              try:
+                  urllib.request.urlopen(req)
+                  print(f"  deleted: {name}")
+              except urllib.error.HTTPError as e:
+                  print(f"  failed ({e.code}): {name}", file=sys.stderr)
+          PYEOF
+
   release:
-    needs: [build, publish-helm, update-dockerhub]
+    needs: [build, publish-helm, update-dockerhub, prune-dockerhub]
     runs-on: ubuntu-latest
     permissions:
       contents: write
