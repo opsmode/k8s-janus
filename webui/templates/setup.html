@@ -703,16 +703,16 @@ choco install kubernetes-cli</span>
         </div>
       </div>
 
-      <!-- ── MANAGE: Remove Clusters ── -->
+      <!-- ── MANAGE: Edit / Remove Clusters ── -->
       <div id="panel-manage" class="hidden">
         <div class="card">
           <div class="card-header">
-            <div class="card-icon" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:var(--danger)">
-              <i data-lucide="trash-2" width="16" height="16"></i>
+            <div class="card-icon" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);color:var(--accent)">
+              <i data-lucide="settings-2" width="16" height="16"></i>
             </div>
             <div>
-              <h2>Remove clusters</h2>
-              <div class="card-sub">Deletes the kubeconfig secret and cleans RBAC on the remote cluster</div>
+              <h2>Edit clusters</h2>
+              <div class="card-sub">Rename or remove configured remote clusters</div>
             </div>
           </div>
           <div id="manage-cluster-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
@@ -1150,16 +1150,30 @@ choco install kubernetes-cli</span>
         listEl.innerHTML = '';
         remotes.forEach(c => {
           const row = document.createElement('div');
-          row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px';
+          row.dataset.clusterName = c.name;
+          row.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px';
           row.innerHTML = `
-            <div>
-              <div style="font-size:0.88rem;font-family:'JetBrains Mono',monospace;color:var(--text)">${escHtml(c.displayName || c.name)}</div>
-              <div style="font-size:0.72rem;color:var(--text-dim);margin-top:2px">${escHtml(c.name)}-kubeconfig</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="min-width:0">
+                <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:3px;font-family:'JetBrains Mono',monospace">${escHtml(c.name)}-kubeconfig</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input type="text" class="rename-input" value="${escHtml(c.displayName || c.name)}"
+                    style="background:var(--surface);border:1px solid var(--border-light);color:var(--text);
+                           border-radius:6px;padding:5px 9px;font-size:0.85rem;font-family:'Inter',sans-serif;
+                           outline:none;width:220px"
+                    oninput="this.style.borderColor='var(--accent)'"
+                    onkeydown="if(event.key==='Enter')this.closest('[data-cluster-name]').querySelector('.btn-rename').click()">
+                  <button class="btn btn-rename" style="padding:5px 12px;font-size:0.78rem;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);color:var(--accent);border-radius:6px;cursor:pointer;white-space:nowrap"
+                    onclick="renameCluster('${escHtml(c.name)}', this)">
+                    <i data-lucide="check" width="13" height="13"></i> Save
+                  </button>
+                </div>
+              </div>
+              <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0"
+                onclick="removeCluster('${escHtml(c.name)}', this)">
+                <i data-lucide="trash-2" width="13" height="13"></i> Remove
+              </button>
             </div>
-            <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);border-radius:6px;cursor:pointer"
-              onclick="removeCluster('${escHtml(c.name)}', this)">
-              <i data-lucide="trash-2" width="13" height="13"></i> Remove
-            </button>
           `;
           listEl.appendChild(row);
         });
@@ -1193,6 +1207,44 @@ choco install kubernetes-cli</span>
         btn.innerHTML = '<i data-lucide="refresh-cw" width="14" height="14"></i> Restart Deployments';
         lucide.createIcons();
       }
+    }
+
+    async function renameCluster(clusterName, btn) {
+      const row        = btn.closest('[data-cluster-name]');
+      const input      = row.querySelector('.rename-input');
+      const newName    = input.value.trim();
+      if (!newName) { input.focus(); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+
+      try {
+        const resp = await fetch('/setup/rename-cluster', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cluster_name: clusterName, display_name: newName }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          input.style.borderColor = 'var(--ok, #34d399)';
+          btn.innerHTML = '<i data-lucide="check" width="13" height="13"></i> Saved';
+          setTimeout(() => {
+            input.style.borderColor = 'var(--border-light)';
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" width="13" height="13"></i> Save';
+            lucide.createIcons();
+          }, 2000);
+        } else {
+          input.style.borderColor = 'var(--danger)';
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check" width="13" height="13"></i> Save';
+        }
+      } catch(e) {
+        input.style.borderColor = 'var(--danger)';
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="check" width="13" height="13"></i> Save';
+      }
+      lucide.createIcons();
     }
 
     async function removeCluster(clusterName, btn) {

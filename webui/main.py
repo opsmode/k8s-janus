@@ -372,6 +372,32 @@ async def api_clusters():
     return JSONResponse(get_clusters())
 
 
+@app.post("/setup/rename-cluster")
+async def setup_rename_cluster(request: Request):
+    """Patch the displayName annotation on a kubeconfig Secret."""
+    body         = await request.json()
+    cluster_name = body.get("cluster_name", "").strip()
+    display_name = body.get("display_name", "").strip()
+    if not cluster_name or not display_name:
+        return JSONResponse({"error": "cluster_name and display_name are required."}, status_code=400)
+
+    secret_name = f"{cluster_name}-kubeconfig"
+    try:
+        from kubernetes import client as k8s_client, config as k8s_config
+        k8s_config.load_incluster_config()
+        core = k8s_client.CoreV1Api()
+        core.patch_namespaced_secret(
+            name=secret_name,
+            namespace=JANUS_NAMESPACE,
+            body={"metadata": {"annotations": {"k8s-janus.opsmode.io/displayName": display_name}}},
+        )
+        invalidate_clusters_cache()
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        logger.error(f"Failed to rename cluster {cluster_name!r}: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/setup/remove-cluster")
 async def setup_remove_cluster(request: Request):
     """
