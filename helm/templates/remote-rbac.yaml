@@ -4,7 +4,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.remote.serviceAccountName }}
-  namespace: {{ .Values.remote.namespace }}
+  namespace: {{ .Values.janus.namespace }}
   labels:
     {{- include "janus.labels" . | nindent 4 }}
 ---
@@ -68,5 +68,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.remote.serviceAccountName }}
-    namespace: {{ .Values.remote.namespace }}
+    namespace: {{ .Values.janus.namespace }}
 {{- end }}

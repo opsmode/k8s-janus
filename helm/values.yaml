@@ -141,8 +141,6 @@ networkPolicy:
 # → templates: remote-rbac.yaml (only rendered when remote.enabled: true)
 remote:
   enabled: false
-  # Namespace created on the remote cluster for the Janus agent resources.
-  namespace: "k8s-janus"
   # Name of the ServiceAccount the central controller uses to authenticate.
   serviceAccountName: janus-remote
   # Token lifetime for the static kubeconfig Secret (re-run setup.sh to refresh).

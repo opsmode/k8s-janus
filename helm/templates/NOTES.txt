@@ -7,7 +7,7 @@
 {{- if .Values.remote.enabled }}
 
   Remote agent mode — ServiceAccount {{ .Values.remote.serviceAccountName }}
-  is ready in namespace {{ .Values.remote.namespace }}.
+  is ready in namespace {{ .Values.janus.namespace }}.
 
   Register this cluster from any machine with kubectl access:
 
