@@ -4,7 +4,6 @@ description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access 
 type: application
 version: 0.1.35
 appVersion: "0.1.35"
-license: Apache-2.0
 annotations:
   artifacthub.io/changes: |
     - kind: added
