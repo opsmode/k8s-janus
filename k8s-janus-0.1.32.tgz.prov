@@ -1,0 +1,69 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "bump chart to v0.1.32"
+    - kind: changed
+      description: "overhaul helm/README.md — accurate remote cluster model, setup script flow, new config params"
+    - kind: changed
+      description: "delete scripts/setup.sh — superseded by setup-upload.sh"
+    - kind: changed
+      description: "add setup wizard screenshots, overhaul registration docs"
+    - kind: fixed
+      description: "browser mode POSTs setup/run immediately after upload — no token expiry"
+    - kind: changed
+      description: "remove clusters[] — secrets created by wizard, not Helm"
+apiVersion: v2
+appVersion: 0.1.32
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.io
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.1.32
+
+...
+files:
+  k8s-janus-0.1.32.tgz: sha256:d022ee8d395a38d316995cdfa8be93e9292bc026445a39fa50d85585c95feb4a
+
+-----BEGIN PGP SIGNATURE-----
+
+wsG5BAEBCgBtBYJppoeECRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3Jn+7C0w3a7FtUudvDb+heH+h4z+6CweaSn8t37nTXDrLgW
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAAU10QAItysCJRVBxiwwXFzB9qOaP+jrdX
+4R3+dhmJo4f/9cLdbISSswg0bHlnHN6HqvywgOrYrVJ8oNs+jKaBDz16FVJlYfDC
+ZsDUYaS9hRLs32M3V1DDrlCcAMQahfIjtgRfOv/NZwi6Y/6O7KY9HT2msD+Iqxmt
+VjzqwDf5PMx3TjJhxUcysqpOGn/SyQ5nIp4KVcdlE+UTrZBbymNpDeYMSYqZpteM
+GmtOIm/1u/fAFa89QBGVDc5wRhaEfqVmQguZZawFxNlLTzJHy1KmXclcn+5fMprs
+XjQrnimZIDh0CnpbbFGH/dGlAGox9Ysc96DxHmwOopO8HmwqFPkoPm81Exo4BQ07
+1w0dDPGpQOk6S6AuLY4YO3gf2K1jQm6dWETPsHqqSeNNUvfM4chvimKmBFXuwEVN
+t5wjmwBszmdAjEN9NdeqoU22UhuMlMaKRMLFVFRt/AJ5HGuLn1z6KL1cZDU2ur/y
+dpyciZkMa+ug8OC0OTRBEuIO/0u8ajJsZR1rq+ZKn0ABjfkNgpHaa0M58Gf+tqse
+W0VoJzr4VjwqPSnWXrpIORaHUEzWA3inX+xEvuos8EPIFs8QPPchibpZM2t5y0Ud
+dRgdB0GPbsJiCZ8x1uc/0BCJj2NB2Dz87JwjYUsLxkF0xK/YtE4BMOQvkHh12gK2
+K2tWfL4n1fLckVKE
+-----END PGP SIGNATURE-----
