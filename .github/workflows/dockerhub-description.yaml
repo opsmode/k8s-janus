@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'README.md'
+      - 'DOCKERHUB.md'
 
 jobs:
   update-dockerhub:
@@ -19,5 +19,4 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: opsmode/k8s-janus
-          readme-filepath: ./README.md
-          short-description: "Just-in-Time kubectl exec access — request, approve, auto-expire. No permanent permissions."
+          readme-filepath: ./DOCKERHUB.md
