@@ -557,7 +557,7 @@
                     class="ns-tab{% if loop.first %} active{% endif %}"
                     data-ns="{{ ns }}"
                     title="Switch to namespace: {{ ns }}"
-                    style="padding:4px 10px;font-size:0.73rem;font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;color:var(--text-dim);cursor:pointer;transition:color 0.15s,border-color 0.15s,background 0.15s;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ ns }}">{{ ns }}</button>
+                    style="padding:4px 10px;font-size:0.73rem;font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;color:var(--text-dim);cursor:pointer;transition:color 0.15s,border-color 0.15s,background 0.15s;word-break:break-all;">{{ ns }}</button>
             {% endfor %}
           </div>
         </div>

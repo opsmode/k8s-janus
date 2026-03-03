@@ -323,6 +323,7 @@ async def grant_access(name: str, spec: dict, patch):
     core_v1_central, _ = get_k8s_clients()
     import base64 as b64
     import re as _re
+    import hashlib as _hashlib
 
     token_secrets: dict[str, str] = {}
     first_secret = ""
@@ -331,7 +332,9 @@ async def grant_access(name: str, spec: dict, patch):
         for namespace in namespaces:
             sa_name = name
             rb_name = name
-            ns_slug = _re.sub(r'[^a-z0-9]', '-', namespace.lower())[:20].strip('-')
+            _ns_hash    = _hashlib.sha1(namespace.encode()).hexdigest()[:6]
+            _ns_base    = _re.sub(r'[^a-z0-9]', '-', namespace.lower())[:32].strip('-')
+            ns_slug     = f"{_ns_base}-{_ns_hash}"
             secret_name = f"janus-token-{name}-{ns_slug}"
 
             # ServiceAccount
