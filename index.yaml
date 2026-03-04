@@ -4,6 +4,50 @@ entries:
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
+          description: "bump version to 0.1.36"
+        - kind: added
+          description: "rename CRD group and domain from opsmode.io to opsmode.pro"
+        - kind: changed
+          description: "prune old Helm chart versions and DockerHub tags on release (keep 3)"
+        - kind: fixed
+          description: "remove invalid license field from Chart.yaml (helm lint strict)"
+    apiVersion: v2
+    appVersion: 0.1.36
+    created: "2026-03-04T00:03:03.138180128Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: ce4395b6b2c8d054d11ba136bcfa4deabfbab717953dc83be869321ac663d5ff
+    home: https://opsmode.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@opsmode.pro
+      name: OpsMode
+    name: k8s-janus
+    sources:
+    - https://github.com/opsmode/k8s-janus
+    type: application
+    urls:
+    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.36.tgz
+    version: 0.1.36
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
           description: "bump version to 0.1.35"
         - kind: fixed
           description: "terminal disconnect-pod, expired handler, pending auto-expiry, CONTRIBUTING license"
@@ -27,7 +71,7 @@ entries:
           description: "add DOCKERHUB.md with short description and gh link"
     apiVersion: v2
     appVersion: 0.1.35
-    created: "2026-03-04T00:54:03.85555+01:00"
+    created: "2026-03-04T00:03:03.137461295Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 8d94939a8be1ec5117237401ff9f473370c525684fcf1ea9b50a99f0a6be82fb
@@ -87,7 +131,7 @@ entries:
           description: "update READMEs for v0.1.33 multi-namespace support"
     apiVersion: v2
     appVersion: 0.1.34
-    created: "2026-03-04T00:54:03.85512+01:00"
+    created: "2026-03-04T00:03:03.136643216Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ba3fdeb344eacb4e747c320fab82658d3e0b99a554c90f17505a9917a421f19d
@@ -157,7 +201,7 @@ entries:
           description: "multi-cluster and multi-namespace selection in request form"
     apiVersion: v2
     appVersion: 0.1.33
-    created: "2026-03-04T00:54:03.854283+01:00"
+    created: "2026-03-04T00:03:03.066990382Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: e61625a38cf75ba9105feb8aedf9b7aa65a8147b5580386cb47ab8345bff52f9
@@ -507,4 +551,4 @@ entries:
     urls:
     - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.28.tgz
     version: 0.1.28
-generated: "2026-03-04T00:54:03.853609+01:00"
+generated: "2026-03-04T00:03:03.134730204Z"
