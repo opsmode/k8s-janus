@@ -1281,20 +1281,30 @@ async def stream_system_logs(component: str, tail: int = 200):
             yield "data: [could not open log stream]\n\n"
             return
 
-        try:
-            for chunk in resp:
-                text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, (bytes, bytearray)) else str(chunk)
-                for line in text.splitlines():
-                    if line:
-                        yield f"data: {line}\n\n"
-                await asyncio.sleep(0)
-        except Exception as exc:
-            yield f"data: [stream ended: {exc}]\n\n"
-        finally:
+        queue: asyncio.Queue = asyncio.Queue(maxsize=200)
+
+        def _reader():
             try:
-                resp.close()
-            except Exception:
-                pass
+                for chunk in resp:
+                    text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, (bytes, bytearray)) else str(chunk)
+                    for line in text.splitlines():
+                        if line:
+                            loop.call_soon_threadsafe(queue.put_nowait, line)
+            except Exception as exc:
+                loop.call_soon_threadsafe(queue.put_nowait, f"[stream ended: {exc}]")
+            finally:
+                try:
+                    resp.close()
+                except Exception:
+                    pass
+                loop.call_soon_threadsafe(queue.put_nowait, None)  # sentinel
+
+        loop.run_in_executor(None, _reader)
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield f"data: {item}\n\n"
 
     return StreamingResponse(_log_generator(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
