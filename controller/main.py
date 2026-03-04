@@ -266,43 +266,65 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
             await cleanup_access(name, ns, revoked=True, target_cluster=cluster)
 
 
-@kopf.on.field("k8s-janus.opsmode.pro", "v1alpha1", "accessrequests", field="status.expiresAt",
-               when=lambda old, **_: old is not None)
-async def on_expires_at_changed(name, new, old, status, spec, **kwargs):
-    """Reschedule the TTL cleanup task when expiresAt is extended by an admin.
-    The `when` filter ensures kopf never invokes this on the initial grant (old=None),
-    eliminating the progress-patch conflict with on_phase_change.
+
+# _ttl_deadlines tracks the expiresAt value each task was scheduled for,
+# so the reconcile loop can detect when an extension has changed it.
+_ttl_deadlines: dict[str, str] = {}  # request_name → ISO expiresAt string
+
+
+async def _ttl_reconcile_loop():
+    """Periodically reconcile TTL tasks against live expiresAt in the CRD.
+    Detects TTL extensions made via the webui /extend endpoint and reschedules.
+    Runs every 30s — intentionally not a kopf field watcher to avoid progress conflicts.
     """
-    if status.get("phase") != "Active":
-        return
-    if not new:
-        return
+    await asyncio.sleep(15)  # brief startup delay
+    while True:
+        try:
+            get_k8s_clients()  # ensure config loaded
+            custom = client.CustomObjectsApi()
+            result = custom.list_cluster_custom_object(
+                group=CRD_GROUP, version="v1alpha1", plural="accessrequests"
+            )
+            now = datetime.now(timezone.utc)
+            for ar in result.get("items", []):
+                if ar.get("status", {}).get("phase") != "Active":
+                    continue
+                ar_name      = ar["metadata"]["name"]
+                expires_str  = ar.get("status", {}).get("expiresAt", "")
+                if not expires_str:
+                    continue
 
-    try:
-        new_expires = datetime.fromisoformat(str(new).replace("Z", "+00:00"))
-    except Exception:
-        logger.warning(f"⚠️  [{name}] on_expires_at_changed: invalid expiresAt value: {new!r}")
-        return
+                known = _ttl_deadlines.get(ar_name)
+                if known == expires_str:
+                    continue  # no change
 
-    remaining = (new_expires - datetime.now(timezone.utc)).total_seconds()
-    if remaining <= 0:
-        logger.info(f"⏰ [{name}] extended expiresAt already in the past — triggering cleanup now")
-        namespaces = _spec_namespaces(spec)
-        target_cluster = spec.get("cluster", get_clusters()[0]["name"])
-        for ns in namespaces:
-            asyncio.create_task(cleanup_access(name, ns, target_cluster=target_cluster))
-        return
+                # expiresAt changed — reschedule
+                try:
+                    new_expires = datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
+                except Exception:
+                    continue
 
-    # Cancel existing task and reschedule with updated remaining TTL
-    old_task = _ttl_tasks.pop(name, None)
-    if old_task and not old_task.done():
-        old_task.cancel()
+                remaining = (new_expires - now).total_seconds()
+                namespaces     = _spec_namespaces(ar.get("spec", {}))
+                target_cluster = ar.get("spec", {}).get("cluster", get_clusters()[0]["name"])
 
-    namespaces = _spec_namespaces(spec)
-    target_cluster = spec.get("cluster", get_clusters()[0]["name"])
-    logger.info(f"⏰ [{name}] TTL extended — rescheduling cleanup in {int(remaining)}s (expires={new})")
-    task = asyncio.create_task(cleanup_after_ttl(name, namespaces, int(remaining), target_cluster))
-    _ttl_tasks[name] = task
+                old_task = _ttl_tasks.pop(ar_name, None)
+                if old_task and not old_task.done():
+                    old_task.cancel()
+
+                if remaining <= 0:
+                    logger.info(f"⏰ [{ar_name}] expiresAt in the past after reconcile — cleaning up now")
+                    for ns in namespaces:
+                        asyncio.create_task(cleanup_access(ar_name, ns, target_cluster=target_cluster))
+                else:
+                    logger.info(f"⏰ [{ar_name}] TTL reconciled — rescheduling in {int(remaining)}s (expires={expires_str})")
+                    task = asyncio.create_task(cleanup_after_ttl(ar_name, namespaces, int(remaining), target_cluster))
+                    _ttl_tasks[ar_name] = task
+
+                _ttl_deadlines[ar_name] = expires_str
+        except Exception as e:
+            logger.error(f"💥 TTL reconcile loop error: {e}")
+        await asyncio.sleep(30)
 
 
 async def grant_access(name: str, spec: dict, patch):
@@ -471,6 +493,7 @@ async def grant_access(name: str, spec: dict, patch):
 
         task = asyncio.create_task(cleanup_after_ttl(name, namespaces, ttl, target_cluster))
         _ttl_tasks[name] = task
+        _ttl_deadlines[name] = expires_at
 
     except Exception as e:
         logger.error(f"💥 [{name}] FAILED to grant access: {type(e).__name__}: {e}")
@@ -765,8 +788,12 @@ async def startup(**kwargs):
                 logger.info(f"⏰ [{name}] rescheduling TTL cleanup in {int(remaining)}s for cluster={target_cluster} ns={namespace}")
                 task = asyncio.create_task(cleanup_after_ttl(name, namespace, int(remaining), target_cluster))
                 _ttl_tasks[name] = task
+                _ttl_deadlines[name] = expires_at_str
     except Exception as e:
         logger.error(f"💥 failed to reschedule active request cleanups: {e}")
+
+    # Start TTL reconcile loop (detects expiresAt extensions from webui)
+    asyncio.create_task(_ttl_reconcile_loop())
 
     # Start periodic CRD cleanup background task
     asyncio.create_task(_periodic_crd_cleanup_loop())
