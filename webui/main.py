@@ -71,13 +71,28 @@ logger.setLevel(logging.INFO)
 
 
 class _AccessLogFilter(logging.Filter):
-    _SUPPRESS = ("GET /healthz", "/api/terminal/", "/api/audit", "/api/status/")
+    # High-frequency or low-signal paths — suppress from access log entirely
+    _SUPPRESS = (
+        "GET /healthz",
+        "/api/terminal/",
+        "/api/audit",
+        "/api/status/",
+        "/api/pods/",
+        "/api/logs/",
+        "/api/events/",
+        "GET /namespaces/",
+        "GET /static/",
+        "GET /status/",
+    )
 
     def filter(self, record):
         msg = record.getMessage()
         if any(s in msg for s in self._SUPPRESS):
             return False
-        # Drop 404s — scanner/bot noise hitting non-existent paths
+        # Drop 304 Not Modified — static asset cache hits
+        if '" 304 ' in msg:
+            return False
+        # Drop 404s — scanner/bot noise
         if '" 404 ' in msg:
             return False
         return True
@@ -642,9 +657,9 @@ async def preview_pods(cluster: str, namespace: str):
 async def namespaces(cluster_name: str):
     if not _valid_cluster(cluster_name):
         return JSONResponse([], status_code=400)
-    logger.info(f"📡 API request: GET /namespaces/{cluster_name}")
+    logger.debug(f"📡 API request: GET /namespaces/{cluster_name}")
     ns_list = get_allowed_namespaces(cluster_name)  # returns [] on error
-    logger.info(f"📤 Returning {len(ns_list)} namespaces for cluster {cluster_name}")
+    logger.debug(f"📤 Returning {len(ns_list)} namespaces for cluster {cluster_name}")
     return JSONResponse(ns_list)
 
 

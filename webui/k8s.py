@@ -196,7 +196,7 @@ def get_api_clients(cluster_name: str) -> tuple:
         if time.monotonic() < expires_ts:
             return custom_api, core_v1
 
-    logger.info(f"🔧 Building client for cluster: {cluster_name}")
+    logger.debug(f"🔧 Building client for cluster: {cluster_name}")
     apis = _build_api_clients(cluster_cfg)
     _CLIENT_CACHE[cluster_name] = (*apis, time.monotonic() + _CLIENT_TTL)
     return apis
@@ -216,7 +216,7 @@ def get_client_with_token(cluster: str, token: str, server: str, ca_pem: str):
 
 
 def get_allowed_namespaces(cluster_name: str) -> list[str]:
-    logger.info(f"🔍 Fetching namespaces for cluster: {cluster_name}")
+    logger.debug(f"🔍 Fetching namespaces for cluster: {cluster_name}")
     try:
         _, core_v1 = get_api_clients(cluster_name)
         ns_list = core_v1.list_namespace()
@@ -225,7 +225,7 @@ def get_allowed_namespaces(cluster_name: str) -> list[str]:
             for ns in ns_list.items
             if ns.metadata.name not in EXCLUDED_NAMESPACES
         ])
-        logger.info(f"✅ Found {len(namespaces)} accessible namespaces in cluster {cluster_name}")
+        logger.debug(f"✅ Found {len(namespaces)} accessible namespaces in cluster {cluster_name}")
         return namespaces
     except Exception as e:
         logger.error(f"💥 Failed to fetch namespaces for cluster {cluster_name}: {e}")
