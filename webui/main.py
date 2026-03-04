@@ -74,6 +74,9 @@ class _AccessLogFilter(logging.Filter):
     # High-frequency or low-signal paths — suppress from access log entirely
     _SUPPRESS = (
         "GET /healthz",
+        "GET / ",
+        "GET /admin",
+        "GET /logs",
         "/api/terminal/",
         "/api/audit",
         "/api/status/",
