@@ -3,12 +3,12 @@ import os
 import re
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, Request, Form, WebSocket, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from kubernetes.client.rest import ApiException
@@ -80,6 +80,7 @@ class _AccessLogFilter(logging.Filter):
         "/api/pods/",
         "/api/logs/",
         "/api/events/",
+        "/api/system-logs/",
         "GET /namespaces/",
         "GET /static/",
         "GET /status/",
@@ -1154,6 +1155,149 @@ async def api_request_phase(cluster: str, name: str):
     if not ar:
         return JSONResponse({"phase": "NotFound"})
     return JSONResponse({"phase": ar.get("status", {}).get("phase", "Pending")})
+
+
+# ---------------------------------------------------------------------------
+# TTL extension
+# ---------------------------------------------------------------------------
+
+@app.post("/extend/{cluster}/{name}")
+async def extend_access(cluster: str, name: str, request: Request):
+    """Extend the expiresAt on an Active AccessRequest. Admin only."""
+    if (err := _require_admin(request)):
+        return err
+    if not _valid_cluster(cluster) or not _valid_name(name):
+        return JSONResponse({"ok": False, "error": "Invalid parameters"}, status_code=400)
+
+    body = await request.json()
+    extra_seconds = int(body.get("seconds", 3600))
+    if extra_seconds <= 0:
+        return JSONResponse({"ok": False, "error": "seconds must be > 0"}, status_code=400)
+
+    ar = get_access_request(name, cluster)
+    if not ar:
+        return JSONResponse({"ok": False, "error": f"Request '{name}' not found."}, status_code=404)
+    if ar.get("status", {}).get("phase") != Phase.ACTIVE:
+        return JSONResponse({"ok": False, "error": "Request is not Active"}, status_code=409)
+
+    now = datetime.now(timezone.utc)
+    current_expires_str = ar.get("status", {}).get("expiresAt", "")
+    try:
+        current_expires = datetime.fromisoformat(current_expires_str.replace("Z", "+00:00"))
+    except Exception:
+        current_expires = now
+
+    # Never shorten — extend from max(now, current_expires)
+    base = max(now, current_expires)
+    new_expires = base + timedelta(seconds=extra_seconds)
+
+    # Cap at MAX_TTL_SECONDS from now
+    max_expires = now + timedelta(seconds=MAX_TTL_SECONDS)
+    if new_expires > max_expires:
+        new_expires = max_expires
+
+    new_expires_iso = new_expires.isoformat()
+
+    caller, _ = _get_user(request)
+    caller = caller or "admin"
+    try:
+        _patch_status(name, {"expiresAt": new_expires_iso})
+        logger.info(f"⏰ [{name}] TTL extended by {caller}: new expiresAt={new_expires_iso}")
+        log_audit(name, "access.extended", actor=caller,
+                  detail=f"+{extra_seconds}s → {new_expires_iso}")
+    except ApiException as e:
+        logger.error(f"💥 Failed to extend TTL for {name}: {e}")
+        return JSONResponse({"ok": False, "error": "Failed to patch CRD status"}, status_code=500)
+
+    return JSONResponse({"ok": True, "expiresAt": new_expires_iso})
+
+
+# ---------------------------------------------------------------------------
+# Logs page + system log streaming
+# ---------------------------------------------------------------------------
+
+@app.get("/logs", response_class=HTMLResponse)
+async def logs_page(request: Request):
+    if (err := _require_admin(request)):
+        return err
+    ctx = _base_context(request)
+    return templates.TemplateResponse("logs.html", ctx)
+
+
+@app.get("/api/system-logs/{component}")
+async def stream_system_logs(component: str, tail: int = 200):
+    """SSE endpoint: stream logs from the controller or webui pod."""
+    if component not in ("controller", "webui"):
+        return JSONResponse({"error": "component must be 'controller' or 'webui'"}, status_code=400)
+    tail = max(10, min(tail, 5000))
+
+    from k8s import _get_central_core_v1
+    try:
+        core_v1 = _get_central_core_v1()
+        pods = core_v1.list_namespaced_pod(
+            namespace=JANUS_NAMESPACE,
+            label_selector=f"app.kubernetes.io/name=janus-{component}",
+        )
+        if not pods.items:
+            async def _no_pod():
+                yield f"data: [no {component} pod found in {JANUS_NAMESPACE}]\n\n"
+            return StreamingResponse(_no_pod(), media_type="text/event-stream")
+        pod_name = pods.items[0].metadata.name
+    except Exception as e:
+        async def _err_gen(msg=str(e)):
+            yield f"data: [error resolving pod: {msg}]\n\n"
+        return StreamingResponse(_err_gen(), media_type="text/event-stream")
+
+    async def _log_generator():
+        loop = asyncio.get_event_loop()
+
+        def _fetch_tail():
+            try:
+                return core_v1.read_namespaced_pod_log(
+                    name=pod_name, namespace=JANUS_NAMESPACE,
+                    tail_lines=tail, timestamps=False,
+                )
+            except Exception as exc:
+                return f"[error: {exc}]"
+
+        # Send historical tail first
+        lines = await loop.run_in_executor(None, _fetch_tail)
+        for line in (lines or "").splitlines():
+            yield f"data: {line}\n\n"
+
+        # Then follow live
+        def _stream_follow():
+            try:
+                resp = core_v1.read_namespaced_pod_log(
+                    name=pod_name, namespace=JANUS_NAMESPACE,
+                    follow=True, _preload_content=False,
+                )
+                return resp
+            except Exception:
+                return None
+
+        resp = await loop.run_in_executor(None, _stream_follow)
+        if resp is None:
+            yield "data: [could not open log stream]\n\n"
+            return
+
+        try:
+            for chunk in resp:
+                text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, (bytes, bytearray)) else str(chunk)
+                for line in text.splitlines():
+                    if line:
+                        yield f"data: {line}\n\n"
+                await asyncio.sleep(0)
+        except Exception as exc:
+            yield f"data: [stream ended: {exc}]\n\n"
+        finally:
+            try:
+                resp.close()
+            except Exception:
+                pass
+
+    return StreamingResponse(_log_generator(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ---------------------------------------------------------------------------

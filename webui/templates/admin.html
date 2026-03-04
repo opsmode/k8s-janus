@@ -275,8 +275,28 @@
       border-color: rgba(239,68,68,0.25); color: #fca5a5;
     }
     .deny-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.5); color: #fca5a5; }
+    .extend-btn {
+      border-color: rgba(99,102,241,0.35); color: #a5b4fc;
+    }
+    .extend-btn:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.6); color: #c4b5fd; }
     .action-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .action-cell { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+    /* Extend dropdown */
+    .extend-menu {
+      display: none; position: absolute; z-index: 200;
+      background: var(--surface-2); border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm); padding: 6px;
+      gap: 4px; flex-direction: column; min-width: 110px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .extend-menu.open { display: flex; }
+    .extend-menu button {
+      background: transparent; border: none; color: var(--text-muted);
+      font-size: 0.75rem; padding: 5px 10px; border-radius: 4px;
+      cursor: pointer; text-align: left; transition: background 0.1s, color 0.1s;
+    }
+    .extend-menu button:hover { background: var(--surface-3); color: var(--text); }
+    .extend-wrap { position: relative; display: inline-flex; }
 
     /* ── EMPTY ── */
     .empty {
@@ -335,6 +355,10 @@
          style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
          onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
         <i data-lucide="github" style="width:17px;height:17px;"></i>
+      </a>
+      <a href="/logs" class="nav-link">
+        <i data-lucide="scroll-text" style="width:13px;height:13px;"></i>
+        Logs
       </a>
       <a href="/" class="nav-link">
         <i data-lucide="layout-dashboard" style="width:13px;height:13px;"></i>
@@ -504,6 +528,21 @@
                   </div>
                   {% elif phase in ("Active", "Approved") %}
                   <div class="action-cell" id="actions-{{ ar.metadata.name }}">
+                    {% if phase == "Active" %}
+                    <div class="extend-wrap" id="extend-wrap-{{ ar.metadata.name }}">
+                      <button class="action-btn extend-btn"
+                        onclick="toggleExtend('{{ ar.metadata.name }}', '{{ ar_cluster }}', event)">
+                        <i data-lucide="clock-4" style="width:12px;height:12px;"></i>
+                        Extend
+                      </button>
+                      <div class="extend-menu" id="extend-menu-{{ ar.metadata.name }}">
+                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',3600,this)">+1h</button>
+                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',7200,this)">+2h</button>
+                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',14400,this)">+4h</button>
+                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',28800,this)">+8h</button>
+                      </div>
+                    </div>
+                    {% endif %}
                     <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
                       onsubmit="return confirm('Revoke access for {{ requester }}?')">
                       <button type="submit" class="action-btn revoke-btn">
@@ -784,6 +823,65 @@
       }
     }
 
+    // ── TTL extend ──
+    var _extendOpen = null;
+
+    function toggleExtend(name, cluster, event) {
+      event.stopPropagation();
+      var menu = document.getElementById('extend-menu-' + name);
+      if (_extendOpen && _extendOpen !== menu) {
+        _extendOpen.classList.remove('open');
+      }
+      menu.classList.toggle('open');
+      _extendOpen = menu.classList.contains('open') ? menu : null;
+    }
+
+    document.addEventListener('click', function() {
+      if (_extendOpen) { _extendOpen.classList.remove('open'); _extendOpen = null; }
+    });
+
+    async function doExtend(name, cluster, seconds, btn) {
+      if (_extendOpen) { _extendOpen.classList.remove('open'); _extendOpen = null; }
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        var resp = await fetch('/extend/' + cluster + '/' + name, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({seconds: seconds}),
+        });
+        var data = await resp.json();
+        if (data.ok) {
+          // Update the TTL display cell for this row
+          var rows = document.querySelectorAll('tr.req-row');
+          for (var r of rows) {
+            var link = r.querySelector('a');
+            if (link && link.textContent.trim() === name) {
+              var ttlEl = r.querySelector('.ttl-remaining');
+              if (ttlEl && data.expiresAt) { ttlEl.dataset.expires = data.expiresAt; }
+              break;
+            }
+          }
+          _showBanner('TTL extended for ' + name, 'success');
+        } else {
+          _showBanner('Extend failed: ' + (data.error || 'unknown'), 'error');
+        }
+      } catch(e) {
+        _showBanner('Extend failed: ' + e, 'error');
+      }
+    }
+
+    function _showBanner(msg, type) {
+      var el = document.createElement('div');
+      el.style.cssText = 'position:fixed;top:90px;right:24px;z-index:999;padding:10px 16px;border-radius:8px;font-size:0.82rem;font-weight:500;' +
+        (type === 'success'
+          ? 'background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#34d399;'
+          : 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;');
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(function() { el.remove(); }, 3500);
+    }
+
     // ── Audit log ──
     var _EVENT_CLASS = {
       'request.created': 'created',
@@ -792,6 +890,7 @@
       'request.denied': 'denied',
       'access.revoked': 'revoked',
       'access.expired': 'expired',
+      'access.extended': 'approved',
       'crd.deleted': 'deleted',
     };
 

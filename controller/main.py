@@ -28,6 +28,10 @@ import time as _time
 _clusters_cache: dict = {"clusters": None, "expires": 0.0}
 _CLUSTERS_TTL = 30.0
 
+# Registry of active TTL cleanup tasks: request_name → asyncio.Task
+# Used to cancel and reschedule when TTL is extended.
+_ttl_tasks: dict[str, asyncio.Task] = {}
+
 
 def _get_central_core_v1_ctrl():
     """Return CoreV1Api using in-cluster config for the controller SA."""
@@ -262,6 +266,41 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
             await cleanup_access(name, ns, revoked=True, target_cluster=cluster)
 
 
+@kopf.on.field("k8s-janus.opsmode.pro", "v1alpha1", "accessrequests", field="status.expiresAt")
+async def on_expires_at_changed(name, new, status, spec, **kwargs):
+    """Reschedule the TTL cleanup task when expiresAt is extended by an admin."""
+    if status.get("phase") != "Active":
+        return
+    if not new:
+        return
+
+    try:
+        new_expires = datetime.fromisoformat(str(new).replace("Z", "+00:00"))
+    except Exception:
+        logger.warning(f"⚠️  [{name}] on_expires_at_changed: invalid expiresAt value: {new!r}")
+        return
+
+    remaining = (new_expires - datetime.now(timezone.utc)).total_seconds()
+    if remaining <= 0:
+        logger.info(f"⏰ [{name}] extended expiresAt already in the past — triggering cleanup now")
+        namespaces = _spec_namespaces(spec)
+        target_cluster = spec.get("cluster", get_clusters()[0]["name"])
+        for ns in namespaces:
+            asyncio.create_task(cleanup_access(name, ns, target_cluster=target_cluster))
+        return
+
+    # Cancel existing task and reschedule with updated remaining TTL
+    old_task = _ttl_tasks.pop(name, None)
+    if old_task and not old_task.done():
+        old_task.cancel()
+
+    namespaces = _spec_namespaces(spec)
+    target_cluster = spec.get("cluster", get_clusters()[0]["name"])
+    logger.info(f"⏰ [{name}] TTL extended — rescheduling cleanup in {int(remaining)}s (expires={new})")
+    task = asyncio.create_task(cleanup_after_ttl(name, namespaces, int(remaining), target_cluster))
+    _ttl_tasks[name] = task
+
+
 async def grant_access(name: str, spec: dict, patch):
     """Create SA + RoleBinding + token per namespace on target cluster."""
     target_cluster = spec.get("cluster", get_clusters()[0]["name"])
@@ -426,7 +465,8 @@ async def grant_access(name: str, spec: dict, patch):
         log_audit(name, "access.granted", actor=requester,
                   detail=f"cluster={target_cluster} ns={namespaces} expires={expires_at}")
 
-        asyncio.create_task(cleanup_after_ttl(name, namespaces, ttl, target_cluster))
+        task = asyncio.create_task(cleanup_after_ttl(name, namespaces, ttl, target_cluster))
+        _ttl_tasks[name] = task
 
     except Exception as e:
         logger.error(f"💥 [{name}] FAILED to grant access: {type(e).__name__}: {e}")
@@ -439,9 +479,14 @@ async def cleanup_after_ttl(request_name: str, namespace, ttl: int, target_clust
     """namespace may be a str or list[str]."""
     namespaces = namespace if isinstance(namespace, list) else [namespace]
     logger.info(f"⏳ [{request_name}] TTL cleanup scheduled in {ttl}s for cluster={target_cluster} ns={namespaces}")
-    await asyncio.sleep(ttl)
-    for ns in namespaces:
-        await cleanup_access(request_name, ns, target_cluster=target_cluster)
+    try:
+        await asyncio.sleep(ttl)
+        for ns in namespaces:
+            await cleanup_access(request_name, ns, target_cluster=target_cluster)
+    except asyncio.CancelledError:
+        logger.info(f"⏰ [{request_name}] TTL cleanup task cancelled (TTL extended)")
+    finally:
+        _ttl_tasks.pop(request_name, None)
 
 
 async def cleanup_access(request_name: str, namespace: str, revoked: bool = False, target_cluster: str = ""):
@@ -714,7 +759,8 @@ async def startup(**kwargs):
                 asyncio.create_task(cleanup_access(name, namespace, target_cluster=target_cluster))
             else:
                 logger.info(f"⏰ [{name}] rescheduling TTL cleanup in {int(remaining)}s for cluster={target_cluster} ns={namespace}")
-                asyncio.create_task(cleanup_after_ttl(name, namespace, int(remaining), target_cluster))
+                task = asyncio.create_task(cleanup_after_ttl(name, namespace, int(remaining), target_cluster))
+                _ttl_tasks[name] = task
     except Exception as e:
         logger.error(f"💥 failed to reschedule active request cleanups: {e}")
 

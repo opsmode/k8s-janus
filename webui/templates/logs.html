@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Logs</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .header-logo svg { color: #fff; }
+    .brand-text h1 {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .nav-link {
+      font-size: 0.78rem; color: var(--text-dim); text-decoration: none;
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .nav-link:hover { color: var(--text); border-color: var(--border-light); }
+
+    /* ── MAIN LAYOUT ── */
+    .log-layout {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      overflow: hidden;
+      padding: 20px 24px 20px;
+    }
+
+    /* ── LOG PANE ── */
+    .log-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+    }
+    .log-pane + .log-pane { margin-left: 12px; }
+    .log-pane::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+    }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      flex-shrink: 0;
+    }
+    .pane-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.live { background: var(--success); box-shadow: 0 0 5px rgba(16,185,129,0.6); }
+    .status-dot.error { background: var(--danger); }
+
+    .pane-actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+    .pane-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-dim); font-size: 0.73rem; font-weight: 500;
+      padding: 3px 9px; border-radius: 5px; cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .pane-btn:hover { color: var(--text); border-color: var(--border-light); background: var(--surface-3); }
+    .pane-btn.paused { color: var(--warning); border-color: rgba(245,158,11,0.4); }
+
+    .log-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .log-body::-webkit-scrollbar { width: 5px; height: 5px; }
+    .log-body::-webkit-scrollbar-track { background: transparent; }
+    .log-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+    .log-line { white-space: pre-wrap; word-break: break-all; display: block; padding: 1px 0; }
+    .log-line.error    { color: #f87171; }
+    .log-line.critical { color: #fb923c; font-weight: 600; }
+    .log-line.warning  { color: #fbbf24; }
+    .log-line.info     { color: var(--text-muted); }
+    .log-line.debug    { color: var(--text-dim); }
+
+    .log-count {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="header-brand" href="/admin" style="text-decoration:none;">
+      <div class="header-logo">
+        <i data-lucide="shield-check" style="width:24px;height:24px;"></i>
+      </div>
+      <div class="brand-text">
+        <h1>K8S-Janus</h1>
+        <span>System Logs</span>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="/admin" class="nav-link">
+        <i data-lucide="arrow-left" style="width:13px;height:13px;"></i>
+        Back to Admin
+      </a>
+      {% if user_name %}
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:0.75rem;color:var(--text-muted);">
+        <i data-lucide="user" style="width:12px;height:12px;"></i>
+        {{ user_name }}
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="log-layout">
+    <!-- Controller pane -->
+    <div class="log-pane">
+      <div class="pane-header">
+        <span class="status-dot" id="dot-controller"></span>
+        <span class="pane-title">
+          <i data-lucide="cpu" style="width:14px;height:14px;color:var(--accent);"></i>
+          Controller
+        </span>
+        <span class="log-count" id="count-controller">0 lines</span>
+        <div class="pane-actions">
+          <button class="pane-btn" onclick="clearPane('controller')">
+            <i data-lucide="eraser" style="width:11px;height:11px;"></i>
+            Clear
+          </button>
+          <button class="pane-btn" id="pause-controller" onclick="togglePause('controller')">
+            <i data-lucide="pause" style="width:11px;height:11px;" id="pause-icon-controller"></i>
+            Pause
+          </button>
+        </div>
+      </div>
+      <div class="log-body" id="log-controller"></div>
+    </div>
+
+    <!-- WebUI pane -->
+    <div class="log-pane">
+      <div class="pane-header">
+        <span class="status-dot" id="dot-webui"></span>
+        <span class="pane-title">
+          <i data-lucide="globe" style="width:14px;height:14px;color:var(--accent-2);"></i>
+          WebUI
+        </span>
+        <span class="log-count" id="count-webui">0 lines</span>
+        <div class="pane-actions">
+          <button class="pane-btn" onclick="clearPane('webui')">
+            <i data-lucide="eraser" style="width:11px;height:11px;"></i>
+            Clear
+          </button>
+          <button class="pane-btn" id="pause-webui" onclick="togglePause('webui')">
+            <i data-lucide="pause" style="width:11px;height:11px;" id="pause-icon-webui"></i>
+            Pause
+          </button>
+        </div>
+      </div>
+      <div class="log-body" id="log-webui"></div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    var _state = {
+      controller: { es: null, paused: false, count: 0 },
+      webui:      { es: null, paused: false, count: 0 },
+    };
+
+    function _classify(line) {
+      var u = line.toUpperCase();
+      if (u.includes('CRITICAL') || u.includes('EXCEPTION') || u.includes('TRACEBACK')) return 'critical';
+      if (u.includes(' ERROR') || u.includes('[ERROR]'))   return 'error';
+      if (u.includes(' WARNING') || u.includes('[WARN'))   return 'warning';
+      if (u.includes(' DEBUG') || u.includes('[DEBUG]'))   return 'debug';
+      return 'info';
+    }
+
+    function _appendLine(component, text) {
+      var s = _state[component];
+      if (s.paused) return;
+      var body = document.getElementById('log-' + component);
+      var span = document.createElement('span');
+      span.className = 'log-line ' + _classify(text);
+      span.textContent = text;
+      body.appendChild(span);
+      s.count++;
+      document.getElementById('count-' + component).textContent = s.count + ' lines';
+      // Auto-scroll if already near bottom
+      if (body.scrollHeight - body.scrollTop - body.clientHeight < 120) {
+        body.scrollTop = body.scrollHeight;
+      }
+    }
+
+    function clearPane(component) {
+      document.getElementById('log-' + component).innerHTML = '';
+      _state[component].count = 0;
+      document.getElementById('count-' + component).textContent = '0 lines';
+    }
+
+    function togglePause(component) {
+      var s = _state[component];
+      s.paused = !s.paused;
+      var btn  = document.getElementById('pause-' + component);
+      var icon = document.getElementById('pause-icon-' + component);
+      if (s.paused) {
+        btn.classList.add('paused');
+        btn.innerHTML = '<i data-lucide="play" style="width:11px;height:11px;"></i> Resume';
+      } else {
+        btn.classList.remove('paused');
+        btn.innerHTML = '<i data-lucide="pause" style="width:11px;height:11px;" id="pause-icon-' + component + '"></i> Pause';
+      }
+      lucide.createIcons();
+    }
+
+    function _setDot(component, state) {
+      var dot = document.getElementById('dot-' + component);
+      dot.className = 'status-dot' + (state === 'live' ? ' live' : state === 'error' ? ' error' : '');
+    }
+
+    function startStream(component) {
+      var s = _state[component];
+      if (s.es) { s.es.close(); }
+
+      var es = new EventSource('/api/system-logs/' + component + '?tail=200');
+      s.es = es;
+
+      es.onopen = function() { _setDot(component, 'live'); };
+
+      es.onmessage = function(e) {
+        if (e.data) _appendLine(component, e.data);
+      };
+
+      es.onerror = function() {
+        _setDot(component, 'error');
+        es.close();
+        // Reconnect after 5s
+        setTimeout(function() { startStream(component); }, 5000);
+      };
+    }
+
+    startStream('controller');
+    startStream('webui');
+  </script>
+</body>
+</html>
