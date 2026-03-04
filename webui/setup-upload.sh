@@ -517,58 +517,22 @@ ok "Upload successful"
 SESSION_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null || echo "")
 [[ -z "$SESSION_ID" ]] && die "No session_id returned from upload"
 
-step "Starting setup"
+step "Opening wizard"
 
-# Build remotes JSON — all selected contexts except central, slugified as cluster_name
-REMOTES_JSON=$(python3 - "$MGMT_CONTEXT" "${SELECTED_CONTEXTS[@]}" <<'SLUGEOF'
-import sys, re, json
-central = sys.argv[1]
-contexts = sys.argv[2:]
-def slugify(s):
-    s = s.lower()
-    s = re.sub(r'[^a-z0-9-]', '-', s)
-    s = re.sub(r'-+', '-', s).strip('-')
-    return s[:63]
-remotes = [{"context": c, "cluster_name": slugify(c)} for c in contexts if c != central]
-print(json.dumps(remotes))
-SLUGEOF
-)
-
-CENTRAL_SLUG=$(python3 -c "
-import sys, re
-s = sys.argv[1].lower()
-s = re.sub(r'[^a-z0-9-]', '-', s)
-s = re.sub(r'-+', '-', s).strip('-')
-print(s[:63])
-" "$MGMT_CONTEXT")
-
-RUN_RESPONSE=$(curl -sf --max-time 10 -X POST \
-  "${WIZARD_URL}/setup/run" \
-  -H "Content-Type: application/json" \
-  -d "{\"session_id\":\"${SESSION_ID}\",\"central\":\"${MGMT_CONTEXT}\",\"central_name\":\"${CENTRAL_SLUG}\",\"remotes\":${REMOTES_JSON}}" \
-  2>&1) || die "Failed to start setup run: ${RUN_RESPONSE}"
-
-RUN_ERROR=$(echo "$RUN_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error') or '')" 2>/dev/null || echo "")
-[[ -n "$RUN_ERROR" ]] && die "Setup run failed: $RUN_ERROR"
-
-ok "Setup started — streaming progress in browser"
-
-step "Opening progress view"
-
-SETUP_URL="${WIZARD_URL}/setup?session=${SESSION_ID}&autorun=1"
+SETUP_URL="${WIZARD_URL}/setup?session=${SESSION_ID}"
 
 echo ""
 echo -e "  ${BOLD}Open this URL in your browser:${RESET}"
 echo -e "  ${CYAN}${SETUP_URL}${RESET}"
 echo ""
 if command -v open &>/dev/null; then
-  open "$SETUP_URL" 2>/dev/null && ok "Browser opened automatically" || true
+  open "$SETUP_URL" 2>/dev/null && ok "Browser opened — review your cluster selection and click Start Setup" || true
 elif command -v xdg-open &>/dev/null; then
   xdg-open "$SETUP_URL" 2>/dev/null || true
 fi
 
 echo ""
-echo -e "${MAGENTA}${BOLD}  ⛩  Setup running — watch progress in your browser.${RESET}"
+echo -e "${MAGENTA}${BOLD}  ⛩  Review your cluster selection in the browser, then click Start Setup.${RESET}"
 echo ""
 
 if $PF_STARTED; then
