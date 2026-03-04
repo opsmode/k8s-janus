@@ -120,7 +120,7 @@ jobs:
           git clone git@github.com:opsmode/argocd.git /tmp/argocd
           cd /tmp/argocd
 
-          sed -i "s/tag: \"[a-f0-9]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
+          sed -i "s/tag: \"[^\"]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
 
           git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
