@@ -1,5 +1,7 @@
 # K8s-Janus
 
+[![GitHub release](https://img.shields.io/github/v/release/opsmode/k8s-janus)](https://github.com/opsmode/k8s-janus/releases/latest)
+
 **Just-in-Time `kubectl exec` access for Kubernetes.**
 
 Engineers request temporary pod shell access through a web UI. Admins approve with one click. The token auto-expires. No permanent permissions. Ever.
