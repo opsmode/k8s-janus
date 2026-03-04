@@ -31,10 +31,11 @@ jobs:
 
       - name: Upgrade all dependencies
         run: |
-          # Strip version pins, upgrade all packages, re-freeze
-          sed 's/==.*//' requirements.txt > /tmp/deps.txt
+          # Union of all three requirements files → strip pins → upgrade → re-freeze
+          cat requirements.txt controller/requirements.txt webui/requirements.txt \
+            | sed 's/\[.*\]//' | sed 's/==.*//' | sort -u > /tmp/deps.txt
           pip install --quiet $(cat /tmp/deps.txt | tr '\n' ' ')
-          pip freeze --all | grep -Ff /tmp/deps.txt > requirements.txt
+          pip freeze | grep -Fif /tmp/deps.txt > requirements.txt
           git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
           git add requirements.txt
