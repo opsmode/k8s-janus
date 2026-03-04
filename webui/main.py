@@ -485,22 +485,38 @@ async def setup_redirect_url(request: Request):
     """
     base_url = os.environ.get("WEBUI_BASE_URL", "").rstrip("/")
     if not base_url:
-        # Auto-detect LB IP/hostname: find a LoadBalancer Service in JANUS_NAMESPACE
-        # that has an external address (the webui service).
         try:
             from k8s import _get_central_core_v1
+            from kubernetes import client as _k8s_client
             core_v1 = _get_central_core_v1()
-            svcs = core_v1.list_namespaced_service(namespace=JANUS_NAMESPACE)
-            for svc in svcs.items:
-                if svc.spec.type != "LoadBalancer":
-                    continue
-                ingresses = (svc.status.load_balancer.ingress or []) if svc.status.load_balancer else []
-                if ingresses:
-                    lb = ingresses[0]
-                    host = lb.hostname or lb.ip
-                    if host:
-                        base_url = f"http://{host}"
+
+            # 1. Ingress hostname (highest priority — user-configured domain)
+            try:
+                net_v1 = _k8s_client.NetworkingV1Api(core_v1.api_client)
+                for ing in net_v1.list_namespaced_ingress(namespace=JANUS_NAMESPACE).items:
+                    for rule in (ing.spec.rules or []):
+                        if rule.host:
+                            tls_hosts = [h for tls in (ing.spec.tls or []) for h in (tls.hosts or [])]
+                            scheme = "https" if rule.host in tls_hosts else "http"
+                            base_url = f"{scheme}://{rule.host}"
+                            break
+                    if base_url:
                         break
+            except Exception:
+                pass
+
+            # 2. LoadBalancer Service IP/hostname
+            if not base_url:
+                for svc in core_v1.list_namespaced_service(namespace=JANUS_NAMESPACE).items:
+                    if svc.spec.type != "LoadBalancer":
+                        continue
+                    ingresses = (svc.status.load_balancer.ingress or []) if svc.status.load_balancer else []
+                    if ingresses:
+                        lb = ingresses[0]
+                        host = lb.hostname or lb.ip
+                        if host:
+                            base_url = f"http://{host}"
+                            break
         except Exception:
             pass
     if not base_url:
