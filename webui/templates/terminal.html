@@ -223,7 +223,31 @@
       position: relative;
     }
     .terminal-pane + .terminal-pane {
-      border-left: 2px solid var(--accent);
+      border-left: none;
+    }
+    .pane-resize-handle {
+      width: 6px;
+      flex-shrink: 0;
+      cursor: col-resize;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .pane-resize-handle::after {
+      content: '';
+      width: 2px;
+      height: 40px;
+      background: var(--accent);
+      border-radius: 2px;
+      opacity: 0.5;
+      transition: opacity 0.15s, height 0.15s;
+    }
+    .pane-resize-handle:hover::after,
+    .pane-resize-handle.dragging::after {
+      opacity: 1;
+      height: 60px;
     }
     .terminal-pane.focused .pane-header {
       border-bottom-color: var(--accent);
@@ -662,6 +686,8 @@
           </div>
         </div>
 
+        <div class="pane-resize-handle" id="term-resize-handle" style="display:none;"></div>
+
         <!-- Pane B (hidden until split) -->
         <div class="terminal-pane" id="pane-b" style="display:none;">
           <div class="pane-header">
@@ -1060,8 +1086,12 @@
       splitOpen = true;
       sessionStorage.setItem('k8s_janus_split', '1');
       document.getElementById('pane-b').style.display = 'flex';
+      document.getElementById('term-resize-handle').style.display = 'flex';
       document.getElementById('pane-a-close').style.display = '';
       document.getElementById('split-btn').classList.add('active');
+      // Reset any manual widths so both panes start at 50/50
+      var elA = document.getElementById('pane-a');
+      elA.style.flex = ''; elA.style.width = '';
       if (!paneB) paneB = new TermPane('b');
       setActivePane('b');
       paneA.fit();
@@ -1072,9 +1102,13 @@
       splitOpen = false;
       sessionStorage.removeItem('k8s_janus_split');
       document.getElementById('pane-b').style.display = 'none';
+      document.getElementById('term-resize-handle').style.display = 'none';
       document.getElementById('pane-a-close').style.display = 'none';
       document.getElementById('split-btn').classList.remove('active');
       if (paneB) { paneB.destroy(); paneB = null; }
+      // Reset pane-a width so it fills the full wrapper
+      var elA = document.getElementById('pane-a');
+      elA.style.flex = ''; elA.style.width = '';
       setActivePane('a');
       paneA.fit();
       document.getElementById('active-pane-label').textContent = '';
@@ -1201,11 +1235,54 @@
     loadPods();
     refreshInterval = setInterval(loadPods, 5000);
 
-    // ── Resize: re-fit all panes ──
+    // ── Resize: re-fit all panes on window resize ──
     window.addEventListener('resize', () => {
       paneA.fit();
       if (paneB) paneB.fit();
     });
+
+    // ── Drag-to-resize split panes ──
+    (function() {
+      var handle   = document.getElementById('term-resize-handle');
+      var wrapper  = document.getElementById('panes-wrapper');
+      var elA      = document.getElementById('pane-a');
+      var elB      = document.getElementById('pane-b');
+      var dragging = false, startX = 0, startW = 0;
+
+      handle.addEventListener('mousedown', function(e) {
+        if (!splitOpen) return;
+        dragging = true;
+        startX   = e.clientX;
+        startW   = elA.getBoundingClientRect().width;
+        handle.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var total     = wrapper.getBoundingClientRect().width;
+        var handleW   = handle.offsetWidth;
+        var available = total - handleW;
+        var delta     = e.clientX - startX;
+        var newA      = Math.max(150, Math.min(startW + delta, available - 150));
+        elA.style.flex  = 'none';
+        elA.style.width = newA + 'px';
+        elB.style.flex  = '1';
+        elB.style.width = '';
+        paneA.fit();
+        if (paneB) paneB.fit();
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        handle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      });
+    })();
 
     // ── Cleanup ──
     window.addEventListener('beforeunload', () => {
