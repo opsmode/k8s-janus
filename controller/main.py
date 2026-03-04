@@ -266,12 +266,13 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
             await cleanup_access(name, ns, revoked=True, target_cluster=cluster)
 
 
-@kopf.on.field("k8s-janus.opsmode.pro", "v1alpha1", "accessrequests", field="status.expiresAt")
+@kopf.on.field("k8s-janus.opsmode.pro", "v1alpha1", "accessrequests", field="status.expiresAt",
+               when=lambda old, **_: old is not None)
 async def on_expires_at_changed(name, new, old, status, spec, **kwargs):
-    """Reschedule the TTL cleanup task when expiresAt is extended by an admin."""
-    # Skip initial grant (old is None) — grant_access already schedules the task
-    if old is None:
-        return
+    """Reschedule the TTL cleanup task when expiresAt is extended by an admin.
+    The `when` filter ensures kopf never invokes this on the initial grant (old=None),
+    eliminating the progress-patch conflict with on_phase_change.
+    """
     if status.get("phase") != "Active":
         return
     if not new:
