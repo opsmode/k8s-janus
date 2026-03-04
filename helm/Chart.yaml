@@ -2,12 +2,12 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 0.1.36
-appVersion: "0.1.36"
+version: 0.1.37
+appVersion: "0.1.37"
 annotations:
   artifacthub.io/changes: |
-    - kind: changed
-      description: "BREAKING: CRD group and domain renamed from opsmode.io to opsmode.pro — reinstall required"
+    - kind: fixed
+      description: Restore missing sqlalchemy/uvicorn/jinja2/pyyaml in Docker image requirements
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/opsmode/k8s-janus
