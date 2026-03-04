@@ -1284,7 +1284,13 @@ async def stream_system_logs(component: str, tail: int = 200):
             yield "data: [could not open log stream]\n\n"
             return
 
-        queue: asyncio.Queue = asyncio.Queue(maxsize=200)
+        queue: asyncio.Queue = asyncio.Queue(maxsize=1000)
+
+        def _safe_put(item):
+            try:
+                queue.put_nowait(item)
+            except asyncio.QueueFull:
+                pass  # drop line — consumer is too slow, prevents cascading errors
 
         def _reader():
             try:
@@ -1292,15 +1298,15 @@ async def stream_system_logs(component: str, tail: int = 200):
                     text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, (bytes, bytearray)) else str(chunk)
                     for line in text.splitlines():
                         if line:
-                            loop.call_soon_threadsafe(queue.put_nowait, line)
+                            loop.call_soon_threadsafe(_safe_put, line)
             except Exception as exc:
-                loop.call_soon_threadsafe(queue.put_nowait, f"[stream ended: {exc}]")
+                loop.call_soon_threadsafe(_safe_put, f"[stream ended: {exc}]")
             finally:
                 try:
                     resp.close()
                 except Exception:
                     pass
-                loop.call_soon_threadsafe(queue.put_nowait, None)  # sentinel
+                loop.call_soon_threadsafe(_safe_put, None)  # sentinel
 
         loop.run_in_executor(None, _reader)
         while True:
