@@ -64,9 +64,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Helm
-        uses: azure/setup-helm@v4
-
       - name: Import GPG key
         run: |
           echo "${{ secrets.HELM_GPG_KEY }}" | gpg --batch --import
@@ -77,9 +74,6 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           sed -i "s/^version:.*/version: ${VERSION}/" helm/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/Chart.yaml
-          wget -qO /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod +x /usr/local/bin/yq
           yq -i '.image.tag = "'${GITHUB_REF_NAME}'"' helm/values.yaml
 
       - name: Generate changelog for Artifact Hub
@@ -203,8 +197,7 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s' "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
           chmod 600 ~/.ssh/argocd_deploy
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts"
 
           rm -rf /tmp/argocd-release
           git clone git@github.com:opsmode/argocd.git /tmp/argocd-release

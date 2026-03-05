@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.opsmode.janus-runner</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>
+      set -euo pipefail
+      /opt/homebrew/bin/docker pull opsmode/k8s-janus-runner:latest
+      /opt/homebrew/bin/docker rm -f janus-runner 2>/dev/null || true
+      /opt/homebrew/bin/docker run --rm \
+        --name janus-runner \
+        --restart=unless-stopped \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v /tmp/.buildx-cache:/tmp/.buildx-cache \
+        -e GITHUB_OWNER_REPO=opsmode/k8s-janus \
+        -e GITHUB_PAT="__REPLACE_WITH_PAT__" \
+        -e RUNNER_NAME=janus-runner-local \
+        -e RUNNER_LABELS=self-hosted,linux,x64 \
+        opsmode/k8s-janus-runner:latest
+    </string>
+  </array>
+
+  <!-- Start at login -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart if it exits (ephemeral runner exits after each job) -->
+  <key>KeepAlive</key>
+  <true/>
+
+  <!-- Also re-run every 6h to pick up a fresh image pull -->
+  <key>StartInterval</key>
+  <integer>21600</integer>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/janus-runner.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/tmp/janus-runner.log</string>
+</dict>
+</plist>

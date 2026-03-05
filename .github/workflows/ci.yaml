@@ -19,8 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: pip3 install --quiet -r controller/requirements.txt -r webui/requirements.txt flake8
+      - name: Sync deps (no-op if runner image is current)
+        run: pip3 install --break-system-packages --quiet \
+               -r controller/requirements.txt -r webui/requirements.txt flake8
 
       - name: Lint controller
         working-directory: controller
@@ -87,8 +88,7 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s' "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
           chmod 600 ~/.ssh/argocd_deploy
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts"
 
           rm -rf /tmp/argocd
           git clone git@github.com:opsmode/argocd.git /tmp/argocd
