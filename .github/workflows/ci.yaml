@@ -15,14 +15,9 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
 
       - name: Install dependencies
         run: pip install --quiet -r controller/requirements.txt -r webui/requirements.txt flake8
@@ -40,18 +35,15 @@ jobs:
           flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402
 
   helm-lint:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
       - name: Lint Helm chart
         run: helm lint helm/ --strict
 
   build:
     needs: [lint, helm-lint]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
@@ -60,6 +52,8 @@ jobs:
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-buildx-action@v3
+        with:
+          install: true
 
       - uses: docker/login-action@v3
         with:
@@ -72,9 +66,14 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           platforms: linux/amd64
+
+      - name: Rotate build cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Update ArgoCD image tag
         env:
@@ -82,15 +81,16 @@ jobs:
           SHA: ${{ steps.tag.outputs.sha }}
         run: |
           mkdir -p ~/.ssh
-          echo "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
+          printf '%s' "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
           chmod 600 ~/.ssh/argocd_deploy
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
 
+          rm -rf /tmp/argocd
           git clone git@github.com:opsmode/argocd.git /tmp/argocd
           cd /tmp/argocd
 
-          sed -i "s/tag: \"[^\"]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
+          sed -i '' "s/tag: \"[^\"]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
 
           git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
