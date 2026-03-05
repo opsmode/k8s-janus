@@ -1393,7 +1393,7 @@ async def audit_for_request(name: str):
 @app.get("/api/requests/count")
 async def api_requests_count(request: Request):
     """Returns the current count of access requests — used by admin page to detect new arrivals."""
-    if (err := _require_admin(request)):
+    if _require_admin(request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     reqs = list_access_requests()
     return JSONResponse({"count": len(reqs)})
