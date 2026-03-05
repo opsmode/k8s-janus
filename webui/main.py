@@ -466,6 +466,7 @@ def _base_context(request: Request) -> dict:
         "user_name": user_name,
         "is_devops": _is_admin(user_email),
         "is_admin": _is_admin(user_email),
+        "oidc_enabled": OIDC_ENABLED,
         "default_ttl": DEFAULT_TTL_SECONDS // 3600,
         "max_ttl": MAX_TTL_SECONDS // 3600,
     }

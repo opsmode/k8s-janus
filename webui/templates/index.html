@@ -464,6 +464,12 @@
         <span class="pulse-dot"></span>
         {% if user_name %}{{ user_name }}{% else %}God of Gateways{% endif %}
       </div>
+      {% if oidc_enabled %}
+      <a href="/logout" class="nav-link" style="color:var(--text-dim);gap:5px;" title="Sign out">
+        <i data-lucide="log-out" style="width:13px;height:13px;"></i>
+        Sign out
+      </a>
+      {% endif %}
     </div>
   </header>
 
