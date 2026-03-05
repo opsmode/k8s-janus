@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       jq unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Docker CLI + buildx ───────────────────────────────────────────────────────
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-      | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] \
+# ── Docker CLI + buildx (arch-aware) ─────────────────────────────────────────
+RUN ARCH=$(dpkg --print-architecture) \
+    && curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+       | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/docker.gpg] \
        https://download.docker.com/linux/ubuntu noble stable" \
        > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
@@ -46,6 +47,7 @@ RUN pip3 install --break-system-packages --quiet \
 # ── GitHub Actions runner binary (arch-aware) ─────────────────────────────────
 ARG RUNNER_VERSION=2.323.0
 RUN ARCH=$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/') \
+    && mkdir -p /actions-runner \
     && curl -fsSL \
        "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz" \
        | tar -xz -C /actions-runner
