@@ -23,13 +23,13 @@ jobs:
           pip install --quiet pip-tools
           # Strip pins, upgrade all, re-freeze in place
           sed 's/==.*//' controller/requirements.txt | sort -u > /tmp/ctrl.in
-          pip install --quiet $(cat /tmp/ctrl.in | tr '\n' ' ')
+          xargs pip install --quiet < /tmp/ctrl.in
           pip freeze | grep -Fif /tmp/ctrl.in > controller/requirements.txt
 
       - name: Upgrade webui dependencies
         run: |
           sed 's/==.*//' webui/requirements.txt | sort -u > /tmp/webui.in
-          pip install --quiet $(cat /tmp/webui.in | tr '\n' ' ')
+          xargs pip install --quiet < /tmp/webui.in
           pip freeze | grep -Fif /tmp/webui.in > webui/requirements.txt
 
       - name: Open PR if anything changed
