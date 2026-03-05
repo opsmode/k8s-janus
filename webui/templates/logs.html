@@ -186,9 +186,22 @@
     .log-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
     .log-line { white-space: pre-wrap; word-break: break-all; display: block; padding: 1px 0; }
-    .log-line.error    { color: #f87171; }
-    .log-line.critical { color: #fb923c; font-weight: 600; }
-    .log-line.warning  { color: #fbbf24; }
+
+    /* token-level colours */
+    .lt { color: #64748b; }                          /* timestamp */
+    .ll { font-weight: 600; }
+    .ll.lerror    { color: #f87171; }
+    .ll.lcritical { color: #fb923c; }
+    .ll.lwarning  { color: #fbbf24; }
+    .ll.linfo     { color: #38bdf8; }
+    .ll.ldebug    { color: #94a3b8; }
+    .lk { color: #a78bfa; }                          /* logger/source */
+    .lm { }                                          /* message — inherits line colour */
+
+    /* line-level background tint */
+    .log-line.error    { color: #fca5a5; background: rgba(248,113,113,0.04); }
+    .log-line.critical { color: #fdba74; background: rgba(251,146,60,0.06); font-weight: 600; }
+    .log-line.warning  { color: #fde68a; background: rgba(251,191,36,0.04); }
     .log-line.info     { color: var(--text-muted); }
     .log-line.debug    { color: var(--text-dim); }
 
@@ -291,13 +304,34 @@
       return 'info';
     }
 
+    // Parse: [2026-03-05 01:23:45,678] logger/worker [LEVEL   ] message
+    var _LOG_RE = /^(\[[^\]]+\])\s+(\S+)\s+(\[[\w\s]+\])\s+([\s\S]*)$/;
+
+    function _renderLine(text, level) {
+      var span = document.createElement('span');
+      span.className = 'log-line ' + level;
+      var m = _LOG_RE.exec(text);
+      if (!m) { span.textContent = text; return span; }
+      var lc = level === 'info' ? 'linfo' : level === 'warning' ? 'lwarning'
+             : level === 'error' ? 'lerror' : level === 'critical' ? 'lcritical' : 'ldebug';
+      span.innerHTML =
+        '<span class="lt">' + _esc(m[1]) + '</span> ' +
+        '<span class="lk">' + _esc(m[2]) + '</span> ' +
+        '<span class="ll ' + lc + '">' + _esc(m[3]) + '</span> ' +
+        '<span class="lm">' + _esc(m[4]) + '</span>';
+      return span;
+    }
+
+    function _esc(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
     function _appendLine(component, text) {
       var s = _state[component];
       if (s.paused) return;
       var body = document.getElementById('log-' + component);
-      var span = document.createElement('span');
-      span.className = 'log-line ' + _classify(text);
-      span.textContent = text;
+      var level = _classify(text);
+      var span = _renderLine(text, level);
       body.appendChild(span);
       s.count++;
       document.getElementById('count-' + component).textContent = s.count + ' lines';
