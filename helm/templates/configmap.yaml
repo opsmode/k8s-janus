@@ -20,4 +20,11 @@ data:
   IDLE_TIMEOUT_SECONDS: {{ .Values.janus.idleTimeoutSeconds | default 900 | quote }}
   AUTH_ENABLED: {{ ternary "true" "false" (ne .Values.webui.authEnabled false) | quote }}
   DISPLAY_TIMEZONE: {{ .Values.janus.displayTimezone | default "UTC" | quote }}
+  OIDC_ENABLED:         {{ ternary "true" "false" (and .Values.oidc .Values.oidc.enabled) | quote }}
+  OIDC_PROVIDER:        {{ ((.Values.oidc).provider) | default "" | quote }}
+  OIDC_CLIENT_ID:       {{ ((.Values.oidc).clientId) | default "" | quote }}
+  OIDC_ISSUER_URL:      {{ ((.Values.oidc).issuerUrl) | default "" | quote }}
+  OIDC_TENANT_ID:       {{ ((.Values.oidc).tenantId) | default "" | quote }}
+  OIDC_ALLOWED_DOMAINS: {{ ((.Values.oidc).allowedDomains) | default list | join "," | quote }}
+  OIDC_SCOPES:          {{ ((.Values.oidc).scopes) | default "openid email profile" | quote }}
 {{- end }}

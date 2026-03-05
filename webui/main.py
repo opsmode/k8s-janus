@@ -11,7 +11,9 @@ from fastapi import FastAPI, Request, Form, WebSocket, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 from kubernetes.client.rest import ApiException
+from authlib.integrations.starlette_client import OAuth
 
 from db import (
     init_db, upsert_request, log_audit, get_audit_log,
@@ -57,6 +59,68 @@ except ZoneInfoNotFoundError:
 # Set to "false" when running without an auth proxy (local dev, no ingress SSO).
 # When false, all users are treated as admin (open mode).
 AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() not in ("false", "0", "no")
+
+# ---------------------------------------------------------------------------
+# Native OIDC configuration
+# ---------------------------------------------------------------------------
+OIDC_ENABLED        = os.environ.get("OIDC_ENABLED", "false").lower() == "true"
+OIDC_PROVIDER       = os.environ.get("OIDC_PROVIDER", "").lower()
+OIDC_CLIENT_ID      = os.environ.get("OIDC_CLIENT_ID", "")
+OIDC_CLIENT_SECRET  = os.environ.get("OIDC_CLIENT_SECRET", "")
+OIDC_SESSION_SECRET = os.environ.get("OIDC_SESSION_SECRET", "dev-secret-change-me")
+OIDC_TENANT_ID      = os.environ.get("OIDC_TENANT_ID", "common")
+OIDC_SCOPES         = os.environ.get("OIDC_SCOPES", "openid email profile")
+OIDC_ALLOWED_DOMAINS: set[str] = {
+    d.strip().lower()
+    for d in os.environ.get("OIDC_ALLOWED_DOMAINS", "").split(",")
+    if d.strip()
+}
+
+_PROVIDER_ISSUER: dict[str, str] = {
+    "google": "https://accounts.google.com",
+    "entra":  f"https://login.microsoftonline.com/{OIDC_TENANT_ID}/v2.0",
+    "gitlab": "https://gitlab.com",
+    # okta / custom: must supply OIDC_ISSUER_URL explicitly
+}
+OIDC_ISSUER_URL = (
+    os.environ.get("OIDC_ISSUER_URL", "")
+    or _PROVIDER_ISSUER.get(OIDC_PROVIDER, "")
+)
+
+_PROVIDER_DISPLAY: dict[str, str] = {
+    "google": "Google",
+    "github": "GitHub",
+    "entra":  "Microsoft",
+    "okta":   "Okta",
+    "gitlab": "GitLab",
+}
+
+# OAuth client (authlib) — registered at module load when OIDC_ENABLED
+_oauth = OAuth()
+if OIDC_ENABLED:
+    if OIDC_PROVIDER == "github":
+        _oauth.register(
+            "github",
+            client_id=OIDC_CLIENT_ID,
+            client_secret=OIDC_CLIENT_SECRET,
+            authorize_url="https://github.com/login/oauth/authorize",
+            access_token_url="https://github.com/login/oauth/access_token",
+            userinfo_endpoint="https://api.github.com/user",
+            client_kwargs={"scope": "read:user user:email"},
+        )
+    else:
+        if not OIDC_ISSUER_URL:
+            raise RuntimeError(
+                f"OIDC_ISSUER_URL is required for provider '{OIDC_PROVIDER}' "
+                "— set oidc.issuerUrl in values.yaml"
+            )
+        _oauth.register(
+            "oidc",
+            client_id=OIDC_CLIENT_ID,
+            client_secret=OIDC_CLIENT_SECRET,
+            server_metadata_url=f"{OIDC_ISSUER_URL}/.well-known/openid-configuration",
+            client_kwargs={"scope": OIDC_SCOPES},
+        )
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -144,6 +208,13 @@ def _valid_cluster(s: str) -> bool:
 # ---------------------------------------------------------------------------
 _APP_DIR = os.environ.get("APP_DIR", "/app")
 app = FastAPI(title="K8s-Janus", docs_url=None, redoc_url=None)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=OIDC_SESSION_SECRET,
+    https_only=OIDC_ENABLED,   # enforce secure cookie only when OIDC active
+    same_site="lax",
+    max_age=86400,              # 24h session lifetime
+)
 app.mount("/static", StaticFiles(directory=f"{_APP_DIR}/static"), name="static")
 templates = Jinja2Templates(directory=f"{_APP_DIR}/templates")
 
@@ -171,11 +242,28 @@ async def _security_headers(request: Request, call_next):
     return response
 
 
+_OIDC_PUBLIC_PATHS = {"/login", "/auth/callback", "/healthz", "/logout"}
+
+@app.middleware("http")
+async def _require_oidc_auth(request: Request, call_next):
+    if not OIDC_ENABLED:
+        return await call_next(request)
+    path = request.url.path
+    if path in _OIDC_PUBLIC_PATHS or path.startswith("/static"):
+        return await call_next(request)
+    if not request.session.get("user_email"):
+        next_url = path
+        return RedirectResponse(f"/login?next={next_url}", status_code=302)
+    return await call_next(request)
+
+
 @app.on_event("startup")
 async def on_startup():
     import asyncio
     init_db()
-    if AUTH_ENABLED:
+    if OIDC_ENABLED:
+        pass  # logged after startup block
+    elif AUTH_ENABLED:
         logger.info("🚀 K8s-Janus WebUI started — auth via ingress/oauth2-proxy (X-Forwarded-Email)")
     else:
         logger.warning("🔓 K8s-Janus WebUI started in OPEN MODE — AUTH_ENABLED=false, no authentication required")
@@ -195,6 +283,107 @@ async def on_startup():
             except Exception as e:
                 logger.error(f"💥 DB cleanup failed: {e}")
     asyncio.ensure_future(_db_cleanup_loop())
+    if OIDC_ENABLED:
+        logger.info(f"🔐 OIDC auth enabled — provider: {OIDC_PROVIDER or 'custom'}")
+
+
+# ---------------------------------------------------------------------------
+# OIDC routes
+# ---------------------------------------------------------------------------
+
+@app.get("/login", include_in_schema=False)
+async def oidc_login(request: Request, next: str = "/"):
+    if not OIDC_ENABLED:
+        return RedirectResponse("/")
+    if request.session.get("user_email"):
+        return RedirectResponse(next or "/")
+    provider_name = _PROVIDER_DISPLAY.get(OIDC_PROVIDER, OIDC_PROVIDER or "SSO")
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "provider_name": provider_name,
+        "next": next,
+    })
+
+
+@app.get("/login/redirect", include_in_schema=False)
+async def oidc_login_redirect(request: Request, next: str = "/"):
+    """Kick off the OAuth2 redirect to the IdP."""
+    redirect_uri = str(request.url_for("oidc_callback"))
+    request.session["oidc_next"] = next
+    if OIDC_PROVIDER == "github":
+        client = _oauth.github
+    else:
+        client = _oauth.oidc
+    return await client.authorize_redirect(request, redirect_uri)
+
+
+@app.get("/auth/callback", include_in_schema=False)
+async def oidc_callback(request: Request):
+    """Handle IdP callback: exchange code for tokens, set session."""
+    try:
+        if OIDC_PROVIDER == "github":
+            client = _oauth.github
+            token = await client.authorize_access_token(request)
+            # GitHub: primary verified email from /user/emails
+            import httpx as _httpx
+            async with _httpx.AsyncClient() as hc:
+                r = await hc.get(
+                    "https://api.github.com/user/emails",
+                    headers={"Authorization": f"Bearer {token['access_token']}"},
+                )
+                emails = r.json()
+            email = next(
+                (e["email"] for e in emails if e.get("primary") and e.get("verified")),
+                None,
+            )
+            if not email:
+                return HTMLResponse("No verified primary email on GitHub account.", status_code=400)
+            # name from /user
+            async with _httpx.AsyncClient() as hc:
+                r = await hc.get(
+                    "https://api.github.com/user",
+                    headers={"Authorization": f"Bearer {token['access_token']}"},
+                )
+                name = r.json().get("name") or r.json().get("login") or email
+        else:
+            client = _oauth.oidc
+            token = await client.authorize_access_token(request)
+            userinfo = token.get("userinfo") or await client.userinfo(token=token)
+            email = userinfo.get("email", "")
+            name  = (
+                userinfo.get("name")
+                or userinfo.get("preferred_username")
+                or userinfo.get("given_name")
+                or email
+            )
+    except Exception as exc:
+        logger.error(f"OIDC callback error: {exc}")
+        return HTMLResponse(f"Authentication failed: {exc}", status_code=400)
+
+    if not email:
+        return HTMLResponse("No email returned by identity provider.", status_code=400)
+
+    # Domain allowlist
+    if OIDC_ALLOWED_DOMAINS:
+        domain = email.split("@")[-1].lower()
+        if domain not in OIDC_ALLOWED_DOMAINS:
+            return HTMLResponse(
+                f"403 — email domain '{domain}' is not allowed.", status_code=403
+            )
+
+    request.session["user_email"] = email.lower()
+    request.session["user_name"]  = name
+    next_url = request.session.pop("oidc_next", "/") or "/"
+    logger.info(f"🔐 OIDC login: {email}")
+    return RedirectResponse(next_url, status_code=302)
+
+
+@app.get("/logout", include_in_schema=False)
+async def oidc_logout(request: Request):
+    request.session.clear()
+    if OIDC_ENABLED:
+        return RedirectResponse("/login")
+    return RedirectResponse("/")
 
 
 # ---------------------------------------------------------------------------
@@ -218,20 +407,24 @@ templates.env.filters["to_berlin"] = _to_berlin
 
 
 def _is_admin(email: str) -> bool:
-    # Auth disabled → everyone is admin regardless of email lists
-    if not AUTH_ENABLED:
+    # Open mode (no auth of any kind) → everyone is admin
+    if not AUTH_ENABLED and not OIDC_ENABLED:
         return True
-    e = email.lower()
-    return e in ADMIN_EMAILS
+    if not email:
+        return False
+    return email.lower() in ADMIN_EMAILS
 
 
 def _get_user(request: Request) -> tuple[str, str]:
-    """Return (email, name) from proxy headers set by oauth2-proxy/ingress.
-
-    When AUTH_ENABLED=false (no auth proxy in front), headers will be absent
-    and the app runs in open mode — any user can submit requests, admin routes
-    are open if ADMIN_EMAILS is empty.
+    """Return (email, name) from:
+    1. OIDC session cookie (when OIDC_ENABLED=true)
+    2. X-Forwarded-Email header from oauth2-proxy/ingress (legacy path)
+    3. Empty strings when AUTH_ENABLED=false (open mode)
     """
+    if OIDC_ENABLED:
+        email = request.session.get("user_email", "")
+        name  = request.session.get("user_name", email)
+        return email, name
     email = request.headers.get("X-Forwarded-Email", "")
     name  = request.headers.get("X-Forwarded-Preferred-Username", email)
     return email, name
@@ -253,9 +446,9 @@ def _base_context(request: Request) -> dict:
 
 def _require_admin(request: Request):
     """Return 403 if caller is not in ADMIN_EMAILS, else None.
-    When AUTH_ENABLED=false, skip the check entirely.
+    When both AUTH_ENABLED=false and OIDC_ENABLED=false, skip the check (open mode).
     """
-    if not AUTH_ENABLED:
+    if not AUTH_ENABLED and not OIDC_ENABLED:
         return None
     user_email, _ = _get_user(request)
     if not _is_admin(user_email):

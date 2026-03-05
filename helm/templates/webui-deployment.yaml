@@ -70,6 +70,18 @@ spec:
                   name: {{ include "janus.fullname" . }}-postgresql
                   key: password
             {{- end }}
+            {{- if and .Values.oidc .Values.oidc.enabled }}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.existingSecret | default "janus-oidc" }}
+                  key: clientSecret
+            - name: OIDC_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.existingSecret | default "janus-oidc" }}
+                  key: sessionSecret
+            {{- end }}
           resources:
             {{- toYaml .Values.webui.resources | nindent 12 }}
           startupProbe:
