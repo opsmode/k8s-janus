@@ -87,13 +87,14 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s' "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
           chmod 600 ~/.ssh/argocd_deploy
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts"
+          [ -f /root/.ssh/known_hosts ] || ssh-keyscan github.com >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
 
           rm -rf /tmp/argocd
           git clone git@github.com:opsmode/argocd.git /tmp/argocd
           cd /tmp/argocd
 
-          sed -i '' "s/tag: \"[^\"]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
+          sed -i "s/tag: \"[^\"]*\"/tag: \"${SHA}\"/" applications/janus.applicationset.yaml
 
           git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
