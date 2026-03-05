@@ -112,6 +112,13 @@
     .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
     .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
     .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
+    .hdr-user-dropdown { position:relative; }
+    .hdr-dropdown-menu { display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;overflow:hidden; }
+    .hdr-dropdown-menu.open { display:block; }
+    .hdr-dropdown-item { display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;font-size:0.8rem;color:var(--text-muted);background:transparent;border:none;cursor:pointer;text-decoration:none;transition:background 0.12s,color 0.12s;font-family:'Inter',sans-serif; }
+    .hdr-dropdown-item:hover { background:rgba(255,255,255,0.05);color:var(--text); }
+    .hdr-dropdown-divider { height:1px;background:var(--border);margin:2px 0; }
+    .hdr-dropdown-signout:hover { color:var(--danger);background:rgba(239,68,68,0.06); }
     .header-pill {
       display: flex; align-items: center; gap: 6px;
       background: var(--surface-2); border: 1px solid var(--border);
@@ -578,33 +585,18 @@
     <!-- ── ACCESS GRANTED CARD ── -->
     {% if status.get("phase") == "Active" and token %}
     <div class="token-card">
-      <div style="display:flex;justify-content:center;margin-bottom:16px;">
-        <div style="width:80px;height:80px;border-radius:50%;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.35);display:flex;align-items:center;justify-content:center;color:#818cf8;box-shadow:0 0 24px rgba(99,102,241,0.2);">
-          <i data-lucide="shield-check" style="width:36px;height:36px;"></i>
-        </div>
-      </div>
       <div class="token-heading">
         <div class="card-icon" style="border-color:rgba(99,102,241,0.4);">
           <i data-lucide="terminal" style="width:16px;height:16px;"></i>
         </div>
         <h2>Access Granted 🎉</h2>
       </div>
-      {% set ns_list = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
-      <p class="token-sub">
-        Scoped to {% for ns in ns_list %}<code>{{ ns }}</code>{% if not loop.last %}, {% endif %}{% endfor %} only.
-        Expires at <strong>{{ status.get("expiresAt") | to_berlin }}</strong>.
-      </p>
 
       <a href="/terminal/{{ cluster }}/{{ name }}"
          style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;text-decoration:none;box-shadow:0 2px 16px rgba(99,102,241,0.35);margin-top:4px;">
         <i data-lucide="terminal" style="width:15px;height:15px;"></i>
         Open Web Terminal
       </a>
-
-      <div class="security-note" style="margin-top:16px;">
-        <i data-lucide="alert-triangle" style="width:15px;height:15px;"></i>
-        <span>Scoped to <code style="color:#fcd34d;">pods/exec</code> in {% for ns in ns_list %}<code style="color:#fcd34d;">{{ ns }}</code>{% if not loop.last %}, {% endif %}{% endfor %} only. Access is revoked automatically on expiry.</span>
-      </div>
     </div>
     {% endif %}
 

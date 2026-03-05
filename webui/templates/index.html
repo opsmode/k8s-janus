@@ -126,6 +126,13 @@
     .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
     .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
     .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
+    .hdr-user-dropdown { position:relative; }
+    .hdr-dropdown-menu { display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;overflow:hidden; }
+    .hdr-dropdown-menu.open { display:block; }
+    .hdr-dropdown-item { display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;font-size:0.8rem;color:var(--text-muted);background:transparent;border:none;cursor:pointer;text-decoration:none;transition:background 0.12s,color 0.12s;font-family:'Inter',sans-serif; }
+    .hdr-dropdown-item:hover { background:rgba(255,255,255,0.05);color:var(--text); }
+    .hdr-dropdown-divider { height:1px;background:var(--border);margin:2px 0; }
+    .hdr-dropdown-signout:hover { color:var(--danger);background:rgba(239,68,68,0.06); }
     .avatar {
       width: 28px; height: 28px;
       border-radius: 50%;
@@ -698,10 +705,12 @@
               <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
               <td>{{ spec.get("requester", "—") }}</td>
               <td><code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);">{{ ar_cluster_display }}</code></td>
-              <td>
+              <td style="max-width:220px;">
                 {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
-                {% for ns in nss %}<code>{{ ns }}</code>{% if not loop.last %} {% endif %}{% endfor %}
-                {% if not nss %}—{% endif %}
+                <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;">
+                  {% for ns in nss %}<code style="white-space:nowrap;font-size:0.72rem;">{{ ns }}</code>{% endfor %}
+                  {% if not nss %}<span>—</span>{% endif %}
+                </div>
               </td>
               <td>
                 {% if phase == "Active" and st.get("expiresAt") %}
@@ -1071,20 +1080,6 @@
   {% include '_profile_modal.html' %}
 
   <script>
-    // ── Toast system ──
-    function showToast(msg, type = 'info', duration = 5000) {
-      const icons = { info: 'info', warning: 'alert-triangle', error: 'alert-circle', success: 'check-circle' };
-      const colors = { info: 'var(--info)', warning: 'var(--warning)', error: 'var(--danger)', success: 'var(--success)' };
-      const t = document.createElement('div');
-      t.className = 'toast' + (type === 'warning' ? ' warning' : '');
-      t.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:15px;height:15px;color:${colors[type]||'var(--info)'};"></i><span>${msg}</span>`;
-      document.getElementById('toast-container').appendChild(t);
-      lucide.createIcons({ nodes: [t] });
-      setTimeout(() => t.remove(), duration);
-    }
-
-
-
     // ── Toast system ──
     function showToast(msg, type = 'info', duration = 5000) {
       const icons = { info: 'info', warning: 'alert-triangle', error: 'alert-circle', success: 'check-circle' };

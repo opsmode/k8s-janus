@@ -15,7 +15,7 @@
     </div>
     <div class="brand-text">
       <h1>K8S-Janus{% if page_title_extra is defined and page_title_extra %} {{ page_title_extra }}{% endif %}</h1>
-      <span>{{ page_subtitle if page_subtitle is defined and page_subtitle else "just-in-time access" }}</span>
+      <span>{{ page_subtitle if page_subtitle is defined and page_subtitle else "god of gateways" }}</span>
     </div>
   </a>
 
@@ -43,16 +43,49 @@
     </a>
     {% endif %}
 
-    <div class="header-pill" onclick="openProfileModal()" title="Edit profile">
-      <div class="avatar" id="user-avatar" data-email="{{ user_email | lower }}"></div>
-      <span id="profile-display-name">{{ user_name or user_email or 'You' }}</span>
+    <div class="hdr-user-dropdown" id="hdr-user-dropdown">
+      <div class="header-pill" onclick="toggleUserDropdown(event)" title="Account">
+        <div class="avatar" id="user-avatar" data-email="{{ user_email | lower }}"></div>
+        <span id="profile-display-name">{{ user_name or user_email or 'You' }}</span>
+        <i data-lucide="chevron-down" style="width:11px;height:11px;opacity:0.5;margin-left:2px;" id="hdr-chevron"></i>
+      </div>
+      <div class="hdr-dropdown-menu" id="hdr-dropdown-menu">
+        <button class="hdr-dropdown-item" onclick="openProfileModal();closeUserDropdown()">
+          <i data-lucide="user-circle" style="width:13px;height:13px;"></i>
+          Edit profile
+        </button>
+        {% if oidc_enabled %}
+        <div class="hdr-dropdown-divider"></div>
+        <a href="/logout" class="hdr-dropdown-item hdr-dropdown-signout">
+          <i data-lucide="log-out" style="width:13px;height:13px;"></i>
+          Sign out
+        </a>
+        {% endif %}
+      </div>
     </div>
-
-    {% if oidc_enabled %}
-    <a href="/logout" class="nav-link nav-signout" title="Sign out">
-      <i data-lucide="log-out" style="width:13px;height:13px;"></i>
-      Sign out
-    </a>
-    {% endif %}
   </div>
 </header>
+
+<script>
+(function() {
+  function toggleUserDropdown(e) {
+    e.stopPropagation();
+    var menu = document.getElementById('hdr-dropdown-menu');
+    var chevron = document.getElementById('hdr-chevron');
+    var open = menu.classList.toggle('open');
+    if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+  }
+  function closeUserDropdown() {
+    var menu = document.getElementById('hdr-dropdown-menu');
+    var chevron = document.getElementById('hdr-chevron');
+    menu.classList.remove('open');
+    if (chevron) chevron.style.transform = '';
+  }
+  document.addEventListener('click', function(e) {
+    var dd = document.getElementById('hdr-user-dropdown');
+    if (dd && !dd.contains(e.target)) closeUserDropdown();
+  });
+  window.toggleUserDropdown = toggleUserDropdown;
+  window.closeUserDropdown = closeUserDropdown;
+})();
+</script>
