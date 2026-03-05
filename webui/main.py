@@ -265,6 +265,16 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(404)
+async def _404(request: Request, exc):
+    return templates.TemplateResponse("404.html", {"request": request, "path": request.url.path}, status_code=404)
+
+
+@app.exception_handler(500)
+async def _500(request: Request, exc):
+    return templates.TemplateResponse("500.html", {"request": request, "detail": str(exc)}, status_code=500)
+
+
 @app.on_event("startup")
 async def on_startup():
     import asyncio
@@ -389,6 +399,9 @@ async def oidc_callback(request: Request):
     request.session["user_name"]  = name
     next_url = request.session.pop("oidc_next", "/") or "/"
     logger.info(f"🔐 OIDC login: {email}")
+    # Redirect admins to /admin unless a specific next URL was requested
+    if next_url == "/" and _is_admin(email.lower()):
+        next_url = "/admin"
     return RedirectResponse(next_url, status_code=302)
 
 

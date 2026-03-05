@@ -488,7 +488,7 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="requester">Your email</label>
-            <input type="email" id="requester" name="requester" value="{{ user_email }}" required placeholder="your.email@example.com" />
+            <input type="email" id="requester" name="requester" value="{{ user_email }}" required placeholder="your.email@example.com" {% if user_email %}readonly style="opacity:0.6;cursor:not-allowed;"{% endif %} />
           </div>
           <div class="form-group">
             <label for="ttl_hours">Duration</label>
