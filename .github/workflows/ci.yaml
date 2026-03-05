@@ -20,18 +20,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: pip install --quiet -r controller/requirements.txt -r webui/requirements.txt flake8
+        run: pip3 install --quiet -r controller/requirements.txt -r webui/requirements.txt flake8
 
       - name: Lint controller
         working-directory: controller
         run: |
-          python -c "import main" && echo "controller: import OK"
+          python3 -c "import main" && echo "controller: import OK"
           flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402
 
       - name: Lint webui
         working-directory: webui
         run: |
-          APP_DIR=$(pwd) python -c "import main" && echo "webui: import OK"
+          APP_DIR=$(pwd) python3 -c "import main" && echo "webui: import OK"
           flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402
 
   helm-lint:
