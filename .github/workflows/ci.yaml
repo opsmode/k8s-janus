@@ -44,6 +44,8 @@ jobs:
   build:
     needs: [lint, helm-lint]
     runs-on: self-hosted
+    env:
+      DOCKER_CONFIG: /tmp/.docker-ci
     steps:
       - uses: actions/checkout@v4
 
@@ -51,23 +53,21 @@ jobs:
         id: tag
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - uses: docker/setup-buildx-action@v3
-        with:
-          install: true
+      - name: Setup Docker config (no keychain)
+        run: |
+          mkdir -p $DOCKER_CONFIG
+          echo '{"auths":{},"credsStore":""}' > $DOCKER_CONFIG/config.json
 
       - name: Login to DockerHub
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          mkdir -p $RUNNER_TEMP/.docker
-          echo '{"auths":{},"credsStore":""}' > $RUNNER_TEMP/.docker/config.json
-          printf '%s' "$DOCKERHUB_TOKEN" | DOCKER_CONFIG=$RUNNER_TEMP/.docker docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+        run: printf '%s' "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build and push
         uses: docker/build-push-action@v6
-        env:
-          DOCKER_CONFIG: ${{ runner.temp }}/.docker
         with:
           context: .
           push: true
