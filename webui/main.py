@@ -259,7 +259,7 @@ app.add_middleware(_OIDCAuthMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=OIDC_SESSION_SECRET,
-    https_only=OIDC_ENABLED,
+    https_only=False,   # TLS terminated at ingress; pod sees http — Secure flag would break session
     same_site="lax",
     max_age=86400,
 )
@@ -316,7 +316,11 @@ async def oidc_login(request: Request, next: str = "/"):
 @app.get("/login/redirect", include_in_schema=False)
 async def oidc_login_redirect(request: Request, next: str = "/"):
     """Kick off the OAuth2 redirect to the IdP."""
-    redirect_uri = str(request.url_for("oidc_callback"))
+    # url_for uses the incoming request scheme which may be http behind ingress;
+    # honour X-Forwarded-Proto so the redirect_uri sent to the IdP uses https.
+    callback_url = request.url_for("oidc_callback")
+    scheme = request.headers.get("x-forwarded-proto", callback_url.scheme)
+    redirect_uri = str(callback_url).replace(f"{callback_url.scheme}://", f"{scheme}://")
     request.session["oidc_next"] = next
     if OIDC_PROVIDER == "github":
         client = _oauth.github
