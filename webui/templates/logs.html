@@ -188,15 +188,37 @@
     .log-line { white-space: pre-wrap; word-break: break-all; display: block; padding: 1px 0; }
 
     /* token-level colours */
-    .lt { color: #64748b; }                          /* timestamp */
-    .ll { font-weight: 600; }
+    .lt  { color: #64748b; }                         /* timestamp */
+    .ll  { font-weight: 600; }
     .ll.lerror    { color: #f87171; }
     .ll.lcritical { color: #fb923c; }
     .ll.lwarning  { color: #fbbf24; }
     .ll.linfo     { color: #38bdf8; }
     .ll.ldebug    { color: #94a3b8; }
-    .lk { color: #a78bfa; }                          /* logger/source */
-    .lm { }                                          /* message — inherits line colour */
+    .lk  { color: #a78bfa; }                         /* logger/source */
+    .lm  { }                                         /* message — inherits line colour */
+    .lip { color: #64748b; }                         /* remote ip */
+
+    /* HTTP method badges */
+    .hm       { font-weight: 700; padding: 0 3px; border-radius: 3px; }
+    .hm-GET   { color: #34d399; }
+    .hm-POST  { color: #60a5fa; }
+    .hm-PUT   { color: #fbbf24; }
+    .hm-PATCH { color: #c084fc; }
+    .hm-DEL   { color: #f87171; }
+    .hm-HEAD  { color: #94a3b8; }
+
+    /* HTTP status code */
+    .hs-2 { color: #34d399; font-weight: 600; }
+    .hs-3 { color: #67e8f9; font-weight: 600; }
+    .hs-4 { color: #fbbf24; font-weight: 600; }
+    .hs-5 { color: #f87171; font-weight: 600; }
+
+    /* traceback / indent lines */
+    .tb-hdr  { color: #fb923c; font-weight: 600; }
+    .tb-file { color: #a78bfa; }
+    .tb-code { color: #fde68a; padding-left: 8px; }
+    .tb-exc  { color: #f87171; font-weight: 600; }
 
     /* line-level background tint */
     .log-line.error    { color: #fca5a5; background: rgba(248,113,113,0.04); }
@@ -204,6 +226,7 @@
     .log-line.warning  { color: #fde68a; background: rgba(251,191,36,0.04); }
     .log-line.info     { color: var(--text-muted); }
     .log-line.debug    { color: var(--text-dim); }
+    .log-line.access   { color: #94a3b8; }
 
     .log-count {
       font-size: 0.7rem;
@@ -295,43 +318,133 @@
       webui:      { es: null, paused: false, count: 0 },
     };
 
-    function _classify(line) {
-      var u = line.toUpperCase();
-      if (u.includes('CRITICAL') || u.includes('EXCEPTION') || u.includes('TRACEBACK')) return 'critical';
-      if (u.includes(' ERROR') || u.includes('[ERROR]'))   return 'error';
-      if (u.includes(' WARNING') || u.includes('[WARN'))   return 'warning';
-      if (u.includes(' DEBUG') || u.includes('[DEBUG]'))   return 'debug';
+    // ── Log format regexes ─────────────────────────────────────────────────────
+    // 1. Structured Python logger:  [2026-03-05 14:12:20] k8s-janus [INFO    ] msg
+    var _RE_STRUCT = /^(\[[^\]]+\])\s+(\S+)\s+(\[[\w\s]+\])\s+([\s\S]*)$/;
+    // 2. Uvicorn access:  INFO:     1.2.3.4:56789 - "GET /path HTTP/1.1" 200 OK
+    var _RE_ACCESS = /^(INFO|DEBUG|WARNING|ERROR|CRITICAL):\s{1,6}(\S+)\s+-\s+"(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(\S+)\s+HTTP\/[\d.]+"\s+(\d{3})\s+(.*)$/;
+    // 3. Plain stdlib:  LEVEL:logger:message  or  LEVEL:message
+    var _RE_STDLIB = /^(DEBUG|INFO|WARNING|ERROR|CRITICAL):([^:]+?):(.+)$/;
+    // 4. Traceback header
+    var _RE_TB_HDR  = /^(Traceback \(most recent call last\):)$/;
+    // 5. Traceback file line:   File "...", line N, in func
+    var _RE_TB_FILE = /^(\s+)(File ".*?", line \d+.*?)$/;
+    // 6. Exception line: ExceptionName: message  (not starting with spaces)
+    var _RE_TB_EXC  = /^([A-Za-z][\w.]*(?:Error|Exception|Warning|Fault|Interrupt|Exit|Killed)):\s(.*)$/;
+
+    function _levelClass(lv) {
+      var u = lv.toUpperCase();
+      if (u.includes('CRITICAL') || u.includes('EXCEPTION')) return 'lcritical';
+      if (u.includes('ERROR'))   return 'lerror';
+      if (u.includes('WARN'))    return 'lwarning';
+      if (u.includes('DEBUG'))   return 'ldebug';
+      return 'linfo';
+    }
+
+    function _lineLevel(text) {
+      var u = text.toUpperCase();
+      if (u.includes('CRITICAL') || u.includes('TRACEBACK') || u.includes('EXCEPTION')) return 'critical';
+      if (u.includes('ERROR'))   return 'error';
+      if (u.includes('WARNING') || u.includes('[WARN')) return 'warning';
+      if (u.includes('DEBUG'))   return 'debug';
+      if (_RE_ACCESS.test(text)) return 'access';
       return 'info';
     }
 
-    // Parse: [2026-03-05 01:23:45,678] logger/worker [LEVEL   ] message
-    var _LOG_RE = /^(\[[^\]]+\])\s+(\S+)\s+(\[[\w\s]+\])\s+([\s\S]*)$/;
-
-    function _renderLine(text, level) {
-      var span = document.createElement('span');
-      span.className = 'log-line ' + level;
-      var m = _LOG_RE.exec(text);
-      if (!m) { span.textContent = text; return span; }
-      var lc = level === 'info' ? 'linfo' : level === 'warning' ? 'lwarning'
-             : level === 'error' ? 'lerror' : level === 'critical' ? 'lcritical' : 'ldebug';
-      span.innerHTML =
-        '<span class="lt">' + _esc(m[1]) + '</span> ' +
-        '<span class="lk">' + _esc(m[2]) + '</span> ' +
-        '<span class="ll ' + lc + '">' + _esc(m[3]) + '</span> ' +
-        '<span class="lm">' + _esc(m[4]) + '</span>';
-      return span;
+    function _esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    function _esc(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    function _methodSpan(method) {
+      var cls = method === 'GET' ? 'hm-GET' : method === 'POST' ? 'hm-POST'
+              : method === 'PUT' ? 'hm-PUT' : method === 'PATCH' ? 'hm-PATCH'
+              : method === 'DELETE' ? 'hm-DEL' : 'hm-HEAD';
+      return '<span class="hm ' + cls + '">' + method + '</span>';
+    }
+
+    function _statusSpan(code) {
+      var n = parseInt(code, 10);
+      var cls = n < 300 ? 'hs-2' : n < 400 ? 'hs-3' : n < 500 ? 'hs-4' : 'hs-5';
+      return '<span class="' + cls + '">' + code + '</span>';
+    }
+
+    function _renderLine(text) {
+      var level = _lineLevel(text);
+      var span  = document.createElement('span');
+      span.className = 'log-line ' + level;
+      var m;
+
+      // ── Format 1: structured Python logger ──────────────────────────────────
+      m = _RE_STRUCT.exec(text);
+      if (m) {
+        var lc = _levelClass(m[3]);
+        span.innerHTML =
+          '<span class="lt">'        + _esc(m[1]) + '</span> ' +
+          '<span class="lk">'        + _esc(m[2]) + '</span> ' +
+          '<span class="ll ' + lc + '">' + _esc(m[3]) + '</span> ' +
+          '<span class="lm">'        + _esc(m[4]) + '</span>';
+        return span;
+      }
+
+      // ── Format 2: uvicorn access log ─────────────────────────────────────────
+      m = _RE_ACCESS.exec(text);
+      if (m) {
+        span.innerHTML =
+          '<span class="lt">' + _esc(m[1]) + ':</span> ' +
+          '<span class="lip">' + _esc(m[2]) + '</span> - ' +
+          '"' + _methodSpan(m[3]) + ' <span class="lm">' + _esc(m[4]) + '</span>"' +
+          ' ' + _statusSpan(m[5]) +
+          (m[6] ? ' <span class="lt">' + _esc(m[6]) + '</span>' : '');
+        return span;
+      }
+
+      // ── Format 3: stdlib  LEVEL:logger:msg ──────────────────────────────────
+      m = _RE_STDLIB.exec(text);
+      if (m) {
+        var lc2 = _levelClass(m[1]);
+        span.innerHTML =
+          '<span class="ll ' + lc2 + '">' + _esc(m[1]) + '</span>' +
+          '<span class="lt">:</span><span class="lk">' + _esc(m[2]) + '</span>' +
+          '<span class="lt">:</span><span class="lm">' + _esc(m[3]) + '</span>';
+        return span;
+      }
+
+      // ── Format 4: Traceback header ──────────────────────────────────────────
+      m = _RE_TB_HDR.exec(text);
+      if (m) {
+        span.className = 'log-line critical';
+        span.innerHTML = '<span class="tb-hdr">' + _esc(m[1]) + '</span>';
+        return span;
+      }
+
+      // ── Format 5: Traceback file line ───────────────────────────────────────
+      m = _RE_TB_FILE.exec(text);
+      if (m) {
+        span.className = 'log-line debug';
+        span.innerHTML = '<span class="tb-file">' + _esc(m[2]) + '</span>';
+        return span;
+      }
+
+      // ── Format 6: Exception type ────────────────────────────────────────────
+      m = _RE_TB_EXC.exec(text);
+      if (m) {
+        span.className = 'log-line error';
+        span.innerHTML =
+          '<span class="tb-exc">' + _esc(m[1]) + '</span>' +
+          '<span class="lt">: </span><span class="lm">' + _esc(m[2]) + '</span>';
+        return span;
+      }
+
+      // ── Fallback: plain text ─────────────────────────────────────────────────
+      span.textContent = text;
+      return span;
     }
 
     function _appendLine(component, text) {
       var s = _state[component];
       if (s.paused) return;
       var body = document.getElementById('log-' + component);
-      var level = _classify(text);
-      var span = _renderLine(text, level);
+      var span = _renderLine(text);
       body.appendChild(span);
       s.count++;
       document.getElementById('count-' + component).textContent = s.count + ' lines';

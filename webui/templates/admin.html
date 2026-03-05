@@ -84,8 +84,35 @@
     .user-pill {
       display: flex; align-items: center; gap: 6px;
       background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: 20px; padding: 4px 12px 4px 8px;
+      border-radius: 20px; padding: 4px 12px 4px 6px;
       font-size: 0.75rem; color: var(--text-muted);
+    }
+    .avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.62rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      font-size: 0.82rem; color: var(--text);
+      animation: toast-in 0.2s ease; max-width: 340px;
+    }
+    .toast.warning { border-color: rgba(245,158,11,0.4); }
+    .toast svg { flex-shrink: 0; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    #session-banner {
+      display: none;
+      background: rgba(245,158,11,0.1); border-bottom: 1px solid rgba(245,158,11,0.3);
+      padding: 8px 32px; font-size: 0.8rem; color: var(--warning);
+      align-items: center; gap: 8px; flex-shrink: 0;
     }
 
     /* ── LAYOUT ── */
@@ -366,7 +393,7 @@
       </a>
       {% if user_name %}
       <div class="user-pill">
-        <i data-lucide="user" style="width:12px;height:12px;"></i>
+        <div class="avatar" id="user-avatar"></div>
         {{ user_name }}
       </div>
       {% endif %}
@@ -378,6 +405,13 @@
       {% endif %}
     </div>
   </header>
+
+  <div id="session-banner">
+    <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0;"></i>
+    Your session expires in <strong id="session-countdown"></strong>. <a href="/logout" style="color:var(--warning);text-decoration:underline;">Sign in again</a> to stay logged in.
+  </div>
+
+  <div id="toast-container"></div>
 
   <div class="page-scroll">
   <div class="container">
@@ -943,6 +977,53 @@
     }
 
     loadAuditLog();
+
+    // ── Avatar initials ──
+    (function() {
+      const name = {{ user_name | tojson }};
+      const el = document.getElementById('user-avatar');
+      if (el && name) {
+        const parts = name.split(/[\s@.]+/).filter(Boolean);
+        el.textContent = parts.length >= 2
+          ? (parts[0][0] + parts[1][0]).toUpperCase()
+          : name.slice(0, 2).toUpperCase();
+      }
+    })();
+
+    // ── Toast system ──
+    function showToast(msg, type = 'info', duration = 5000) {
+      const icons = { info: 'info', warning: 'alert-triangle', error: 'alert-circle', success: 'check-circle' };
+      const colors = { info: 'var(--info)', warning: 'var(--warning)', error: 'var(--danger)', success: 'var(--success)' };
+      const t = document.createElement('div');
+      t.className = 'toast' + (type === 'warning' ? ' warning' : '');
+      t.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:15px;height:15px;color:${colors[type]||'var(--info)'};"></i><span>${msg}</span>`;
+      document.getElementById('toast-container').appendChild(t);
+      lucide.createIcons({ nodes: [t] });
+      setTimeout(() => t.remove(), duration);
+    }
+
+    // ── Session expiry warning ──
+    {% if oidc_enabled %}
+    (function() {
+      const SESSION_MS = 24 * 60 * 60 * 1000;
+      const WARN_MS    = 60 * 60 * 1000;
+      const loginKey   = 'janus_login_ts';
+      if (!localStorage.getItem(loginKey)) localStorage.setItem(loginKey, Date.now());
+      function checkExpiry() {
+        const elapsed = Date.now() - parseInt(localStorage.getItem(loginKey) || Date.now());
+        const remaining = SESSION_MS - elapsed;
+        if (remaining <= 0) { window.location = '/logout'; return; }
+        if (remaining <= WARN_MS) {
+          const mins = Math.ceil(remaining / 60000);
+          document.getElementById('session-banner').style.display = 'flex';
+          document.getElementById('session-countdown').textContent = mins + ' minute' + (mins !== 1 ? 's' : '');
+          lucide.createIcons({ nodes: [document.getElementById('session-banner')] });
+        }
+      }
+      checkExpiry();
+      setInterval(checkExpiry, 60000);
+    })();
+    {% endif %}
   </script>
 </body>
 </html>

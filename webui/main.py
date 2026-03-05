@@ -1064,7 +1064,7 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
         cluster = get_clusters()[0]["name"]
     ar = get_access_request(name, cluster)
     if not ar:
-        return HTMLResponse(f"<h2>Request '{name}' not found on cluster '{cluster}'.</h2>", status_code=404)
+        return templates.TemplateResponse("404.html", {"request": request, "path": f"/action/{name}"}, status_code=404)
 
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
@@ -1098,7 +1098,7 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
         logger.info(f"✅ AccessRequest {name} on {cluster} Approved by {approver}")
     except ApiException as e:
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
-        return HTMLResponse("<h2>Error updating request. Please try again.</h2>", status_code=500)
+        return templates.TemplateResponse("500.html", {"request": request, "detail": "Error updating request."}, status_code=500)
 
     return templates.TemplateResponse("callback.html", {
         "request": request,
@@ -1116,7 +1116,7 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
     denial_reason = denial_reason.strip()[:500]
     ar = get_access_request(name, cluster)
     if not ar:
-        return HTMLResponse(f"<h2>Request '{name}' not found on cluster '{cluster}'.</h2>", status_code=404)
+        return templates.TemplateResponse("404.html", {"request": request, "path": f"/deny/{name}"}, status_code=404)
 
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
@@ -1135,7 +1135,7 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
         logger.info(f"🚫 AccessRequest {name} on {cluster} Denied by {approver}: {denial_reason or '(no reason)'}")
     except ApiException as e:
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
-        return HTMLResponse("<h2>Error updating request. Please try again.</h2>", status_code=500)
+        return templates.TemplateResponse("500.html", {"request": request, "detail": "Error updating request."}, status_code=500)
 
     return templates.TemplateResponse("callback.html", {
         "request": request,
@@ -1220,7 +1220,7 @@ async def revoke(request: Request, cluster: str, name: str):
     caller    = caller or "admin"
     ar = get_access_request(name, cluster)
     if not ar:
-        return HTMLResponse(f"<h2>Request '{name}' not found.</h2>", status_code=404)
+        return templates.TemplateResponse("404.html", {"request": request, "path": f"/revoke/{name}"}, status_code=404)
     current_phase = ar.get("status", {}).get("phase", "")
     if current_phase not in (Phase.ACTIVE, Phase.APPROVED, Phase.PENDING):
         return RedirectResponse(url="/admin", status_code=303)
@@ -1239,7 +1239,7 @@ async def revoke(request: Request, cluster: str, name: str):
         await notify_revoked(name, revoked_by=caller)
     except ApiException as e:
         logger.error(f"💥 Failed to revoke AccessRequest {name}: {e}")
-        return HTMLResponse("<h2>Error revoking request. Please try again.</h2>", status_code=500)
+        return templates.TemplateResponse("500.html", {"request": request, "detail": "Error revoking request."}, status_code=500)
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -1247,10 +1247,10 @@ async def revoke(request: Request, cluster: str, name: str):
 async def terminal(request: Request, cluster: str, name: str):
     ar = get_access_request(name, cluster)
     if not ar:
-        return HTMLResponse(f"<h2>Request '{name}' not found on cluster '{cluster}'.</h2>", status_code=404)
+        return templates.TemplateResponse("404.html", {"request": request, "path": f"/terminal/{name}"}, status_code=404)
     phase = ar.get("status", {}).get("phase", "")
     if phase != Phase.ACTIVE:
-        return HTMLResponse(f"<h2>Access not active. Current phase: {phase}</h2>", status_code=403)
+        return templates.TemplateResponse("403.html", {"request": request, "reason": f"Access is not active. Current phase: {phase}"}, status_code=403)
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
     _, user_name    = _get_user(request)
