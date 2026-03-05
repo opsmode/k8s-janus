@@ -6,10 +6,11 @@ WORKDIR /app
 RUN apk upgrade --no-cache && \
     apk add --no-cache libpq gcc musl-dev
 
-# Combined requirements
-COPY requirements.txt .
+# Install per-component requirements (source of truth for each component)
+COPY controller/requirements.txt controller/requirements.txt
+COPY webui/requirements.txt webui/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r controller/requirements.txt -r webui/requirements.txt
 
 # Controller source
 COPY controller/ controller/

@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'Dockerfile'
-      - 'requirements.txt'
       - 'controller/**'
       - 'webui/**'
       - '.github/workflows/ci.yaml'
@@ -15,36 +14,8 @@ env:
   IMAGE: opsmode/k8s-janus
 
 jobs:
-  update-requirements:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Upgrade all dependencies
-        run: |
-          # Union of all three requirements files → strip pins → upgrade → re-freeze
-          cat requirements.txt controller/requirements.txt webui/requirements.txt \
-            | sed 's/\[.*\]//' | sed 's/==.*//' | sort -u > /tmp/deps.txt
-          pip install --quiet $(cat /tmp/deps.txt | tr '\n' ' ')
-          pip freeze | grep -Fif /tmp/deps.txt > requirements.txt
-          git config user.email "ci@opsmode.pro"
-          git config user.name "opsmode-ci"
-          git add requirements.txt
-          git diff --cached --quiet && echo "requirements up to date" && exit 0
-          git commit -m "chore: update requirements.txt"
-          git push
-
   lint:
-    needs: update-requirements
+    runs-on: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +26,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install --quiet -r requirements.txt flake8
+        run: pip install --quiet -r controller/requirements.txt -r webui/requirements.txt flake8
 
       - name: Lint controller
         working-directory: controller
@@ -84,8 +55,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main   # always build from latest main (picks up update-requirements bot push)
 
       - name: Set image tag
         id: tag
