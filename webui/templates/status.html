@@ -70,38 +70,81 @@
 
     /* ── HEADER ── */
     header {
-      background: rgba(13,17,23,0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: none;
+      box-shadow: 0 1px 0 rgba(99,102,241,0.2), 0 4px 24px rgba(0,0,0,0.4);
       padding: 0 32px;
-      height: 76px;
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
       z-index: 100;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.5) 30%, rgba(168,85,247,0.5) 60%, transparent 100%);
     }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-logo {
-      width: 46px; height: 46px;
+      width: 36px; height: 36px;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      border-radius: 10px;
+      border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 20px var(--accent-glow);
+      box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(99,102,241,0.15);
     }
     .header-logo svg { color: #fff; }
     .brand-text h1 {
-      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #f1f5f9, #94a3b8);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .brand-text span { font-size: 0.68rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.01em; }
+    .hdr-icon-btn { color:var(--text-dim);display:flex;align-items:center;padding:5px;border-radius:6px;transition:color 0.15s,background 0.15s;text-decoration:none; }
+    .hdr-icon-btn:hover { color:var(--text); background: rgba(255,255,255,0.05); }
+    .nav-link { font-size:0.75rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;transition:color 0.15s,border-color 0.15s,background 0.15s; }
+    .nav-link:hover { color:var(--text);border-color:var(--border-light);background:rgba(255,255,255,0.03); }
+    .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
+    .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
+    .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
     .header-pill {
       display: flex; align-items: center; gap: 6px;
       background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: 20px; padding: 4px 12px 4px 8px;
-      font-size: 0.75rem; color: var(--text-muted);
+      border-radius: 20px; padding: 4px 12px 4px 6px;
+      font-size: 0.75rem; color: var(--text-muted); cursor: pointer;
+      transition: border-color 0.15s;
     }
+    .header-pill:hover { border-color: var(--border-light); }
+    .avatar { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;overflow:hidden;transition:box-shadow 0.15s; }
+    .avatar:hover { box-shadow:0 0 0 2px var(--accent); }
+    .avatar img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
+    .modal-backdrop { position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center; }
+    .modal { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 28px 24px;width:320px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.6); }
+    .modal::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-glow),transparent);border-radius:var(--radius) var(--radius) 0 0; }
+    .modal h3 { font-size:0.92rem;font-weight:600;margin-bottom:20px;color:var(--text); }
+    .modal-close { position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;padding:4px;border-radius:4px;transition:color 0.15s; }
+    .modal-close:hover { color:var(--text); }
+    .avatar-upload-wrap { display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px; }
+    .avatar-large { width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#fff;cursor:pointer;overflow:hidden;position:relative;transition:box-shadow 0.15s; }
+    .avatar-large:hover { box-shadow:0 0 0 3px var(--accent); }
+    .avatar-large img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
+    .avatar-large .avatar-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;border-radius:50%; }
+    .avatar-large:hover .avatar-overlay { opacity:1; }
+    #avatar-file-input { display:none; }
+    .avatar-hint { font-size:0.72rem;color:var(--text-dim); }
+    .modal-label { font-size:0.72rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;display:block; }
+    .modal-input { width:100%;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.875rem;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;margin-bottom:16px; }
+    .modal-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+    .modal-actions { display:flex;gap:8px;justify-content:flex-end; }
+    .modal-btn { padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-2);color:var(--text-muted);transition:background 0.15s,color 0.15s; }
+    .modal-btn:hover { color:var(--text);background:var(--surface-3); }
+    .modal-btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff;box-shadow:0 2px 12px var(--accent-glow); }
+    .modal-btn.primary:hover { opacity:0.9; }
     .pulse-dot {
       width: 7px; height: 7px; border-radius: 50%;
       background: var(--success); box-shadow: 0 0 8px var(--success);
@@ -357,28 +400,8 @@
   </style>
 </head>
 <body>
-  <header>
-    <a class="header-brand" href="/" style="text-decoration:none;">
-      <div class="header-logo">
-        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
-      </div>
-      <div class="brand-text">
-        <h1>K8S-Janus</h1>
-        <span>{{ cluster_name }} · Watching your every request 👁️</span>
-      </div>
-    </a>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
-         style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
-         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
-        <i data-lucide="github" style="width:17px;height:17px;"></i>
-      </a>
-      <div class="header-pill">
-        <span class="pulse-dot"></span>
-        {% if user_name %}{{ user_name }}{% else %}God of Gateways{% endif %}
-      </div>
-    </div>
-  </header>
+  {% set page_subtitle = cluster_name ~ " · Watching your every request 👁️" %}
+  {% include '_header.html' %}
 
   <div class="page-scroll">
   <div class="container">
@@ -492,9 +515,10 @@
       </div>
 
       {% if status.get("phase") == "Pending" %}
-      <div style="text-align:center;margin-top:16px;">
-        <img src="/static/pending.gif"
-             alt="Waiting..." style="height:160px;border-radius:10px;opacity:0.85;">
+      <div style="display:flex;justify-content:center;margin-top:16px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;color:#fbbf24;">
+          <i data-lucide="clock" style="width:36px;height:36px;"></i>
+        </div>
       </div>
       <div class="alert alert-info" style="margin-top:12px;">
         <i data-lucide="loader" style="width:16px;height:16px;"></i>
@@ -503,9 +527,10 @@
       {% endif %}
 
       {% if status.get("phase") == "Denied" %}
-      <div style="text-align:center;margin-top:16px;">
-        <img src="/static/denied.gif"
-             alt="Access Denied" style="height:140px;border-radius:10px;opacity:0.85;">
+      <div style="display:flex;justify-content:center;margin-top:16px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;color:#f87171;">
+          <i data-lucide="shield-x" style="width:36px;height:36px;"></i>
+        </div>
       </div>
       <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="x-circle" style="width:16px;height:16px;"></i>
@@ -519,9 +544,10 @@
       {% endif %}
 
       {% if status.get("phase") == "Expired" %}
-      <div style="text-align:center;margin-top:16px;">
-        <img src="/static/expired.gif"
-             alt="Time's up!" style="height:140px;border-radius:10px;opacity:0.85;">
+      <div style="display:flex;justify-content:center;margin-top:16px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.3);display:flex;align-items:center;justify-content:center;color:#94a3b8;">
+          <i data-lucide="timer-off" style="width:36px;height:36px;"></i>
+        </div>
       </div>
       <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="timer-off" style="width:16px;height:16px;"></i>
@@ -530,9 +556,10 @@
       {% endif %}
 
       {% if status.get("phase") == "Revoked" %}
-      <div style="text-align:center;margin-top:16px;">
-        <img src="/static/revoked.gif"
-             alt="Revoked!" style="height:140px;border-radius:10px;opacity:0.85;">
+      <div style="display:flex;justify-content:center;margin-top:16px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;color:#f87171;">
+          <i data-lucide="shield-off" style="width:36px;height:36px;"></i>
+        </div>
       </div>
       <div class="alert alert-danger" style="margin-top:12px;">
         <i data-lucide="shield-off" style="width:16px;height:16px;"></i>
@@ -551,9 +578,10 @@
     <!-- ── ACCESS GRANTED CARD ── -->
     {% if status.get("phase") == "Active" and token %}
     <div class="token-card">
-      <div style="text-align:center;margin-bottom:16px;">
-        <img src="/static/approved.gif"
-             alt="Access Granted!" style="height:140px;border-radius:10px;opacity:0.9;">
+      <div style="display:flex;justify-content:center;margin-bottom:16px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.35);display:flex;align-items:center;justify-content:center;color:#818cf8;box-shadow:0 0 24px rgba(99,102,241,0.2);">
+          <i data-lucide="shield-check" style="width:36px;height:36px;"></i>
+        </div>
       </div>
       <div class="token-heading">
         <div class="card-icon" style="border-color:rgba(99,102,241,0.4);">
@@ -582,9 +610,10 @@
 
     <!-- ── APPROVED (waiting for controller) ── -->
     {% if status.get("phase") == "Approved" %}
-    <div style="text-align:center;margin-top:16px;">
-      <img src="/static/approved.gif"
-           alt="Approved!" style="height:140px;border-radius:10px;opacity:0.9;">
+    <div style="display:flex;justify-content:center;margin-top:16px;">
+      <div style="width:80px;height:80px;border-radius:50%;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;color:#34d399;">
+        <i data-lucide="check-circle" style="width:36px;height:36px;"></i>
+      </div>
     </div>
     <div class="alert alert-info" style="margin-top:12px;">
       <i data-lucide="loader" style="width:16px;height:16px;"></i>
@@ -655,5 +684,6 @@
     }
 
   </script>
+  {% include '_profile_modal.html' %}
 </body>
 </html>

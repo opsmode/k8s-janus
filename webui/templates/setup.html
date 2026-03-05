@@ -50,31 +50,74 @@
 
     /* ── HEADER ── */
     header {
-      background: rgba(13,17,23,0.88);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: none;
+      box-shadow: 0 1px 0 rgba(99,102,241,0.2), 0 4px 24px rgba(0,0,0,0.4);
       padding: 0 32px;
-      height: 72px;
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
       z-index: 100;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.5) 30%, rgba(168,85,247,0.5) 60%, transparent 100%);
     }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-logo {
-      width: 46px; height: 46px;
+      width: 36px; height: 36px;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      border-radius: 10px;
+      border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 20px var(--accent-glow);
+      box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(99,102,241,0.15);
     }
     .brand-text h1 {
-      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #f1f5f9, #94a3b8);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .brand-text span { font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+    .brand-text span { font-size: 0.68rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.01em; }
+    .hdr-icon-btn { color:var(--text-dim);display:flex;align-items:center;padding:5px;border-radius:6px;transition:color 0.15s,background 0.15s;text-decoration:none; }
+    .hdr-icon-btn:hover { color:var(--text); background: rgba(255,255,255,0.05); }
+    .nav-link { font-size:0.75rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;transition:color 0.15s,border-color 0.15s,background 0.15s; }
+    .nav-link:hover { color:var(--text);border-color:var(--border-light);background:rgba(255,255,255,0.03); }
+    .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
+    .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
+    .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
+    .header-pill { display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 6px;font-size:0.75rem;color:var(--text-muted);cursor:pointer;transition:border-color 0.15s; }
+    .header-pill:hover { border-color: var(--border-light); }
+    .avatar { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;overflow:hidden;transition:box-shadow 0.15s; }
+    .avatar:hover { box-shadow:0 0 0 2px var(--accent); }
+    .avatar img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
+    .modal-backdrop { position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center; }
+    .modal { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 28px 24px;width:320px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.6); }
+    .modal::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-glow),transparent);border-radius:var(--radius) var(--radius) 0 0; }
+    .modal h3 { font-size:0.92rem;font-weight:600;margin-bottom:20px;color:var(--text); }
+    .modal-close { position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;padding:4px;border-radius:4px;transition:color 0.15s; }
+    .modal-close:hover { color:var(--text); }
+    .avatar-upload-wrap { display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px; }
+    .avatar-large { width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#fff;cursor:pointer;overflow:hidden;position:relative;transition:box-shadow 0.15s; }
+    .avatar-large:hover { box-shadow:0 0 0 3px var(--accent); }
+    .avatar-large img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
+    .avatar-large .avatar-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;border-radius:50%; }
+    .avatar-large:hover .avatar-overlay { opacity:1; }
+    #avatar-file-input { display:none; }
+    .avatar-hint { font-size:0.72rem;color:var(--text-dim); }
+    .modal-label { font-size:0.72rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;display:block; }
+    .modal-input { width:100%;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.875rem;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;margin-bottom:16px; }
+    .modal-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+    .modal-actions { display:flex;gap:8px;justify-content:flex-end; }
+    .modal-btn { padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-2);color:var(--text-muted);transition:background 0.15s,color 0.15s; }
+    .modal-btn:hover { color:var(--text);background:var(--surface-3); }
+    .modal-btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff;box-shadow:0 2px 12px var(--accent-glow); }
+    .modal-btn.primary:hover { opacity:0.9; }
 
     .setup-badge {
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -392,33 +435,10 @@
 </head>
 <body>
 
-  <header>
-    <a class="header-brand" href="/" style="text-decoration:none;">
-      <div class="header-logo">
-        <img src="/static/k8s-janus-logo-white.png" style="width:36px;height:36px;object-fit:contain;" alt="K8s-Janus">
-      </div>
-      <div class="brand-text">
-        <h1>K8S-Janus</h1>
-        <span>The gatekeeper who never sleeps (unlike your on-call engineer)</span>
-      </div>
-    </a>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="setup-badge">Setup Wizard</div>
-      <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
-         style="color:var(--text-dim);display:flex;align-items:center;padding:4px;border-radius:6px;transition:color 0.15s;" title="View on GitHub"
-         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
-        <i data-lucide="github" style="width:17px;height:17px;"></i>
-      </a>
-      <a href="/" style="font-size:0.78rem;color:var(--text-dim);text-decoration:none;
-                          display:flex;align-items:center;gap:5px;padding:4px 10px;
-                          border:1px solid var(--border);border-radius:6px;
-                          transition:color 0.15s,border-color 0.15s"
-         onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-light)'"
-         onmouseout="this.style.color='var(--text-dim)';this.style.borderColor='var(--border)'">
-        <i data-lucide="layout-dashboard" width="13" height="13"></i> Dashboard
-      </a>
-    </div>
-  </header>
+  {% set page_subtitle = "The gatekeeper who never sleeps (unlike your on-call engineer)" %}
+  {% set nav_items = [{"href": "/", "icon": "layout-dashboard", "label": "Dashboard"}] %}
+  {% set header_extra %}<div class="setup-badge">Setup Wizard</div>{% endset %}
+  {% include '_header.html' %}
 
   <div class="page-scroll">
     <div class="container">
@@ -1345,5 +1365,6 @@ choco install kubernetes-cli</span>
       } catch (_) { /* ignore — stay on upload panel */ }
     })();
   </script>
+  {% include '_profile_modal.html' %}
 </body>
 </html>

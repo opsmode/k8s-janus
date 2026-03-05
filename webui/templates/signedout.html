@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Signed Out</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --border:      #2a3448;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --radius:      12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.25;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(16,185,129,0.08) 0%, transparent 70%);
+    }
+    .logo-above {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      margin-bottom: 28px; position: relative; z-index: 1;
+    }
+    .logo-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 32px var(--accent-glow);
+    }
+    .logo-icon img { width: 42px; height: 42px; object-fit: contain; }
+    .logo-name {
+      font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .card {
+      position: relative; z-index: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 40px 32px;
+      width: 340px;
+      text-align: center;
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.06), 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .check-circle {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+      color: var(--success);
+    }
+    h2 { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+    .sign-in-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%;
+      padding: 11px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-size: 0.88rem; font-weight: 600;
+      border: none; border-radius: 8px; cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .sign-in-btn:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="logo-above">
+    <div class="logo-icon">
+      <img src="/static/k8s-janus-logo-white.png" alt="K8s-Janus">
+    </div>
+    <div class="logo-name">K8s-Janus</div>
+  </div>
+
+  <div class="card">
+    <div class="check-circle">
+      <i data-lucide="log-out" style="width:22px;height:22px;"></i>
+    </div>
+    <h2>You've been signed out</h2>
+    <p>Your session has been cleared.<br>Sign in again to continue.</p>
+    <a href="/login" class="sign-in-btn">
+      <i data-lucide="log-in" style="width:15px;height:15px;"></i>
+      Sign in again
+    </a>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

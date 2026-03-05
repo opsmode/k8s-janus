@@ -310,7 +310,7 @@ async def on_startup():
 # ---------------------------------------------------------------------------
 
 @app.get("/login", include_in_schema=False)
-async def oidc_login(request: Request, next: str = "/"):
+async def oidc_login(request: Request, next: str = "/", error: str = ""):
     if not OIDC_ENABLED:
         return RedirectResponse("/")
     if request.session.get("user_email"):
@@ -319,7 +319,9 @@ async def oidc_login(request: Request, next: str = "/"):
     return templates.TemplateResponse("login.html", {
         "request": request,
         "provider_name": provider_name,
+        "provider": OIDC_PROVIDER,
         "next": next,
+        "error": error,
     })
 
 
@@ -359,7 +361,7 @@ async def oidc_callback(request: Request):
                 None,
             )
             if not email:
-                return HTMLResponse("No verified primary email on GitHub account.", status_code=400)
+                return RedirectResponse("/login?error=No+verified+primary+email+on+GitHub+account", status_code=302)
             # name from /user
             async with _httpx.AsyncClient() as hc:
                 r = await hc.get(
@@ -380,10 +382,10 @@ async def oidc_callback(request: Request):
             )
     except Exception as exc:
         logger.error(f"OIDC callback error: {exc}")
-        return HTMLResponse(f"Authentication failed: {exc}", status_code=400)
+        return RedirectResponse(f"/login?error={str(exc)[:120]}", status_code=302)
 
     if not email:
-        return HTMLResponse("No email returned by identity provider.", status_code=400)
+        return RedirectResponse("/login?error=No+email+returned+by+identity+provider", status_code=302)
 
     # Domain allowlist
     if OIDC_ALLOWED_DOMAINS:
@@ -409,7 +411,7 @@ async def oidc_callback(request: Request):
 async def oidc_logout(request: Request):
     request.session.clear()
     if OIDC_ENABLED:
-        return RedirectResponse("/login")
+        return templates.TemplateResponse("signedout.html", {"request": request})
     return RedirectResponse("/")
 
 
@@ -539,7 +541,7 @@ def _token_client(name: str, cluster: str, namespace: str = ""):
 @app.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
     """Serve the setup wizard (always accessible from the admin page)."""
-    return templates.TemplateResponse("setup.html", {"request": request})
+    return templates.TemplateResponse("setup.html", _base_context(request))
 
 
 @app.get("/setup/upload-helper")
@@ -877,6 +879,36 @@ async def preview_pods(cluster: str, namespace: str):
         return JSONResponse({"error": "Failed to list pods", "pods": []})
 
 
+# ---------------------------------------------------------------------------
+# Profile API — server-side avatar/name store (in-memory, per-email)
+# ---------------------------------------------------------------------------
+_profiles: dict[str, dict] = {}  # email → {name, photo}
+
+
+@app.post("/api/profile", include_in_schema=False)
+async def save_profile(request: Request):
+    user_email, user_name = _get_user(request)
+    if not user_email:
+        return JSONResponse({"error": "unauthenticated"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    name  = str(body.get("name", ""))[:60]
+    photo = str(body.get("photo", ""))
+    # Validate photo is a data-URL (base64 image) or empty
+    if photo and not photo.startswith("data:image/"):
+        photo = ""
+    _profiles[user_email.lower()] = {"name": name, "photo": photo}
+    return JSONResponse({"ok": True})
+
+
+@app.get("/api/avatar/{email}", include_in_schema=False)
+async def get_avatar(email: str):
+    p = _profiles.get(email.lower(), {})
+    return JSONResponse({"name": p.get("name", ""), "photo": p.get("photo", "")})
+
+
 @app.get("/namespaces/{cluster_name}", response_class=HTMLResponse)
 async def namespaces(cluster_name: str):
     if not _valid_cluster(cluster_name):
@@ -1041,9 +1073,8 @@ async def status(request: Request, cluster: str, name: str):
 
     cluster_cfg = get_cluster_config(cluster)
     cluster_display_name = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
-    user_email, user_name = _get_user(request)
-    return templates.TemplateResponse("status.html", {
-        "request": request,
+    ctx = _base_context(request)
+    ctx.update({
         "cluster_name": cluster_display_name,
         "cluster_display": cluster_display_name,
         "ar": ar,
@@ -1054,8 +1085,8 @@ async def status(request: Request, cluster: str, name: str):
         "token": token,
         "server": server,
         "ca": ca,
-        "user_name": user_name,
     })
+    return templates.TemplateResponse("status.html", ctx)
 
 
 @app.get("/callback", response_class=HTMLResponse)
@@ -1070,21 +1101,16 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
     current_phase   = ar.get("status", {}).get("phase", "")
 
+    _cb_base = {**_base_context(request), "cluster_name": cluster_display, "name": name, "spec": ar.get("spec", {})}
     if current_phase not in (Phase.PENDING, ""):
         return templates.TemplateResponse("callback.html", {
-            "request": request,
-            "cluster_name": cluster_display,
-            "name": name, "action": action,
+            **_cb_base, "action": action,
             "already_actioned": True, "current_phase": current_phase,
-            "spec": ar.get("spec", {}),
         })
 
     if action == "deny":
         return templates.TemplateResponse("deny-confirm.html", {
-            "request": request,
-            "cluster_name": cluster_display,
-            "name": name, "cluster": cluster,
-            "spec": ar.get("spec", {}),
+            **_cb_base, "cluster": cluster,
         })
 
     approver, _ = _get_user(request)
@@ -1101,11 +1127,8 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
         return templates.TemplateResponse("500.html", {"request": request, "detail": "Error updating request."}, status_code=500)
 
     return templates.TemplateResponse("callback.html", {
-        "request": request,
-        "cluster_name": cluster_display,
-        "name": name, "action": "approve",
+        **_cb_base, "action": "approve",
         "already_actioned": False, "current_phase": Phase.APPROVED,
-        "spec": ar.get("spec", {}),
     })
 
 
@@ -1137,12 +1160,10 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
         return templates.TemplateResponse("500.html", {"request": request, "detail": "Error updating request."}, status_code=500)
 
+    _dc_base = {**_base_context(request), "cluster_name": cluster_display, "name": name, "spec": ar.get("spec", {})}
     return templates.TemplateResponse("callback.html", {
-        "request": request,
-        "cluster_name": cluster_display,
-        "name": name, "action": "deny",
+        **_dc_base, "action": "deny",
         "already_actioned": False, "current_phase": Phase.DENIED,
-        "spec": ar.get("spec", {}),
     })
 
 
@@ -1256,16 +1277,16 @@ async def terminal(request: Request, cluster: str, name: str):
     _, user_name    = _get_user(request)
     spec       = ar.get("spec", {})
     namespaces = spec.get("namespaces") or ([spec["namespace"]] if spec.get("namespace") else [])
-    return templates.TemplateResponse("terminal.html", {
-        "request": request,
+    ctx = _base_context(request)
+    ctx.update({
         "cluster": cluster,
         "cluster_display": cluster_display,
         "request_name": name,
         "namespace": namespaces[0] if namespaces else "",
         "namespaces": namespaces,
         "expires_at": ar.get("status", {}).get("expiresAt", ""),
-        "user_name": user_name,
     })
+    return templates.TemplateResponse("terminal.html", ctx)
 
 
 @app.websocket("/ws/terminal/{cluster}/{name}")

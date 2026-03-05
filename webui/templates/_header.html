@@ -1,0 +1,58 @@
+{#
+  Canonical header — included by every page.
+  Required context vars: user_email, user_name, oidc_enabled, is_admin
+  Optional:
+    page_subtitle    — replaces the default tagline
+    page_title_extra — raw HTML appended inside <h1> (e.g. "⚡ GOD MODE" badge)
+    brand_href       — href for logo link (default: "/")
+    nav_items        — list of dicts: {href, icon, label, active}
+    header_extra     — arbitrary extra HTML rendered after nav (e.g. TTL timer)
+#}
+<header>
+  <a class="header-brand" href="{{ brand_href if brand_href is defined and brand_href else '/' }}" style="text-decoration:none;">
+    <div class="header-logo">
+      <img src="/static/k8s-janus-logo-white.png" style="width:28px;height:28px;object-fit:contain;" alt="K8s-Janus">
+    </div>
+    <div class="brand-text">
+      <h1>K8S-Janus{% if page_title_extra is defined and page_title_extra %} {{ page_title_extra }}{% endif %}</h1>
+      <span>{{ page_subtitle if page_subtitle is defined and page_subtitle else "just-in-time access" }}</span>
+    </div>
+  </a>
+
+  <div style="display:flex;align-items:center;gap:6px;">
+    {% if header_extra is defined %}{{ header_extra }}{% endif %}
+
+    <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
+       class="hdr-icon-btn" title="View on GitHub">
+      <i data-lucide="github" style="width:16px;height:16px;"></i>
+    </a>
+
+    {% if nav_items is defined %}
+      {% for item in nav_items %}
+      <a href="{{ item.href }}" class="nav-link{% if item.get('active') %} nav-link-active{% endif %}">
+        <i data-lucide="{{ item.icon }}" style="width:13px;height:13px;"></i>
+        {{ item.label }}
+      </a>
+      {% endfor %}
+    {% endif %}
+
+    {% if is_admin and (brand_href is not defined or brand_href != '/admin') %}
+    <a href="/admin" class="nav-link nav-admin">
+      <i data-lucide="shield" style="width:13px;height:13px;"></i>
+      Admin
+    </a>
+    {% endif %}
+
+    <div class="header-pill" onclick="openProfileModal()" title="Edit profile">
+      <div class="avatar" id="user-avatar" data-email="{{ user_email | lower }}"></div>
+      <span id="profile-display-name">{{ user_name or user_email or 'You' }}</span>
+    </div>
+
+    {% if oidc_enabled %}
+    <a href="/logout" class="nav-link nav-signout" title="Sign out">
+      <i data-lucide="log-out" style="width:13px;height:13px;"></i>
+      Sign out
+    </a>
+    {% endif %}
+  </div>
+</header>

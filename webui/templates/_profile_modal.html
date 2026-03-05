@@ -1,0 +1,154 @@
+{#
+  Profile modal partial — included by every page that has a header with avatar.
+  Required context vars: user_email, user_name
+#}
+<!-- Profile modal -->
+<div class="modal-backdrop" id="profile-modal" style="display:none;" onclick="if(event.target===this)closeProfileModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeProfileModal()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    <h3>Your Profile</h3>
+    <div class="avatar-upload-wrap">
+      <div class="avatar-large" id="avatar-large" onclick="document.getElementById('avatar-file-input').click()">
+        <div class="avatar-overlay"><i data-lucide="camera" style="width:20px;height:20px;color:#fff;"></i></div>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*" onchange="onAvatarFileChange(event)">
+      <span class="avatar-hint">Click to upload photo</span>
+    </div>
+    <label class="modal-label" for="profile-name-input">Display name</label>
+    <input class="modal-input" id="profile-name-input" type="text" placeholder="Your name" maxlength="60">
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="resetProfile()">Reset</button>
+      <button class="modal-btn primary" onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Profile (localStorage + server sync) ──
+  const _PROFILE_KEY = 'janus_profile_' + ({{ user_email | tojson }} || '').toLowerCase();
+  const _USER_EMAIL  = ({{ user_email | tojson }} || '').toLowerCase();
+  const _USER_NAME   = {{ user_name | tojson }};
+
+  function _loadProfile() {
+    try { return JSON.parse(localStorage.getItem(_PROFILE_KEY) || '{}'); } catch { return {}; }
+  }
+  function _saveProfileLocal(p) { localStorage.setItem(_PROFILE_KEY, JSON.stringify(p)); }
+
+  function _applyProfile() {
+    const p = _loadProfile();
+    document.querySelectorAll('.avatar[data-email="' + _USER_EMAIL + '"], #avatar-large').forEach(el => {
+      el.innerHTML = '';
+      if (p.photo) {
+        const img = document.createElement('img');
+        img.src = p.photo;
+        el.appendChild(img);
+      } else {
+        const rawName = p.name || _USER_NAME || '';
+        const parts = rawName.split(/[\s@.]+/).filter(Boolean);
+        el.textContent = parts.length >= 2
+          ? (parts[0][0] + parts[1][0]).toUpperCase()
+          : rawName.slice(0, 2).toUpperCase() || '?';
+      }
+    });
+    // Also update pill name for own avatar
+    const pillName = document.getElementById('profile-display-name');
+    if (pillName) pillName.textContent = p.name || _USER_NAME || 'You';
+  }
+
+  async function _syncToServer(p) {
+    try {
+      await fetch('/api/profile', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: p.name || '', photo: p.photo || ''}),
+      });
+    } catch (_) { /* best-effort */ }
+  }
+
+  function openProfileModal() {
+    const p = _loadProfile();
+    document.getElementById('profile-name-input').value = p.name || _USER_NAME || '';
+    document.getElementById('profile-modal').style.display = 'flex';
+    lucide.createIcons({ nodes: [document.getElementById('profile-modal')] });
+  }
+  function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
+
+  function saveProfile() {
+    const p = _loadProfile();
+    p.name = document.getElementById('profile-name-input').value.trim() || (_USER_NAME || '');
+    _saveProfileLocal(p);
+    _syncToServer(p);
+    _applyProfile();
+    closeProfileModal();
+    if (typeof showToast === 'function') showToast('Profile updated', 'success', 3000);
+  }
+
+  function resetProfile() {
+    localStorage.removeItem(_PROFILE_KEY);
+    _syncToServer({name: '', photo: ''});
+    _applyProfile();
+    document.getElementById('profile-name-input').value = _USER_NAME || '';
+    const bigAvatar = document.getElementById('avatar-large');
+    bigAvatar.innerHTML = '<div class="avatar-overlay"><i data-lucide="camera" style="width:20px;height:20px;color:#fff;"></i></div>';
+    lucide.createIcons({ nodes: [bigAvatar] });
+  }
+
+  function onAvatarFileChange(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 512 * 1024) {
+      if (typeof showToast === 'function') showToast('Image too large (max 512 KB)', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const p = _loadProfile();
+      p.photo = e.target.result;
+      _saveProfileLocal(p);
+      _syncToServer(p);
+      _applyProfile();
+      lucide.createIcons({ nodes: [document.getElementById('avatar-large')] });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Load other users' avatars from server
+  async function _loadPeerAvatars() {
+    const avatarEls = document.querySelectorAll('.avatar[data-email]');
+    const emails = new Set();
+    avatarEls.forEach(el => {
+      const em = el.dataset.email;
+      if (em && em !== _USER_EMAIL) emails.add(em);
+    });
+    for (const email of emails) {
+      try {
+        const r = await fetch('/api/avatar/' + encodeURIComponent(email));
+        if (!r.ok) continue;
+        const d = await r.json();
+        document.querySelectorAll('.avatar[data-email="' + email + '"]').forEach(el => {
+          el.innerHTML = '';
+          if (d.photo) {
+            const img = document.createElement('img');
+            img.src = d.photo;
+            el.appendChild(img);
+          } else {
+            const rawName = d.name || email;
+            const parts = rawName.split(/[\s@.]+/).filter(Boolean);
+            el.textContent = parts.length >= 2
+              ? (parts[0][0] + parts[1][0]).toUpperCase()
+              : rawName.slice(0, 2).toUpperCase() || '?';
+          }
+        });
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  // Wire avatar click to open modal (only own avatar)
+  document.addEventListener('DOMContentLoaded', function() {
+    _applyProfile();
+    _loadPeerAvatars();
+    document.querySelectorAll('.avatar[data-email="' + _USER_EMAIL + '"]').forEach(el => {
+      el.addEventListener('click', openProfileModal);
+    });
+  });
+</script>
