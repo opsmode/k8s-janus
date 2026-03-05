@@ -59,10 +59,15 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: printf '%s' "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+        run: |
+          mkdir -p $RUNNER_TEMP/.docker
+          echo '{"auths":{}}' > $RUNNER_TEMP/.docker/config.json
+          printf '%s' "$DOCKERHUB_TOKEN" | DOCKER_CONFIG=$RUNNER_TEMP/.docker docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       - name: Build and push
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/.docker
         with:
           context: .
           push: true
