@@ -84,6 +84,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main   # always build from latest main (picks up update-requirements bot push)
 
       - name: Set image tag
         id: tag
