@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Access Denied</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --border:      #2a3448;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --danger:      #ef4444;
+      --danger-glow: rgba(239,68,68,0.25);
+      --radius:      12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+    }
+
+    .card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 44px 40px 36px;
+      width: 400px;
+      text-align: center;
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.08), 0 24px 48px rgba(0,0,0,0.5);
+    }
+
+    .logo-wrap {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .logo-icon svg { width: 22px; height: 22px; color: #fff; }
+    .brand h1 {
+      font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .brand span {
+      font-size: 0.7rem; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .icon-wrap {
+      width: 64px; height: 64px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 24px var(--danger-glow);
+    }
+    .icon-wrap svg { width: 28px; height: 28px; color: var(--danger); }
+
+    .code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--danger);
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      padding: 3px 10px;
+      display: inline-block;
+      margin-bottom: 14px;
+      letter-spacing: 0.05em;
+    }
+
+    h2 {
+      font-size: 1.25rem; font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    p {
+      font-size: 0.88rem; color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .user-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
+      margin-bottom: 28px;
+    }
+    .user-badge svg { width: 13px; height: 13px; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin-bottom: 24px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.88rem; font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s, box-shadow 0.15s;
+      cursor: pointer; border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .btn-primary:hover { opacity: 0.9; box-shadow: 0 0 28px var(--accent-glow); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+
+    .actions { display: flex; gap: 10px; justify-content: center; }
+    .btn svg { width: 15px; height: 15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="brand">
+        <h1>K8s-Janus</h1>
+        <span>just-in-time access</span>
+      </div>
+    </div>
+
+    <div class="icon-wrap">
+      <i data-lucide="shield-x"></i>
+    </div>
+
+    <span class="code">403 FORBIDDEN</span>
+    <h2>Admin access required</h2>
+    <p>{% if reason %}{{ reason }}{% else %}Your account doesn't have admin privileges.<br>Contact your administrator to request access.{% endif %}</p>
+
+    {% if user_email %}
+    <div class="user-badge">
+      <i data-lucide="user"></i>
+      {{ user_email }}
+    </div>
+    {% endif %}
+
+    <hr class="divider">
+
+    <div class="actions">
+      <a href="/" class="btn btn-ghost">
+        <i data-lucide="arrow-left"></i>
+        Go back
+      </a>
+      <a href="/logout" class="btn btn-primary">
+        <i data-lucide="log-out"></i>
+        Sign out
+      </a>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

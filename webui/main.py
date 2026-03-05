@@ -379,8 +379,10 @@ async def oidc_callback(request: Request):
     if OIDC_ALLOWED_DOMAINS:
         domain = email.split("@")[-1].lower()
         if domain not in OIDC_ALLOWED_DOMAINS:
-            return HTMLResponse(
-                f"403 — email domain '{domain}' is not allowed.", status_code=403
+            return templates.TemplateResponse(
+                "403.html",
+                {"request": request, "user_email": email, "reason": f"Email domain '{domain}' is not allowed."},
+                status_code=403,
             )
 
     request.session["user_email"] = email.lower()
@@ -464,7 +466,7 @@ def _require_admin(request: Request):
         return None
     user_email, _ = _get_user(request)
     if not _is_admin(user_email):
-        return HTMLResponse("<h2>403 Forbidden — admin access required.</h2>", status_code=403)
+        return templates.TemplateResponse("403.html", {"request": request, "user_email": user_email}, status_code=403)
     return None
 
 
