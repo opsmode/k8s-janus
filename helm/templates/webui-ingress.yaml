@@ -3,9 +3,6 @@
 {{- if not .Values.ingress.host -}}
   {{- fail "ingress.host must be set when ingress.enabled is true" -}}
 {{- end -}}
-{{- if not .Values.ingress.oAuth2ProxyAuthUrl -}}
-  {{- fail "ingress.oAuth2ProxyAuthUrl must be set when ingress.enabled is true (e.g. https://oauth2-proxy.example.com/oauth2/auth)" -}}
-{{- end -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -17,6 +14,7 @@ metadata:
     acme.cert-manager.io/http01-ingress-class: {{ .Values.ingress.ingressClass }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer }}
     nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeout | quote }}
+    {{- if .Values.ingress.oAuth2ProxyAuthUrl }}
     nginx.ingress.kubernetes.io/auth-url: {{ .Values.ingress.oAuth2ProxyAuthUrl }}
     nginx.ingress.kubernetes.io/auth-signin: {{ .Values.ingress.oAuth2ProxyAuthSignInUrl }}
     nginx.ingress.kubernetes.io/auth-response-headers: X-Forwarded-Groups,X-Forwarded-User,X-Forwarded-Email,X-Forwarded-Preferred-Username
@@ -27,6 +25,7 @@ metadata:
       proxy_set_header X-Forwarded-For $remote_addr;
       proxy_set_header X-Forwarded-Method $request_method;
     nginx.ingress.kubernetes.io/custom-http-errors: "403"
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.ingressClass }}
   tls:
