@@ -208,13 +208,6 @@ def _valid_cluster(s: str) -> bool:
 # ---------------------------------------------------------------------------
 _APP_DIR = os.environ.get("APP_DIR", "/app")
 app = FastAPI(title="K8s-Janus", docs_url=None, redoc_url=None)
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=OIDC_SESSION_SECRET,
-    https_only=OIDC_ENABLED,   # enforce secure cookie only when OIDC active
-    same_site="lax",
-    max_age=86400,              # 24h session lifetime
-)
 app.mount("/static", StaticFiles(directory=f"{_APP_DIR}/static"), name="static")
 templates = Jinja2Templates(directory=f"{_APP_DIR}/templates")
 
@@ -241,6 +234,16 @@ async def _security_headers(request: Request, call_next):
         response.headers[name.decode()] = value.decode()
     return response
 
+
+# SessionMiddleware must be added AFTER @app.middleware decorators so it
+# executes first in the stack (Starlette processes add_middleware LIFO).
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=OIDC_SESSION_SECRET,
+    https_only=OIDC_ENABLED,
+    same_site="lax",
+    max_age=86400,
+)
 
 _OIDC_PUBLIC_PATHS = {"/login", "/auth/callback", "/healthz", "/logout"}
 
