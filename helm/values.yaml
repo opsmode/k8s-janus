@@ -26,10 +26,10 @@ service:
 # Enable and configure if you prefer an ingress controller + TLS termination.
 # → templates: webui-ingress.yaml (only rendered when enabled: true)
 ingress:
-  enabled: true
+  enabled: false
   ingressClass: nginx
   clusterIssuer: letsencrypt-prod
-  host: janus.infroware.com
+  host: ""
   # oAuth2ProxyAuthUrl: https://oauth2-proxy.example.com/oauth2/auth
   # oAuth2ProxyAuthSignInUrl: https://oauth2-proxy.example.com/oauth2/start
   proxyReadTimeout: "3600" # nginx proxy-read-timeout in seconds
@@ -50,7 +50,7 @@ janus:
   idleTimeoutSeconds: 900 # Terminate idle web terminal sessions (15m)
   # IANA timezone for timestamps in the web UI (e.g. "Europe/Berlin",
   # "America/New_York"). Affects all displayed request times. Default: UTC.
-  displayTimezone: "Europe/Berlin"
+  displayTimezone: "UTC"
   # Emails with admin access: can approve/deny/revoke all requests.
   # Must be set before deploying — leave empty to disable admin access.
   adminEmails: []
