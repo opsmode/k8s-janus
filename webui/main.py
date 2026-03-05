@@ -93,16 +93,15 @@ class _AccessLogFilter(logging.Filter):
         msg = record.getMessage()
         if any(s in msg for s in self._SUPPRESS):
             return False
-        # Drop 304 Not Modified — static asset cache hits
-        if '" 304 ' in msg:
-            return False
-        # Drop 404s — scanner/bot noise
-        if '" 404 ' in msg:
-            return False
+        # Drop all 3xx/4xx/5xx scanner noise
+        for code in (" 301 ", " 302 ", " 304 ", " 400 ", " 404 ", " 405 ", " 500 ", " 502 "):
+            if code in msg:
+                return False
         return True
 
 
 logging.getLogger("uvicorn.access").addFilter(_AccessLogFilter())
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 # ---------------------------------------------------------------------------
 # Phase enum
