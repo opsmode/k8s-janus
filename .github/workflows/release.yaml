@@ -195,6 +195,30 @@ jobs:
           git diff --cached --quiet || git commit -m "ci: bump chart to ${VERSION}"
           git push origin main
 
+      - name: Update ArgoCD image tag to release version
+        env:
+          ARGOCD_DEPLOY_KEY: ${{ secrets.ARGOCD_DEPLOY_KEY }}
+        run: |
+          VERSION=${{ github.ref_name }}
+          mkdir -p ~/.ssh
+          printf '%s' "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
+          chmod 600 ~/.ssh/argocd_deploy
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
+
+          rm -rf /tmp/argocd-release
+          git clone git@github.com:opsmode/argocd.git /tmp/argocd-release
+          cd /tmp/argocd-release
+
+          sed -i "s/tag: \"[^\"]*\"/tag: \"${VERSION}\"/" applications/janus.applicationset.yaml
+
+          git config user.email "ci@opsmode.pro"
+          git config user.name "opsmode-ci"
+          git add applications/janus.applicationset.yaml
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "ci: bump k8s-janus image tag to ${VERSION}"
+          git push
+
   prune-dockerhub:
     needs: build
     runs-on: ubuntu-latest
