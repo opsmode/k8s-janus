@@ -107,7 +107,7 @@ webui:
 # (postgresql-externalsecret only rendered when both flags are true)
 externalSecrets:
   enabled: false
-  # secretStore: "my-secret-store"  # ClusterSecretStore name
+  # secretStore: "my-secret-store"  # ClusterSecretStore name (required when enabled)
   # refreshInterval: "1h"
 # PostgreSQL backend for persistent request history (optional).
 # When disabled, Janus uses in-memory state — data is lost on pod restart.
@@ -149,18 +149,34 @@ remote:
 # Native OIDC/OAuth2 authentication. When enabled, Janus handles the OAuth
 # flow directly — no oauth2-proxy or ingress annotation required.
 # Supports any OIDC-compliant provider plus GitHub (OAuth2).
-# clientSecret and sessionSecret are stored in Secret janus-oidc (never in ConfigMap).
-# → templates: oidc-secret.yaml, configmap.yaml, webui-deployment.yaml
+#
+# Secret handling (clientSecret + sessionSecret), in priority order:
+#   1. existingSecret  — point to a pre-existing Secret you manage externally
+#   2. externalSecrets.enabled=true — ExternalSecret syncs from your secret store
+#   3. plain Secret    — values taken from clientSecret/sessionSecret below
+#      (sessionSecret is auto-generated if left blank)
+#
+# → templates: oidc-secret.yaml (plain), oidc-externalsecret.yaml (ESO),
+#              configmap.yaml, webui-deployment.yaml
 oidc:
   enabled: false
   # Provider preset: google | github | entra | okta | gitlab | custom
   # Known providers auto-configure issuerUrl; custom requires issuerUrl below.
   provider: ""
   clientId: ""
-  clientSecret: "" # stored in Secret janus-oidc, not in ConfigMap
-  sessionSecret: "" # signing key for session cookie; auto-generated if blank
-  issuerUrl: "" # required for okta/custom; auto-set for google/entra/gitlab
-  tenantId: "" # Entra ID (Azure AD) only: your-tenant-id or "common"
-  allowedDomains: [] # restrict login to these email domains, e.g. ["your-org.com"]
+  # Plain secret values — only used when externalSecrets.enabled=false and
+  # existingSecret is empty. clientSecret is required; sessionSecret is
+  # auto-generated if blank.
+  clientSecret: ""
+  sessionSecret: ""
+  # ExternalSecret remote key names — only used when externalSecrets.enabled=true.
+  # These are the keys/paths in your secret store (e.g. GCP Secret Manager names,
+  # AWS Secrets Manager ARNs, Vault paths).
+  secretKeys:
+    clientSecret: "janus-oidc-client-secret"
+    sessionSecret: "janus-oidc-session-secret"
+  issuerUrl: ""   # required for okta/custom; auto-set for google/entra/gitlab
+  tenantId: ""    # Entra ID (Azure AD) only: your-tenant-id or "common"
+  allowedDomains: []   # restrict login to these email domains, e.g. ["your-org.com"]
   scopes: "openid email profile"
-  existingSecret: "" # name of an existing Secret with clientSecret+sessionSecret keys
+  existingSecret: ""   # name of a pre-existing Secret with clientSecret+sessionSecret keys

@@ -66,3 +66,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: webui
 {{- end }}
 
+
+{{/*
+Name of the Secret holding OIDC clientSecret + sessionSecret.
+Priority: existingSecret > ESO-created (janus-oidc) > plain Secret (janus-oidc)
+ESO and plain Secret both target the same name, so the reference is always the same.
+*/}}
+{{- define "janus.oidc.secretName" -}}
+{{- .Values.oidc.existingSecret | default (printf "%s-oidc" (include "janus.fullname" .)) }}
+{{- end }}

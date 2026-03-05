@@ -74,12 +74,12 @@ spec:
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.oidc.existingSecret | default "janus-oidc" }}
+                  name: {{ include "janus.oidc.secretName" . }}
                   key: clientSecret
             - name: OIDC_SESSION_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.oidc.existingSecret | default "janus-oidc" }}
+                  name: {{ include "janus.oidc.secretName" . }}
                   key: sessionSecret
             {{- end }}
           resources:
