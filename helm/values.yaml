@@ -20,16 +20,16 @@ image:
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.
 # → templates: webui-service.yaml
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
 # Ingress for the web UI. Disabled by default — LoadBalancer is used instead.
 # Enable and configure if you prefer an ingress controller + TLS termination.
 # → templates: webui-ingress.yaml (only rendered when enabled: true)
 ingress:
-  enabled: false
-  # ingressClass: nginx
-  # clusterIssuer: letsencrypt-prod
-  # host: janus.example.com
+  enabled: true
+  ingressClass: nginx
+  clusterIssuer: letsencrypt-prod
+  host: janus.infroware.com
   # oAuth2ProxyAuthUrl: https://oauth2-proxy.example.com/oauth2/auth
   # oAuth2ProxyAuthSignInUrl: https://oauth2-proxy.example.com/oauth2/start
   proxyReadTimeout: "3600" # nginx proxy-read-timeout in seconds
