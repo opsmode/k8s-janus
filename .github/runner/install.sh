@@ -8,7 +8,8 @@ PLIST_SRC="$(cd "$(dirname "$0")" && pwd)/com.opsmode.janus-runner.plist"
 PLIST_DEST="${HOME}/Library/LaunchAgents/com.opsmode.janus-runner.plist"
 
 echo "→ Pulling runner image..."
-docker pull opsmode/k8s-janus-runner:latest
+# Use a plain config dir to avoid macOS keychain credential helper
+DOCKER_CONFIG=/tmp/.docker-install docker pull opsmode/k8s-janus-runner:latest
 
 echo "→ Installing launchd plist..."
 sed "s|__REPLACE_WITH_PAT__|${PAT}|g" "${PLIST_SRC}" > "${PLIST_DEST}"

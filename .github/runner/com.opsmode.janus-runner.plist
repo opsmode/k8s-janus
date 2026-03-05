@@ -11,14 +11,15 @@
     <string>/bin/bash</string>
     <string>-c</string>
     <string>
-      set -euo pipefail
-      /opt/homebrew/bin/docker pull opsmode/k8s-janus-runner:latest
-      /opt/homebrew/bin/docker rm -f janus-runner 2>/dev/null || true
-      /opt/homebrew/bin/docker run --rm \
+      mkdir -p /tmp/.docker-ci
+      printf '{"auths":{}}' > /tmp/.docker-ci/config.json
+      DOCKER_CONFIG=/tmp/.docker-ci /opt/homebrew/bin/docker rm -f janus-runner 2>/dev/null || true
+      DOCKER_CONFIG=/tmp/.docker-ci /opt/homebrew/bin/docker run --rm \
         --name janus-runner \
-        --restart=unless-stopped \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v /tmp/.buildx-cache:/tmp/.buildx-cache \
+        -e DOCKER_CONFIG=/tmp/.docker-ci \
+        -e RUNNER_ALLOW_RUNASROOT=1 \
         -e GITHUB_OWNER_REPO=opsmode/k8s-janus \
         -e GITHUB_PAT="__REPLACE_WITH_PAT__" \
         -e RUNNER_NAME=janus-runner-local \
@@ -27,17 +28,11 @@
     </string>
   </array>
 
-  <!-- Start at login -->
   <key>RunAtLoad</key>
   <true/>
 
-  <!-- Restart if it exits (ephemeral runner exits after each job) -->
   <key>KeepAlive</key>
   <true/>
-
-  <!-- Also re-run every 6h to pick up a fresh image pull -->
-  <key>StartInterval</key>
-  <integer>21600</integer>
 
   <key>StandardOutPath</key>
   <string>/tmp/janus-runner.log</string>
