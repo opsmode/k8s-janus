@@ -175,8 +175,8 @@ oidc:
   secretKeys:
     clientSecret: "janus-oidc-client-secret"
     sessionSecret: "janus-oidc-session-secret"
-  issuerUrl: ""   # required for okta/custom; auto-set for google/entra/gitlab
-  tenantId: ""    # Entra ID (Azure AD) only: your-tenant-id or "common"
-  allowedDomains: []   # restrict login to these email domains, e.g. ["your-org.com"]
+  issuerUrl: "" # required for okta/custom; auto-set for google/entra/gitlab
+  tenantId: "" # Entra ID (Azure AD) only: your-tenant-id or "common"
+  allowedDomains: [] # restrict login to these email domains, e.g. ["your-org.com"]
   scopes: "openid email profile"
-  existingSecret: ""   # name of a pre-existing Secret with clientSecret+sessionSecret keys
+  existingSecret: "" # name of a pre-existing Secret with clientSecret+sessionSecret keys
