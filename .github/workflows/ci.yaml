@@ -61,7 +61,7 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           mkdir -p $RUNNER_TEMP/.docker
-          echo '{"auths":{}}' > $RUNNER_TEMP/.docker/config.json
+          echo '{"auths":{},"credsStore":""}' > $RUNNER_TEMP/.docker/config.json
           printf '%s' "$DOCKERHUB_TOKEN" | DOCKER_CONFIG=$RUNNER_TEMP/.docker docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       - name: Build and push
