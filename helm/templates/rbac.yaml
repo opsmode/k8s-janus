@@ -115,6 +115,30 @@ subjects:
     namespace: {{ .Values.janus.namespace }}
 
 ---
+# janus-pod-exec: granted to the per-request ServiceAccount on each target
+# cluster. Created here on the central cluster; the controller creates it on
+# remote clusters at startup.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: janus-pod-exec
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list"]
+
+---
 # janus-remote: ClusterRole for setup.sh to issue a static token for the
 # central cluster. Mirrors the ClusterRole in helm-remote for remote clusters.
 apiVersion: rbac.authorization.k8s.io/v1

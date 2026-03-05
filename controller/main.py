@@ -731,7 +731,7 @@ def ensure_pod_exec_clusterrole(rbac_v1, cluster_name: str):
 
 async def _setup_remote_clusterroles():
     """Best-effort background task: ensure janus-pod-exec ClusterRole on all remote clusters.
-    Skips the central cluster — its ClusterRole is managed by Helm."""
+    Skips the central cluster — its ClusterRole is created by Helm (rbac.yaml)."""
     _clusters_live = get_clusters()
     central_name   = _clusters_live[0]["name"]
     for cluster in _clusters_live:
