@@ -22,11 +22,12 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
 # ── Helm ─────────────────────────────────────────────────────────────────────
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-# ── yq ───────────────────────────────────────────────────────────────────────
+# ── yq (arch-aware) ──────────────────────────────────────────────────────────
 ARG YQ_VERSION=v4.44.6
-RUN curl -fsSL \
-      "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
-      -o /usr/local/bin/yq \
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') \
+    && curl -fsSL \
+       "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${ARCH}" \
+       -o /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq
 
 # ── GitHub known hosts (baked in — no ssh-keyscan at runtime) ────────────────
@@ -42,11 +43,11 @@ RUN pip3 install --break-system-packages --quiet \
       -r /tmp/webui-requirements.txt \
       flake8
 
-# ── GitHub Actions runner binary ──────────────────────────────────────────────
+# ── GitHub Actions runner binary (arch-aware) ─────────────────────────────────
 ARG RUNNER_VERSION=2.323.0
-RUN mkdir -p /actions-runner \
+RUN ARCH=$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/') \
     && curl -fsSL \
-       "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \
+       "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz" \
        | tar -xz -C /actions-runner
 
 WORKDIR /actions-runner
