@@ -33,7 +33,6 @@ See open issues and PRs on GitHub.
 
 ### Integrations
 - **Generic outbound webhook** — HTTP callback on every state change (Pending→Approved, Active→Expired, etc.). Covers any downstream integration.
-- **OIDC/SAML direct support** — built-in auth without requiring an external oauth2-proxy in front.
 - **Dynamic admin management** — UI to add/remove admin emails without pod restart.
 
 ---

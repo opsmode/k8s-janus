@@ -2,4 +2,6 @@
 
 Just-in-Time `kubectl exec` access for Kubernetes. Request, approve, auto-expire. No permanent permissions.
 
+Native OIDC/OAuth2 SSO (Google, GitHub, Entra ID, Okta, GitLab, custom). Multi-cluster, multi-namespace, fully auditable.
+
 https://github.com/opsmode/k8s-janus

@@ -55,6 +55,8 @@ In most Kubernetes environments, granting pod access means either:
 | ⏱️ | **Auto-Cleanup** | ServiceAccount + RoleBinding + token Secret deleted automatically on TTL expiry |
 | ⚡ | **Instant Revoke** | Terminate any active session immediately from the admin dashboard |
 | ⏰ | **Pending Auto-Expiry** | Optionally auto-deny requests that go unapproved beyond a configurable time limit |
+| 🔐 | **Native OIDC/OAuth2** | Built-in SSO — Google, GitHub, Entra ID, Okta, GitLab, or any OIDC provider. No oauth2-proxy needed |
+| 👤 | **User Profiles** | Persistent avatars and display names with cross-user visibility |
 | 🛡️ | **Security Hardened** | Non-root, read-only FS, all capabilities dropped, NetworkPolicy |
 | 🔒 | **No Token Leakage** | Per-namespace scoped tokens stored in K8s Secrets only — never in CRD status or logs |
 
@@ -116,6 +118,7 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 |-------|------------|
 | **Controller** | Python · [kopf](https://kopf.readthedocs.io/) Kubernetes operator |
 | **Web UI** | Python · FastAPI · HTMX · xterm.js |
+| **Auth** | Authlib · OIDC/OAuth2 (Google, GitHub, Entra ID, Okta, GitLab, custom) |
 | **Packaging** | Helm |
 | **CI/CD** | GitHub Actions · Docker |
 
@@ -201,6 +204,39 @@ Then redeploy: `helm upgrade k8s-janus ./helm --namespace k8s-janus --reuse-valu
 
 ---
 
+## 🔐 Authentication
+
+By default Janus trusts the `X-Forwarded-Email` header injected by an upstream oauth2-proxy or ingress. For a self-contained setup, enable native OIDC:
+
+```yaml
+oidc:
+  enabled: true
+  provider: google          # google | github | entra | okta | gitlab | custom
+  clientId: "your-client-id"
+  clientSecret: "your-client-secret"
+  allowedDomains: ["your-org.com"]   # leave empty to allow any domain
+```
+
+Supported providers and required config:
+
+| Provider | `provider` value | Extra config |
+|----------|-----------------|--------------|
+| Google | `google` | — |
+| GitHub | `github` | — |
+| Microsoft Entra ID | `entra` | `tenantId: "your-tenant-id"` |
+| Okta | `okta` | `issuerUrl: "https://your-org.okta.com"` |
+| GitLab | `gitlab` | — |
+| Any OIDC provider | `custom` | `issuerUrl: "https://idp.example.com"` |
+
+**Secret handling** — `clientSecret` and `sessionSecret` can be supplied three ways (in priority order):
+1. `existingSecret` — point to a pre-existing Secret you manage externally
+2. `externalSecrets.enabled: true` — ExternalSecret syncs from GCP/AWS/Vault/etc.
+3. Inline values in `oidc.clientSecret` / `oidc.sessionSecret` (auto-generated session secret if blank)
+
+Backwards-compatible: when `oidc.enabled: false`, the `X-Forwarded-Email` path is unchanged.
+
+---
+
 ## 📋 Observability
 
 Janus logs everything — startup, every access request lifecycle event, cleanup, and WebSocket sessions. No black boxes.
@@ -225,11 +261,6 @@ Janus logs everything — startup, every access request lifecycle event, cleanup
 [INFO] 🔗 [alice-debug-api] created RoleBinding=janus-alice-debug-api in cluster=prod ns=default
 [INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s, expires=2026-03-03T22:08:56Z
 [INFO] 🔐 [alice-debug-api] stored token Secret=janus-token-alice-debug-api-default-3a1f9c in ns=k8s-janus
-[INFO] 🔑 [alice-debug-api] granting access for alice@example.com on cluster=prod ns=payments
-[INFO] 👤 [alice-debug-api] created ServiceAccount=janus-alice-debug-api in cluster=prod ns=payments
-[INFO] 🔗 [alice-debug-api] created RoleBinding=janus-alice-debug-api in cluster=prod ns=payments
-[INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s, expires=2026-03-03T22:08:56Z
-[INFO] 🔐 [alice-debug-api] stored token Secret=janus-token-alice-debug-api-payments-7c4e2b in ns=k8s-janus
 [INFO] ✅ [alice-debug-api] access GRANTED — requester=alice@example.com cluster=prod ns=['default','payments'] expires=2026-03-03T22:08:56Z
 
 # TTL expires → automatic cleanup of all namespaces, no manual action needed
@@ -237,9 +268,6 @@ Janus logs everything — startup, every access request lifecycle event, cleanup
 [INFO] 🗑️  [alice-debug-api] deleted RoleBinding=janus-alice-debug-api from cluster=prod ns=default
 [INFO] 🗑️  [alice-debug-api] deleted ServiceAccount=janus-alice-debug-api from cluster=prod ns=default
 [INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api-default-3a1f9c from ns=k8s-janus
-[INFO] 🗑️  [alice-debug-api] deleted RoleBinding=janus-alice-debug-api from cluster=prod ns=payments
-[INFO] 🗑️  [alice-debug-api] deleted ServiceAccount=janus-alice-debug-api from cluster=prod ns=payments
-[INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api-payments-7c4e2b from ns=k8s-janus
 [INFO] 💀 [alice-debug-api] marked as Expired — all credentials removed from cluster=prod ns=['default','payments']
 
 # Admin revokes an active session
@@ -248,10 +276,6 @@ Janus logs everything — startup, every access request lifecycle event, cleanup
 
 # Pending request auto-denied after limit
 [INFO] ⏰ [alice-debug-api] auto-denied — pending for 4.1h (limit=4h)
-
-# Hourly cleanup of old CRDs
-[INFO] ✨ [periodic] cleanup done — no stale CRDs found
-[INFO] 🧹 [periodic] cleanup done — deleted 3 stale terminal CRDs
 ```
 
 ### Web UI
