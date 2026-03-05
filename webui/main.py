@@ -266,12 +266,12 @@ app.add_middleware(
 
 
 @app.exception_handler(404)
-async def _404(request: Request, exc):
+async def _not_found(request: Request, exc):
     return templates.TemplateResponse("404.html", {"request": request, "path": request.url.path}, status_code=404)
 
 
 @app.exception_handler(500)
-async def _500(request: Request, exc):
+async def _server_error(request: Request, exc):
     return templates.TemplateResponse("500.html", {"request": request, "detail": str(exc)}, status_code=500)
 
 
