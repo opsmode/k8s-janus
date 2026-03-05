@@ -13,6 +13,8 @@ spec:
       {{- include "janus.controller.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
         {{- include "janus.labels" . | nindent 8 }}
         {{- include "janus.controller.selectorLabels" . | nindent 8 }}
