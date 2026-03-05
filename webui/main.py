@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Stre
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from kubernetes.client.rest import ApiException
 from authlib.integrations.starlette_client import OAuth
 
@@ -235,8 +236,26 @@ async def _security_headers(request: Request, call_next):
     return response
 
 
-# SessionMiddleware must be added AFTER @app.middleware decorators so it
-# executes first in the stack (Starlette processes add_middleware LIFO).
+_OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout"}
+
+
+class _OIDCAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if not OIDC_ENABLED:
+            return await call_next(request)
+        path = request.url.path
+        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static"):
+            return await call_next(request)
+        if not request.session.get("user_email"):
+            return RedirectResponse(f"/login?next={path}", status_code=302)
+        return await call_next(request)
+
+
+# Middleware stack order (Starlette LIFO — last added = outermost = runs first):
+#   1. SessionMiddleware  — added last → runs first, populates request.session
+#   2. _OIDCAuthMiddleware — reads request.session populated by SessionMiddleware
+#   3. _security_headers  — @app.middleware decorator, added first → runs last
+app.add_middleware(_OIDCAuthMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=OIDC_SESSION_SECRET,
@@ -244,20 +263,6 @@ app.add_middleware(
     same_site="lax",
     max_age=86400,
 )
-
-_OIDC_PUBLIC_PATHS = {"/login", "/auth/callback", "/healthz", "/logout"}
-
-@app.middleware("http")
-async def _require_oidc_auth(request: Request, call_next):
-    if not OIDC_ENABLED:
-        return await call_next(request)
-    path = request.url.path
-    if path in _OIDC_PUBLIC_PATHS or path.startswith("/static"):
-        return await call_next(request)
-    if not request.session.get("user_email"):
-        next_url = path
-        return RedirectResponse(f"/login?next={next_url}", status_code=302)
-    return await call_next(request)
 
 
 @app.on_event("startup")
