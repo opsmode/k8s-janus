@@ -3,6 +3,100 @@ entries:
   k8s-janus:
   - annotations:
       artifacthub.io/changes: |
+        - kind: changed
+          description: "bump chart and image tag to v0.2.0"
+        - kind: changed
+          description: "reset values.yaml to neutral defaults (ingress disabled, UTC timezone)"
+        - kind: added
+          description: "avatar, toast, session expiry, logout, hide admin link, rich log colours"
+        - kind: added
+          description: "add sign out button to header when OIDC is enabled"
+        - kind: fixed
+          description: "write docker auth directly to config.json to bypass macOS keychain entirely"
+        - kind: fixed
+          description: "set DOCKER_CONFIG at job level before buildx setup to avoid keychain"
+        - kind: fixed
+          description: "disable credsStore in docker config to prevent keychain access on self-hosted runner"
+        - kind: fixed
+          description: "use isolated DOCKER_CONFIG dir to bypass macOS keychain on self-hosted runner"
+        - kind: fixed
+          description: "use docker login --password-stdin to bypass macOS keychain on self-hosted runner"
+        - kind: changed
+          description: "remove trigger file"
+        - kind: fixed
+          description: "use python3/pip3 on self-hosted runner, remove trailing blank line"
+        - kind: changed
+          description: "verify self-hosted runner is working"
+        - kind: changed
+          description: "trigger build on self-hosted runner"
+        - kind: changed
+          description: "switch to self-hosted runner, local buildx cache, macOS-compatible sed"
+        - kind: fixed
+          description: "rename exception handlers to avoid shadowing builtins"
+        - kind: changed
+          description: "retrigger build"
+        - kind: changed
+          description: "retrigger"
+        - kind: changed
+          description: "trigger build for error pages and admin redirect"
+        - kind: added
+          description: "styled error pages, admin redirect on login, read-only requester email"
+        - kind: added
+          description: "add styled 403 page and fix all raw HTML error responses"
+        - kind: fixed
+          description: "add configmap checksum annotation to trigger pod rollout on config changes"
+        - kind: fixed
+          description: "use X-Forwarded-Proto for OIDC redirect_uri and disable https_only on session cookie"
+        - kind: fixed
+          description: "replace @app.middleware auth guard with BaseHTTPMiddleware for correct session ordering"
+        - kind: fixed
+          description: "move SessionMiddleware after @app.middleware decorators to ensure correct stack order"
+        - kind: fixed
+          description: "remove duplicate runs-on in lint job"
+        - kind: added
+          description: "add ExternalSecret support for OIDC credentials"
+        - kind: changed
+          description: "install deps from per-component requirements, drop root requirements.txt"
+        - kind: fixed
+          description: "build job checks out latest main to include bot-updated requirements.txt"
+        - kind: changed
+          description: "update requirements.txt"
+    apiVersion: v2
+    appVersion: 0.2.0
+    created: "2026-03-05T19:26:47.075249688Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: 686f3bc960ea8fef55b9673255bd723c1340b72674f925d17d1e217f101afb7d
+    home: https://opsmode.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@opsmode.pro
+      name: OpsMode
+    name: k8s-janus
+    sources:
+    - https://github.com/opsmode/k8s-janus
+    type: application
+    urls:
+    - https://opsmode.github.io/k8s-janus/k8s-janus-0.2.0.tgz
+    version: 0.2.0
+  - annotations:
+      artifacthub.io/changes: |
         - kind: added
           description: "add native OIDC/OAuth2 SSO support"
         - kind: added
@@ -41,7 +135,7 @@ entries:
           description: "browser mode opens select panel instead of auto-running setup"
     apiVersion: v2
     appVersion: 0.1.38
-    created: "2026-03-05T11:42:38.856157655Z"
+    created: "2026-03-05T19:26:47.074409715Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 2ceea826d73a05ce2ae04994526de7138d6d3d58e545686200aeca19ff80b636
@@ -83,7 +177,7 @@ entries:
           description: "restore missing deps in requirements.txt; fix ci update-requirements to union all req files"
     apiVersion: v2
     appVersion: 0.1.37
-    created: "2026-03-05T11:42:38.854642503Z"
+    created: "2026-03-05T19:26:47.073512126Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 50a352bdf5be10fca943f8f4e9def2970b1437e0ed9cfb4ffc67419a9c6e085d
@@ -127,7 +221,7 @@ entries:
           description: "remove invalid license field from Chart.yaml (helm lint strict)"
     apiVersion: v2
     appVersion: 0.1.36
-    created: "2026-03-05T11:42:38.853932276Z"
+    created: "2026-03-05T19:26:46.987866559Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ce4395b6b2c8d054d11ba136bcfa4deabfbab717953dc83be869321ac663d5ff
@@ -665,4 +759,4 @@ entries:
     urls:
     - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.28.tgz
     version: 0.1.28
-generated: "2026-03-05T11:42:38.852926367Z"
+generated: "2026-03-05T19:26:47.072584232Z"

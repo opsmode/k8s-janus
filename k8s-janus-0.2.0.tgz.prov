@@ -1,0 +1,115 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "bump chart and image tag to v0.2.0"
+    - kind: changed
+      description: "reset values.yaml to neutral defaults (ingress disabled, UTC timezone)"
+    - kind: added
+      description: "avatar, toast, session expiry, logout, hide admin link, rich log colours"
+    - kind: added
+      description: "add sign out button to header when OIDC is enabled"
+    - kind: fixed
+      description: "write docker auth directly to config.json to bypass macOS keychain entirely"
+    - kind: fixed
+      description: "set DOCKER_CONFIG at job level before buildx setup to avoid keychain"
+    - kind: fixed
+      description: "disable credsStore in docker config to prevent keychain access on self-hosted runner"
+    - kind: fixed
+      description: "use isolated DOCKER_CONFIG dir to bypass macOS keychain on self-hosted runner"
+    - kind: fixed
+      description: "use docker login --password-stdin to bypass macOS keychain on self-hosted runner"
+    - kind: changed
+      description: "remove trigger file"
+    - kind: fixed
+      description: "use python3/pip3 on self-hosted runner, remove trailing blank line"
+    - kind: changed
+      description: "verify self-hosted runner is working"
+    - kind: changed
+      description: "trigger build on self-hosted runner"
+    - kind: changed
+      description: "switch to self-hosted runner, local buildx cache, macOS-compatible sed"
+    - kind: fixed
+      description: "rename exception handlers to avoid shadowing builtins"
+    - kind: changed
+      description: "retrigger build"
+    - kind: changed
+      description: "retrigger"
+    - kind: changed
+      description: "trigger build for error pages and admin redirect"
+    - kind: added
+      description: "styled error pages, admin redirect on login, read-only requester email"
+    - kind: added
+      description: "add styled 403 page and fix all raw HTML error responses"
+    - kind: fixed
+      description: "add configmap checksum annotation to trigger pod rollout on config changes"
+    - kind: fixed
+      description: "use X-Forwarded-Proto for OIDC redirect_uri and disable https_only on session cookie"
+    - kind: fixed
+      description: "replace @app.middleware auth guard with BaseHTTPMiddleware for correct session ordering"
+    - kind: fixed
+      description: "move SessionMiddleware after @app.middleware decorators to ensure correct stack order"
+    - kind: fixed
+      description: "remove duplicate runs-on in lint job"
+    - kind: added
+      description: "add ExternalSecret support for OIDC credentials"
+    - kind: changed
+      description: "install deps from per-component requirements, drop root requirements.txt"
+    - kind: fixed
+      description: "build job checks out latest main to include bot-updated requirements.txt"
+    - kind: changed
+      description: "update requirements.txt"
+apiVersion: v2
+appVersion: 0.2.0
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.pro
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.2.0
+
+...
+files:
+  k8s-janus-0.2.0.tgz: sha256:686f3bc960ea8fef55b9673255bd723c1340b72674f925d17d1e217f101afb7d
+
+-----BEGIN PGP SIGNATURE-----
+
+wsG5BAEBCgBtBYJpqdj2CRBDCheZqELC2kUUAAAAAAAcACBzYWx0QG5vdGF0aW9u
+cy5vcGVucGdwanMub3JnrGj1nHv4j9a5hkPwKhRL05WuQigvAaB+8TBUVTkA+PgW
+IQTDjgQbWo+w+ZXXIRlDCheZqELC2gAAjLQQAKKS8uhQsR2QxZAE6IktmD4R6l7/
+5CnlpbnDBy4kLnoVuaeELgIrin2fTG4W2pmLpjic0NssKyJoW44qPX1pjCT4Q14j
+m28SSwfahuPa2HHj3BlPMw5JzCjDg9lQMUY+LElCO1jCH32btlqw2FgaxO9Bq/Vj
+7m8+QjcDAQpYR9JCSQK6r2tj4hojRIEykAuTBjL+oSpFwJLzbxNTns+Ckg3g2ZIG
+Qlx+VpwlVq8dA+OphFlRH2Zv0vZ6QcUtbgoocgSviMlKDRYkOsodibQysRS4TGmX
+WWDTisN7qiP5ty76Lf0p/V18jHQB+un09ZhEUlMQqGJet8ztWEsNXaTz2Mmc8Aqa
+5n+ZT65G2z7RKwRqxi7U/vUIJpUTJvTulKVJPhqpDRFP5s3+SKYE89GSTMNhSV+B
+8oHRXTdOE3aWYJIMH5M0Zr/u4ZbrBLvsxitWnvEOPBf3UF0WwBwM6F4uKa46f2pc
+fDqyJ9snDGe3bQdQ/fsGt+VrisF8ju8nBdD5TOlIZewy2FmLeESghu508YtbJYn0
+dxuu2BWwBZkpi1MyU15NGiletFjKQmq5YEubOmAI9NBcpPsjtJlqQfRG3+Ermbz+
+NMWkXadwpOHF5X1dYA0GJZkWHP4Omy1BnAlUuueyee9TqfRiQ27DfXHGxaNeVT/0
+gs9oWuN61jGF8Iiu
+-----END PGP SIGNATURE-----
