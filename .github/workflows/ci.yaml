@@ -9,6 +9,7 @@ on:
       - 'controller/**'
       - 'webui/**'
       - '.github/workflows/ci.yaml'
+  workflow_dispatch:
 
 env:
   IMAGE: opsmode/k8s-janus
