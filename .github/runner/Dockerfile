@@ -39,10 +39,9 @@ RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh \
 # ── Python deps (separate layer — only rebuilds when requirements change) ─────
 COPY controller/requirements.txt /tmp/controller-requirements.txt
 COPY webui/requirements.txt      /tmp/webui-requirements.txt
-RUN pip3 install --break-system-packages --quiet \
-      -r /tmp/controller-requirements.txt \
-      -r /tmp/webui-requirements.txt \
-      flake8
+RUN pip3 install --break-system-packages --quiet -r /tmp/controller-requirements.txt && \
+    pip3 install --break-system-packages --quiet -r /tmp/webui-requirements.txt && \
+    pip3 install --break-system-packages --quiet flake8
 
 # ── GitHub Actions runner binary (arch-aware) ─────────────────────────────────
 ARG RUNNER_VERSION=2.323.0
