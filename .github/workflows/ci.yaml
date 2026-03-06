@@ -18,7 +18,7 @@ jobs:
   lint:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Lint controller
         working-directory: controller
@@ -31,7 +31,7 @@ jobs:
   helm-lint:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Lint Helm chart
         run: helm lint helm/ --strict
 
@@ -39,7 +39,7 @@ jobs:
     needs: [lint, helm-lint]
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set image tag
         id: tag
