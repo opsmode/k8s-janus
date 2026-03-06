@@ -95,12 +95,7 @@ jobs:
           git clone git@github.com:opsmode/argocd.git /tmp/argocd
           cd /tmp/argocd
 
-          python3 -c "
-import re
-f = 'applications/janus.applicationset.yaml'
-content = open(f).read()
-open(f, 'w').write(re.sub(r'tag: \"[^\"]*\"', 'tag: \"${SHA}\"', content))
-"
+          python3 "${GITHUB_WORKSPACE}/.github/scripts/bump-argocd-tag.py" "${SHA}"
 
           git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"
