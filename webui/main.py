@@ -236,7 +236,8 @@ async def _security_headers(request: Request, call_next):
     return response
 
 
-_OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout"}
+_OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout",
+                      "/setup/upload", "/setup/upload-helper"}
 
 
 class _OIDCAuthMiddleware(BaseHTTPMiddleware):
@@ -244,7 +245,7 @@ class _OIDCAuthMiddleware(BaseHTTPMiddleware):
         if not OIDC_ENABLED:
             return await call_next(request)
         path = request.url.path
-        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static"):
+        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup/contexts/"):
             return await call_next(request)
         if not request.session.get("user_email"):
             return RedirectResponse(f"/login?next={path}", status_code=302)
