@@ -6,7 +6,7 @@ kubernetes==35.0.0
 python-multipart==0.0.22
 pyyaml==6.0.3
 aiofiles==25.1.0
-sqlalchemy==2.0.47
+sqlalchemy==2.0.48
 psycopg2-binary==2.9.11
 httpx==0.28.1
 itsdangerous==2.2.0
