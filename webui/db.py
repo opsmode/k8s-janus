@@ -64,7 +64,10 @@ def init_db() -> None:
             kwargs["connect_args"] = {"check_same_thread": False}
         _engine = create_engine(url, **kwargs)
         _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
-        Base.metadata.create_all(_engine)
+        # DDL is owned by db_migrate.py (run as a pre-install/pre-upgrade Helm Job).
+        # For SQLite (dev/no-DB mode) we still create tables inline since there is no Job.
+        if not is_pg:
+            Base.metadata.create_all(_engine)
         db_enabled = True
         backend = "PostgreSQL" if is_pg else "SQLite (ephemeral)"
         logger.info(f"DB initialised ({backend})")
@@ -140,6 +143,16 @@ class TerminalCommand(Base):
     pod          = Column(String(255), nullable=False)
     command      = Column(Text, nullable=False)
     timestamp    = Column(DateTime(timezone=True), nullable=False, index=True)
+
+
+class UserQuickCommand(Base):
+    __tablename__ = "user_quick_commands"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_email = Column(String(255), nullable=False, index=True)
+    label      = Column(String(100), nullable=False)
+    command    = Column(Text, nullable=False)
+    position   = Column(Integer, nullable=False, default=0)
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +323,87 @@ def purge_old_records(days: int = 30) -> int:
                 return 0
             deleted += session.query(TerminalCommand).filter(TerminalCommand.timestamp < cutoff).delete()
             deleted += session.query(AuditLog).filter(AuditLog.timestamp < cutoff).delete()
-        logger.info(f"🧹 Purged {deleted} old DB records older than {days} days")
+        logger.info(f"Purged {deleted} old DB records older than {days} days")
     except Exception as e:
         logger.error(f"purge_old_records() failed: {e}")
     return deleted
+
+
+# ---------------------------------------------------------------------------
+# User quick commands
+# ---------------------------------------------------------------------------
+
+def get_user_quick_commands(user_email: str) -> list[dict]:
+    if not db_enabled:
+        return []
+    try:
+        with get_session() as session:
+            if session is None:
+                return []
+            rows = (
+                session.query(UserQuickCommand)
+                .filter_by(user_email=user_email)
+                .order_by(UserQuickCommand.position, UserQuickCommand.id)
+                .all()
+            )
+            return [{"id": r.id, "label": r.label, "command": r.command, "position": r.position}
+                    for r in rows]
+    except Exception as e:
+        logger.error(f"get_user_quick_commands({user_email}) failed: {e}")
+        return []
+
+
+def create_user_quick_command(user_email: str, label: str, command: str) -> dict | None:
+    if not db_enabled:
+        return None
+    try:
+        with get_session() as session:
+            if session is None:
+                return None
+            max_pos = (session.query(UserQuickCommand)
+                       .filter_by(user_email=user_email)
+                       .count())
+            rec = UserQuickCommand(user_email=user_email, label=label,
+                                   command=command, position=max_pos)
+            session.add(rec)
+            session.flush()
+            return {"id": rec.id, "label": rec.label, "command": rec.command, "position": rec.position}
+    except Exception as e:
+        logger.error(f"create_user_quick_command({user_email}) failed: {e}")
+        return None
+
+
+def update_user_quick_command(user_email: str, cmd_id: int, label: str, command: str) -> bool:
+    if not db_enabled:
+        return False
+    try:
+        with get_session() as session:
+            if session is None:
+                return False
+            rec = (session.query(UserQuickCommand)
+                   .filter_by(id=cmd_id, user_email=user_email)
+                   .first())
+            if rec is None:
+                return False
+            rec.label   = label
+            rec.command = command
+            return True
+    except Exception as e:
+        logger.error(f"update_user_quick_command({user_email}, {cmd_id}) failed: {e}")
+        return False
+
+
+def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
+    if not db_enabled:
+        return False
+    try:
+        with get_session() as session:
+            if session is None:
+                return False
+            deleted = (session.query(UserQuickCommand)
+                       .filter_by(id=cmd_id, user_email=user_email)
+                       .delete())
+            return deleted > 0
+    except Exception as e:
+        logger.error(f"delete_user_quick_command({user_email}, {cmd_id}) failed: {e}")
+        return False

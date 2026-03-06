@@ -525,6 +525,90 @@
       cursor: not-allowed;
     }
     .quick-cmd-btn i { flex-shrink: 0; }
+    .quick-cmd-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 5px;
+    }
+    .quick-cmd-row .quick-cmd-btn {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    .quick-cmd-action {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 30px;
+      background: none;
+      border: none;
+      border-radius: 4px;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+    .quick-cmd-action:hover { color: var(--text-muted); background: var(--surface-3); }
+    .quick-cmd-action.delete:hover { color: var(--danger); }
+    .quick-cmd-add-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding: 6px 10px;
+      background: none;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 4px;
+    }
+    .quick-cmd-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .quick-cmd-form {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .quick-cmd-form input {
+      width: 100%;
+      padding: 5px 8px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .quick-cmd-form input:focus { border-color: var(--accent); }
+    .quick-cmd-form-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .quick-cmd-form-actions button {
+      flex: 1;
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      font-size: 0.72rem;
+      cursor: pointer;
+      background: var(--surface-3);
+      color: var(--text-muted);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .quick-cmd-form-actions button.save {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .quick-cmd-form-actions button.save:hover { opacity: 0.85; }
+    .quick-cmd-form-actions button.cancel:hover { color: var(--text); }
 
     /* ── BANNER TOASTS ── */
     #banners {
@@ -632,28 +716,11 @@
       <!-- Quick Commands -->
       <div class="sidebar-section" id="quick-cmd-section">
         <div class="sidebar-section-title" onclick="toggleQuickCmds()">
-          <span>⚡ Quick Commands (for the impatient)</span>
+          <span>⚡ Quick Commands</span>
           <i data-lucide="chevron-down" class="section-chevron" style="width:12px;height:12px;"></i>
         </div>
-        <div class="quick-cmd-body">
-          <button class="quick-cmd-btn" id="qcmd-env" onclick="sendQuickCmd('env | sort\r')" disabled>
-            <i data-lucide="list" style="width:13px;height:13px;"></i>env | sort
-          </button>
-          <button class="quick-cmd-btn" id="qcmd-ps" onclick="sendQuickCmd('ps aux\r')" disabled>
-            <i data-lucide="cpu" style="width:13px;height:13px;"></i>ps aux
-          </button>
-          <button class="quick-cmd-btn" id="qcmd-df" onclick="sendQuickCmd('df -h\r')" disabled>
-            <i data-lucide="hard-drive" style="width:13px;height:13px;"></i>df -h
-          </button>
-          <button class="quick-cmd-btn" id="qcmd-net" onclick="sendQuickCmd('cat /etc/hosts\r')" disabled>
-            <i data-lucide="network" style="width:13px;height:13px;"></i>cat /etc/hosts
-          </button>
-          <button class="quick-cmd-btn" id="qcmd-curl" onclick="sendQuickCmd('for p in 8080 80 8000 3000; do r=$(curl -sf http://localhost:$p/healthz 2>/dev/null) && echo \":$p/healthz → $r\" && break; done || echo \"no healthz found\"\r')" disabled>
-            <i data-lucide="activity" style="width:13px;height:13px;"></i>curl /healthz
-          </button>
-          <button class="quick-cmd-btn" id="qcmd-exit" onclick="sendQuickCmd('exit\r')" disabled>
-            <i data-lucide="log-out" style="width:13px;height:13px;color:var(--danger);"></i>exit
-          </button>
+        <div class="quick-cmd-body" id="quick-cmd-body">
+          <!-- populated by renderQuickCmds() -->
         </div>
       </div>
     </div>
@@ -1159,7 +1226,198 @@
       setActivePane(id);
     }
 
-    // ── Quick commands → active pane ──
+    // ── Quick commands ──────────────────────────────────────────────────────
+    const _BUILTIN_CMDS = [
+      { id: 'b-env',  label: 'env | sort',    command: 'env | sort\r',   icon: 'list' },
+      { id: 'b-ps',   label: 'ps aux',         command: 'ps aux\r',       icon: 'cpu' },
+      { id: 'b-df',   label: 'df -h',          command: 'df -h\r',        icon: 'hard-drive' },
+      { id: 'b-net',  label: 'cat /etc/hosts', command: 'cat /etc/hosts\r', icon: 'network' },
+      { id: 'b-curl', label: 'curl /healthz',  command: 'for p in 8080 80 8000 3000; do r=$(curl -sf http://localhost:$p/healthz 2>/dev/null) && echo ":$p/healthz \u2192 $r" && break; done || echo "no healthz found"\r', icon: 'activity' },
+      { id: 'b-exit', label: 'exit',            command: 'exit\r',         icon: 'log-out', danger: true },
+    ];
+    let _userCmds = [];   // {id, label, command} from API / localStorage
+    let _cmdsEnabled = false;
+    let _editingId = null; // cmd id being edited, or null
+
+    const _LS_KEY = 'k8s_janus_quick_cmds';
+
+    async function loadUserCmds() {
+      try {
+        const res = await fetch('/api/quick-commands');
+        if (res.ok) {
+          const data = await res.json();
+          _userCmds = data.commands || [];
+          try { localStorage.removeItem(_LS_KEY); } catch(_) {}
+          return;
+        }
+      } catch (_) {}
+      // Fallback: localStorage
+      try { _userCmds = JSON.parse(localStorage.getItem(_LS_KEY) || '[]'); } catch(_) { _userCmds = []; }
+    }
+
+    function _saveLocalFallback() {
+      try { localStorage.setItem(_LS_KEY, JSON.stringify(_userCmds)); } catch(_) {}
+    }
+
+    function renderQuickCmds() {
+      const body = document.getElementById('quick-cmd-body');
+      body.innerHTML = '';
+
+      // Built-ins
+      _BUILTIN_CMDS.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'quick-cmd-row';
+        const btn = document.createElement('button');
+        btn.className = 'quick-cmd-btn';
+        btn.disabled = !_cmdsEnabled;
+        btn.title = c.command.trim();
+        btn.innerHTML = `<i data-lucide="${c.icon}" style="width:13px;height:13px;${c.danger ? 'color:var(--danger)' : ''}"></i>${_esc(c.label)}`;
+        btn.onclick = () => sendQuickCmd(c.command);
+        row.appendChild(btn);
+        body.appendChild(row);
+      });
+
+      // User commands
+      _userCmds.forEach(c => {
+        if (_editingId === c.id) {
+          body.appendChild(_buildEditForm(c));
+          return;
+        }
+        const row = document.createElement('div');
+        row.className = 'quick-cmd-row';
+
+        const btn = document.createElement('button');
+        btn.className = 'quick-cmd-btn';
+        btn.disabled = !_cmdsEnabled;
+        btn.title = c.command.trim();
+        btn.innerHTML = `<i data-lucide="terminal" style="width:13px;height:13px;"></i>${_esc(c.label)}`;
+        btn.onclick = () => sendQuickCmd(c.command.endsWith('\r') ? c.command : c.command + '\r');
+        row.appendChild(btn);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'quick-cmd-action';
+        editBtn.title = 'Edit';
+        editBtn.innerHTML = '<i data-lucide="pencil" style="width:11px;height:11px;"></i>';
+        editBtn.onclick = () => { _editingId = c.id; renderQuickCmds(); };
+        row.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'quick-cmd-action delete';
+        delBtn.title = 'Delete';
+        delBtn.innerHTML = '<i data-lucide="x" style="width:11px;height:11px;"></i>';
+        delBtn.onclick = () => deleteUserCmd(c.id);
+        row.appendChild(delBtn);
+
+        body.appendChild(row);
+      });
+
+      // Add button (or inline form for new)
+      if (_editingId === 'new') {
+        body.appendChild(_buildEditForm(null));
+      } else {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'quick-cmd-add-btn';
+        addBtn.innerHTML = '<i data-lucide="plus" style="width:12px;height:12px;"></i>Add command';
+        addBtn.onclick = () => { _editingId = 'new'; renderQuickCmds(); };
+        body.appendChild(addBtn);
+      }
+
+      lucide.createIcons({ el: body });
+    }
+
+    function _buildEditForm(existing) {
+      const wrap = document.createElement('div');
+      wrap.className = 'quick-cmd-form';
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.placeholder = 'Label (e.g. list pods)';
+      labelInput.maxLength = 100;
+      labelInput.value = existing ? existing.label : '';
+
+      const cmdInput = document.createElement('input');
+      cmdInput.type = 'text';
+      cmdInput.placeholder = 'Command (e.g. kubectl get pods)';
+      cmdInput.value = existing ? existing.command.replace(/\r$/, '') : '';
+
+      const actions = document.createElement('div');
+      actions.className = 'quick-cmd-form-actions';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'save';
+      saveBtn.textContent = existing ? 'Save' : 'Add';
+      saveBtn.onclick = () => saveUserCmd(existing ? existing.id : null, labelInput.value, cmdInput.value);
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'cancel';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.onclick = () => { _editingId = null; renderQuickCmds(); };
+
+      actions.appendChild(saveBtn);
+      actions.appendChild(cancelBtn);
+      wrap.appendChild(labelInput);
+      wrap.appendChild(cmdInput);
+      wrap.appendChild(actions);
+
+      // Focus label on next tick
+      setTimeout(() => labelInput.focus(), 0);
+      return wrap;
+    }
+
+    async function saveUserCmd(id, label, command) {
+      label = (label || '').trim();
+      command = (command || '').trim();
+      if (!label || !command) return;
+
+      try {
+        if (id) {
+          const res = await fetch(`/api/quick-commands/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({label, command}),
+          });
+          if (res.ok) {
+            const rec = await res.json();
+            _userCmds = _userCmds.map(c => c.id === id ? rec : c);
+          }
+        } else {
+          const res = await fetch('/api/quick-commands', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({label, command}),
+          });
+          if (res.ok) {
+            const rec = await res.json();
+            _userCmds.push(rec);
+          } else {
+            // DB unavailable — store locally
+            const localId = 'l-' + Date.now();
+            _userCmds.push({id: localId, label, command});
+            _saveLocalFallback();
+          }
+        }
+      } catch(_) {
+        // Offline fallback
+        if (id) {
+          _userCmds = _userCmds.map(c => c.id === id ? {...c, label, command} : c);
+        } else {
+          _userCmds.push({id: 'l-' + Date.now(), label, command});
+        }
+        _saveLocalFallback();
+      }
+      _editingId = null;
+      renderQuickCmds();
+    }
+
+    async function deleteUserCmd(id) {
+      try {
+        await fetch(`/api/quick-commands/${id}`, {method: 'DELETE'});
+      } catch(_) {}
+      _userCmds = _userCmds.filter(c => c.id !== id);
+      _saveLocalFallback();
+      renderQuickCmds();
+    }
+
     function sendQuickCmd(cmd) {
       const pane = activePaneId === 'a' ? paneA : paneB;
       if (pane) {
@@ -1168,7 +1426,9 @@
         pane.focus();
       }
     }
+
     function setQuickCmdsEnabled(enabled) {
+      _cmdsEnabled = enabled;
       document.querySelectorAll('.quick-cmd-btn').forEach(b => b.disabled = !enabled);
     }
 
@@ -1178,10 +1438,16 @@
       sessionStorage.setItem('k8s_janus_qcmd_collapsed', collapsed ? '1' : '');
       lucide.createIcons();
     }
-    // Restore collapsed state
+
+    function _esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Restore collapsed state + initial render
     if (sessionStorage.getItem('k8s_janus_qcmd_collapsed')) {
       document.getElementById('quick-cmd-section').classList.add('collapsed');
     }
+    loadUserCmds().then(renderQuickCmds);
 
     // ========================================================================
     // Pod list (shared sidebar)

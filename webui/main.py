@@ -19,6 +19,8 @@ from authlib.integrations.starlette_client import OAuth
 from db import (
     init_db, upsert_request, log_audit, get_audit_log,
     get_recent_audit_logs, _now, db_enabled,
+    get_user_quick_commands, create_user_quick_command,
+    update_user_quick_command, delete_user_quick_command,
 )
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
@@ -245,7 +247,7 @@ class _OIDCAuthMiddleware(BaseHTTPMiddleware):
         if not OIDC_ENABLED:
             return await call_next(request)
         path = request.url.path
-        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
+        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup") or path.startswith("/api/quick-commands"):
             return await call_next(request)
         if not request.session.get("user_email"):
             return RedirectResponse(f"/login?next={path}", status_code=302)
@@ -1398,6 +1400,61 @@ async def api_requests_count(request: Request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     reqs = list_access_requests()
     return JSONResponse({"count": len(reqs)})
+
+
+# ---------------------------------------------------------------------------
+# User quick commands CRUD
+# ---------------------------------------------------------------------------
+
+@app.get("/api/quick-commands")
+async def api_get_quick_commands(request: Request):
+    email, _ = _get_user(request)
+    if not email:
+        return JSONResponse({"error": "unauthenticated"}, status_code=401)
+    return JSONResponse({"commands": get_user_quick_commands(email)})
+
+
+@app.post("/api/quick-commands")
+async def api_create_quick_command(request: Request):
+    email, _ = _get_user(request)
+    if not email:
+        return JSONResponse({"error": "unauthenticated"}, status_code=401)
+    body = await request.json()
+    label   = (body.get("label") or "").strip()[:100]
+    command = (body.get("command") or "").strip()
+    if not label or not command:
+        return JSONResponse({"error": "label and command are required"}, status_code=400)
+    rec = create_user_quick_command(email, label, command)
+    if rec is None:
+        return JSONResponse({"error": "db unavailable"}, status_code=503)
+    return JSONResponse(rec, status_code=201)
+
+
+@app.put("/api/quick-commands/{cmd_id}")
+async def api_update_quick_command(cmd_id: int, request: Request):
+    email, _ = _get_user(request)
+    if not email:
+        return JSONResponse({"error": "unauthenticated"}, status_code=401)
+    body = await request.json()
+    label   = (body.get("label") or "").strip()[:100]
+    command = (body.get("command") or "").strip()
+    if not label or not command:
+        return JSONResponse({"error": "label and command are required"}, status_code=400)
+    ok = update_user_quick_command(email, cmd_id, label, command)
+    if not ok:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse({"id": cmd_id, "label": label, "command": command})
+
+
+@app.delete("/api/quick-commands/{cmd_id}")
+async def api_delete_quick_command(cmd_id: int, request: Request):
+    email, _ = _get_user(request)
+    if not email:
+        return JSONResponse({"error": "unauthenticated"}, status_code=401)
+    ok = delete_user_quick_command(email, cmd_id)
+    if not ok:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse({"deleted": cmd_id})
 
 
 # Phase polling (for status page auto-redirect on revoke/expire)
