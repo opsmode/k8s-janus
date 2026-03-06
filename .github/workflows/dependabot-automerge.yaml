@@ -17,10 +17,13 @@ jobs:
         uses: dependabot/fetch-metadata@v2
 
       - name: Auto-merge patch and minor updates
-        # Skip major version bumps (e.g. python 3.12 → 3.14) — review manually
+        # Skip Docker entirely (base image tags like 3.12→3.14 are major Python bumps, not semver minor)
+        # Skip major version bumps for all other ecosystems
         if: |
-          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
-          steps.meta.outputs.update-type == 'version-update:semver-minor'
+          steps.meta.outputs.package-ecosystem != 'docker' && (
+            steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+            steps.meta.outputs.update-type == 'version-update:semver-minor'
+          )
         run: gh pr merge "$PR_URL" --squash --auto
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
