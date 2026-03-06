@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Docker base image — opens a PR when python:3.12-alpine has a new digest/tag
+  # Docker base image
   - package-ecosystem: docker
     directory: "/"
     schedule:
@@ -9,8 +9,11 @@ updates:
       time: "06:00"
     labels:
       - dependencies
+    groups:
+      docker:
+        patterns: ["*"]
 
-  # GitHub Actions — keeps all uses: actions/checkout@v4 etc. current
+  # GitHub Actions — all action bumps in one PR
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -19,8 +22,11 @@ updates:
       time: "06:00"
     labels:
       - dependencies
+    groups:
+      github-actions:
+        patterns: ["*"]
 
-  # Python — pip packages in both components
+  # Python — controller and webui in one PR each, same day
   - package-ecosystem: pip
     directory: "/controller"
     schedule:
@@ -29,6 +35,9 @@ updates:
       time: "06:00"
     labels:
       - dependencies
+    groups:
+      python-controller:
+        patterns: ["*"]
 
   - package-ecosystem: pip
     directory: "/webui"
@@ -38,3 +47,6 @@ updates:
       time: "06:00"
     labels:
       - dependencies
+    groups:
+      python-webui:
+        patterns: ["*"]
