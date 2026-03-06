@@ -204,7 +204,7 @@ jobs:
           git clone git@github.com:opsmode/argocd.git /tmp/argocd-release
           cd /tmp/argocd-release
 
-          sed -i "s/tag: \"[^\"]*\"/tag: \"${VERSION}\"/" applications/janus.applicationset.yaml
+          python3 "${GITHUB_WORKSPACE}/.github/scripts/bump-argocd-tag.py" "${VERSION}"
 
           git config user.email "ci@opsmode.pro"
           git config user.name "opsmode-ci"

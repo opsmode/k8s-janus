@@ -3,7 +3,7 @@ name: Update Dependencies
 on:
   schedule:
     - cron: '0 6 * * 1'   # every Monday 06:00 UTC
-  workflow_dispatch:       # allow manual trigger
+  workflow_dispatch:
 
 jobs:
   update:
@@ -18,19 +18,95 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install pip-tools
+        run: pip install --quiet pip-tools
+
       - name: Upgrade controller dependencies
         run: |
-          pip install --quiet pip-tools
-          # Strip pins, upgrade all, re-freeze in place
-          sed 's/==.*//' controller/requirements.txt | sort -u > /tmp/ctrl.in
-          xargs pip install --quiet < /tmp/ctrl.in
-          pip freeze | grep -Fif /tmp/ctrl.in > controller/requirements.txt
+          # Strip version pins to get bare package names, preserving extras (e.g. uvicorn[standard])
+          python3 - controller/requirements.txt <<'PYEOF'
+          import re, subprocess, sys
+          req_file = sys.argv[1]
+          lines = open(req_file).read().splitlines()
+          packages = []
+          for line in lines:
+              line = line.strip()
+              if not line or line.startswith('#'):
+                  continue
+              # Strip ==version pin, keep package name + extras
+              pkg = re.sub(r'==\S+', '', line).strip()
+              packages.append(pkg)
+          # Upgrade only the listed packages
+          subprocess.run(['pip', 'install', '--quiet', '--upgrade'] + packages, check=True)
+          # Re-freeze only these packages (not transitive deps)
+          result = subprocess.run(['pip', 'show'] + packages, capture_output=True, text=True)
+          versions = {}
+          for block in result.stdout.split('\n---\n'):
+              name = version = None
+              for row in block.splitlines():
+                  if row.startswith('Name:'):
+                      name = row.split(':', 1)[1].strip()
+                  if row.startswith('Version:'):
+                      version = row.split(':', 1)[1].strip()
+              if name and version:
+                  versions[name.lower()] = version
+          out = []
+          for line in lines:
+              stripped = line.strip()
+              if not stripped or stripped.startswith('#'):
+                  out.append(line)
+                  continue
+              pkg_name = re.split(r'[=\[\s]', stripped)[0].lower()
+              if pkg_name in versions:
+                  # Preserve extras if present
+                  extras = re.search(r'\[([^\]]+)\]', stripped)
+                  extras_str = f'[{extras.group(1)}]' if extras else ''
+                  out.append(f'{pkg_name}{extras_str}=={versions[pkg_name]}')
+              else:
+                  out.append(line)
+          open(req_file, 'w').write('\n'.join(out) + '\n')
+          PYEOF
 
       - name: Upgrade webui dependencies
         run: |
-          sed 's/==.*//' webui/requirements.txt | sort -u > /tmp/webui.in
-          xargs pip install --quiet < /tmp/webui.in
-          pip freeze | grep -Fif /tmp/webui.in > webui/requirements.txt
+          python3 - webui/requirements.txt <<'PYEOF'
+          import re, subprocess, sys
+          req_file = sys.argv[1]
+          lines = open(req_file).read().splitlines()
+          packages = []
+          for line in lines:
+              line = line.strip()
+              if not line or line.startswith('#'):
+                  continue
+              pkg = re.sub(r'==\S+', '', line).strip()
+              packages.append(pkg)
+          subprocess.run(['pip', 'install', '--quiet', '--upgrade'] + packages, check=True)
+          result = subprocess.run(['pip', 'show'] + packages, capture_output=True, text=True)
+          versions = {}
+          for block in result.stdout.split('\n---\n'):
+              name = version = None
+              for row in block.splitlines():
+                  if row.startswith('Name:'):
+                      name = row.split(':', 1)[1].strip()
+                  if row.startswith('Version:'):
+                      version = row.split(':', 1)[1].strip()
+              if name and version:
+                  versions[name.lower()] = version
+          out = []
+          for line in lines:
+              stripped = line.strip()
+              if not stripped or stripped.startswith('#'):
+                  out.append(line)
+                  continue
+              pkg_name = re.split(r'[=\[\s]', stripped)[0].lower()
+              if pkg_name in versions:
+                  extras = re.search(r'\[([^\]]+)\]', stripped)
+                  extras_str = f'[{extras.group(1)}]' if extras else ''
+                  out.append(f'{pkg_name}{extras_str}=={versions[pkg_name]}')
+              else:
+                  out.append(line)
+          open(req_file, 'w').write('\n'.join(out) + '\n')
+          PYEOF
 
       - name: Open PR if anything changed
         uses: peter-evans/create-pull-request@v7
