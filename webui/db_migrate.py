@@ -109,8 +109,8 @@ def run_migrations(url: str) -> None:
     import sqlalchemy as sa
 
     is_pg = url.startswith("postgresql")
-    engine = sa.create_engine(url, pool_pre_ping=True,
-                               connect_args={"connect_timeout": 10} if is_pg else {})
+    connect_args = {"connect_timeout": 10} if is_pg else {}
+    engine = sa.create_engine(url, pool_pre_ping=True, connect_args=connect_args)
 
     with engine.begin() as conn:
         if is_pg:
