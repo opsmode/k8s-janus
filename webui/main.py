@@ -245,7 +245,7 @@ class _OIDCAuthMiddleware(BaseHTTPMiddleware):
         if not OIDC_ENABLED:
             return await call_next(request)
         path = request.url.path
-        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup/contexts/"):
+        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
             return await call_next(request)
         if not request.session.get("user_email"):
             return RedirectResponse(f"/login?next={path}", status_code=302)
