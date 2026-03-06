@@ -247,9 +247,12 @@ class _OIDCAuthMiddleware(BaseHTTPMiddleware):
         if not OIDC_ENABLED:
             return await call_next(request)
         path = request.url.path
-        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup") or path.startswith("/api/quick-commands"):
+        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
             return await call_next(request)
         if not request.session.get("user_email"):
+            # API callers get 401 JSON; browser pages get a login redirect
+            if path.startswith("/api/") or path.startswith("/ws/"):
+                return JSONResponse({"error": "unauthenticated"}, status_code=401)
             return RedirectResponse(f"/login?next={path}", status_code=302)
         return await call_next(request)
 
@@ -1411,7 +1414,9 @@ async def api_get_quick_commands(request: Request):
     email, _ = _get_user(request)
     if not email:
         return JSONResponse({"error": "unauthenticated"}, status_code=401)
-    return JSONResponse({"commands": get_user_quick_commands(email)})
+    if not db_enabled:
+        return JSONResponse({"commands": [], "db_enabled": False})
+    return JSONResponse({"commands": get_user_quick_commands(email), "db_enabled": True})
 
 
 @app.post("/api/quick-commands")

@@ -1246,12 +1246,24 @@
         const res = await fetch('/api/quick-commands');
         if (res.ok) {
           const data = await res.json();
+          if (data.db_enabled === false) {
+            // DB not available — use localStorage
+            try { _userCmds = JSON.parse(localStorage.getItem(_LS_KEY) || '[]'); } catch(_) { _userCmds = []; }
+            return;
+          }
           _userCmds = data.commands || [];
-          try { localStorage.removeItem(_LS_KEY); } catch(_) {}
+          // Migrate any localStorage commands into DB on first load
+          try {
+            const local = JSON.parse(localStorage.getItem(_LS_KEY) || '[]');
+            if (local.length && _userCmds.length === 0) {
+              for (const c of local) await saveUserCmd(null, c.label, c.command);
+              localStorage.removeItem(_LS_KEY);
+            }
+          } catch(_) {}
           return;
         }
       } catch (_) {}
-      // Fallback: localStorage
+      // Network/auth failure — use localStorage
       try { _userCmds = JSON.parse(localStorage.getItem(_LS_KEY) || '[]'); } catch(_) { _userCmds = []; }
     }
 
