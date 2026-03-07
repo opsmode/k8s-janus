@@ -268,7 +268,7 @@ app.add_middleware(_SecurityHeadersMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=OIDC_SESSION_SECRET,
-    https_only=False,   # TLS terminated at ingress; pod sees http — Secure flag would break session
+    https_only=True,    # uvicorn --proxy-headers rewrites scheme to https; Secure flag required
     same_site="lax",
     max_age=86400,
 )
