@@ -418,6 +418,8 @@ async def oidc_callback(request: Request):
 
 @app.get("/logout", include_in_schema=False)
 async def oidc_logout(request: Request):
+    logger.warning(f"🔐 /logout called — referer: {request.headers.get('referer', 'none')} "
+                   f"user-agent: {request.headers.get('user-agent', 'none')[:60]}")
     request.session.clear()
     if OIDC_ENABLED:
         return templates.TemplateResponse("signedout.html", {"request": request})
