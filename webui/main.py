@@ -216,31 +216,30 @@ app.mount("/static", StaticFiles(directory=f"{_APP_DIR}/static"), name="static")
 templates = Jinja2Templates(directory=f"{_APP_DIR}/templates")
 
 
-_SECURITY_HEADERS = [
-    (b"x-content-type-options", b"nosniff"),
-    (b"x-frame-options", b"DENY"),
-    (b"referrer-policy", b"strict-origin-when-cross-origin"),
-    (b"content-security-policy", (
-        b"default-src 'self'; "
-        b"script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
-        b"style-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com 'unsafe-inline'; "
-        b"font-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.gstatic.com; "
-        b"img-src 'self' data:; "
-        b"connect-src 'self' wss: ws:;"
-    )),
-]
-
-
-@app.middleware("http")
-async def _security_headers(request: Request, call_next):
-    response = await call_next(request)
-    for name, value in _SECURITY_HEADERS:
-        response.headers[name.decode()] = value.decode()
-    return response
-
-
 _OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout",
                       "/setup/upload", "/setup/upload-helper"}
+
+
+class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    _HEADERS = [
+        ("x-content-type-options", "nosniff"),
+        ("x-frame-options", "DENY"),
+        ("referrer-policy", "strict-origin-when-cross-origin"),
+        ("content-security-policy", (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
+            "style-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com 'unsafe-inline'; "
+            "font-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.gstatic.com; "
+            "img-src 'self' data:; "
+            "connect-src 'self' wss: ws:;"
+        )),
+    ]
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        for name, value in self._HEADERS:
+            response.headers[name] = value
+        return response
 
 
 class _OIDCAuthMiddleware(BaseHTTPMiddleware):
@@ -257,12 +256,15 @@ class _OIDCAuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-# Middleware stack (Starlette LIFO — last added = outermost = runs first):
-#   1. SessionMiddleware    — outermost: populates request.session before anything reads it
-#   2. _OIDCAuthMiddleware  — reads session; short-circuits without call_next on unauthed
-#                             requests so BaseHTTPMiddleware response-buffering is not involved
-#   3. _security_headers    — @app.middleware decorator, always innermost
+# Middleware stack — all via add_middleware (LIFO: last added = outermost = runs first).
+# @app.middleware("http") decorators are always outermost and interfere with Set-Cookie
+# propagation from SessionMiddleware, so none are used here.
+#
+#   1. SessionMiddleware         — outermost: decodes cookie → populates request.session
+#   2. _OIDCAuthMiddleware       — reads session; returns early (no call_next) when unauthed
+#   3. _SecurityHeadersMiddleware — innermost: adds security headers to every response
 app.add_middleware(_OIDCAuthMiddleware)
+app.add_middleware(_SecurityHeadersMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=OIDC_SESSION_SECRET,
