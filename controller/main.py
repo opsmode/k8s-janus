@@ -355,6 +355,20 @@ async def grant_access(name: str, spec: dict, patch):
         patch.status["message"] = f"Could not connect to cluster {target_cluster}: {e}"
         return
 
+    # Re-fetch the live spec so any TTL override patched just before approval is visible.
+    # kopf delivers the spec snapshot from the watch event which may predate the patch.
+    try:
+        _, _custom = get_k8s_clients()[0], client.CustomObjectsApi()
+        _live_ar   = _custom.get_cluster_custom_object(
+            group=CRD_GROUP, version="v1alpha1", plural="accessrequests", name=name,
+        )
+        live_ttl = _live_ar.get("spec", {}).get("ttlSeconds")
+        if live_ttl is not None:
+            spec = dict(spec)
+            spec["ttlSeconds"] = live_ttl
+    except Exception as _e:
+        logger.warning(f"⚠️  [{name}] could not re-fetch spec for TTL — using event snapshot: {_e}")
+
     ttl        = int(spec.get("ttlSeconds", 3600))
     expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).isoformat()
     labels     = {
