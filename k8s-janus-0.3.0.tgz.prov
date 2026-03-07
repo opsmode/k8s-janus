@@ -1,0 +1,133 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: fixed
+      description: "revert to python:3.12-alpine and block docker auto-merge"
+    - kind: changed
+      description: "bump python in the docker group (#11)"
+    - kind: changed
+      description: "bump the github-actions group with 2 updates (#12)"
+    - kind: changed
+      description: "group Dependabot updates into single PRs + auto-merge patch/minor"
+    - kind: fixed
+      description: "install controller and webui requirements separately to avoid version conflicts"
+    - kind: changed
+      description: "bump peter-evans/dockerhub-description from 3 to 5 (#2)"
+    - kind: changed
+      description: "bump docker/setup-buildx-action from 3 to 4 (#4)"
+    - kind: changed
+      description: "bump sqlalchemy from 2.0.47 to 2.0.48 in /controller (#3)"
+    - kind: changed
+      description: "bump sqlalchemy from 2.0.47 to 2.0.48 in /webui (#7)"
+    - kind: changed
+      description: "bump docker/login-action from 3 to 4 (#5)"
+    - kind: changed
+      description: "bump fastapi from 0.133.0 to 0.135.1 in /webui (#9)"
+    - kind: changed
+      description: "bump authlib from 1.6.7 to 1.6.9 in /webui (#10)"
+    - kind: fixed
+      description: "skip Docker Scout on Dependabot PRs — secrets unavailable by design"
+    - kind: changed
+      description: "bump actions/checkout from 4 to 6 (#8)"
+    - kind: changed
+      description: "bump actions/setup-python from 5 to 6 (#1)"
+    - kind: fixed
+      description: "use pull_request_target so Docker Scout has secrets on Dependabot PRs"
+    - kind: fixed
+      description: "weekly OS patch rebuild, safe dep upgrade, Dependabot, fix release.yaml sed bug"
+    - kind: fixed
+      description: "return 401 JSON for API/WS paths when unauthenticated; fix quick commands empty when DB disabled"
+    - kind: changed
+      description: "drop pip install + import checks from lint job — deps pre-baked in runner image"
+    - kind: fixed
+      description: "flake8 E127 continuation line indent in db_migrate.py"
+    - kind: added
+      description: "per-user quick commands, init-db Job, clean up copy"
+    - kind: fixed
+      description: "use docker/login-action for DockerHub auth so buildx inherits credentials"
+    - kind: fixed
+      description: "exempt all /setup/* routes from OIDC — only reachable via port-forward"
+    - kind: fixed
+      description: "exempt /setup/upload and /setup/contexts from OIDC auth guard"
+    - kind: fixed
+      description: "use external script for ArgoCD tag bump to satisfy actionlint"
+    - kind: fixed
+      description: "read file into variable before overwriting in ArgoCD tag bump step"
+    - kind: changed
+      description: "trigger ci"
+    - kind: changed
+      description: "Update runner"
+    - kind: changed
+      description: "trigger CI to verify ArgoCD sed fix"
+    - kind: changed
+      description: "force CI trigger"
+    - kind: changed
+      description: "add workflow_dispatch trigger"
+    - kind: fixed
+      description: "replace sed -i with python3 for cross-platform ArgoCD tag update (macOS BSD sed compat)"
+    - kind: fixed
+      description: "bump authlib 1.6.6 → 1.6.7 (CVE-2026-28802); fix actionlint warnings"
+    - kind: fixed
+      description: "runner Dockerfile — mkdir before tar, arch-aware docker apt repo"
+    - kind: fixed
+      description: "ssh known_hosts fallback for github-hosted runners, fix sed -i syntax"
+    - kind: fixed
+      description: "multi-arch runner image (amd64+arm64), arch-aware yq and runner binary"
+    - kind: fixed
+      description: "single-line pip install in ci.yaml (backslash continuation broken in run blocks)"
+    - kind: changed
+      description: "pre-baked runner image + launchd auto-restart"
+    - kind: fixed
+      description: "remove unused walrus assignment in api_requests_count (F841)"
+apiVersion: v2
+appVersion: 0.3.0
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@opsmode.pro
+  name: OpsMode
+name: k8s-janus
+sources:
+- - https://github.com/opsmode/k8s-janus
+type: application
+version: 0.3.0
+
+...
+files:
+  k8s-janus-0.3.0.tgz: sha256:1ada669a56a8afb399c119a2fc35e2801c3885c91beb75a826e82aa160ed57e9
+-----BEGIN PGP SIGNATURE-----
+
+wsFcBAEBCgAQBQJpq2taCRBDCheZqELC2gAAXy8QADCIfMUzSxrTx1iDdO6p0leN
+j4FTmL8LqoOrMJ0RHde60IUtNvRBLDhVtdzVENEpnDNMSDJWMoDVct8IFfYAfn3p
+oPc4yczwvJbbTvqYzRJFEcHMTG5MfhCu1cF/2vLq1ztHNvKGezV055BC5Wb3zNkC
+myI5dFoEQruB/5Z04PAypOoZgCktPaos5PTBQh5QZMPHyHpR4XaHqTOTfoYMPYk9
+72i5iFSrOV+fgUoXVwx8qhWUP8yqw9epKFH7kKP63wDF9qWW4JEMLU5HOocfbxNw
+YsK90blFnJ1rOzyac9CW+6195Zzr5GqoRfpirH5UREHlWv7HLnNmXjwbr2RD8RAf
+qJIB3OJCAKtSuyKOJksevEzvkKFNUXC6fEk6jRbBNeamtErqo3lyNJFgws0rf8fX
+BQwRMIh2npHhW2WJk+wA7fYHx3nZHJEG3/F7K2VAaFPAORhs8kHS3nzy2jNX7KLF
+reDNuwf+E5pdRpx4r7PYWbwm2Kmm6qUMKf/xMg3zhZ4Y53mMmzY1+Hoe1CkqFwj4
++4yalQseeFl/659mL09VeMaVbPRyRvK+dwfoeI2zxTm2SSn6Yzy7TnO+o7+a73wg
+ftG770OEwtGfXC6h258/27vVHZgGFKjJuUOeXUVDjyITqGQtxlBgYXSwh2Wb0Ii5
+sdDcpnq0O41ulGsl2uRg
+=nWJl
+-----END PGP SIGNATURE-----
