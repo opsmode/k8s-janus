@@ -1430,7 +1430,14 @@
 
     function loadPods() {
       fetch(`/api/terminal/${cluster}/${requestName}/pods?namespace=${encodeURIComponent(activeNs)}`)
-        .then(r => r.json())
+        .then(async r => {
+          if (!r.ok) {
+            let msg = `HTTP ${r.status}`;
+            try { const j = await r.json(); msg = j.error || msg; } catch(_) {}
+            throw new Error(msg);
+          }
+          return r.json();
+        })
         .then(data => {
           const podList  = document.getElementById('pod-list');
           const podCount = document.getElementById('pod-count');
@@ -1490,8 +1497,8 @@
           });
           lucide.createIcons();
         })
-        .catch(() => {
-          document.getElementById('pod-list').innerHTML = '<div class="loading-pods" style="color:var(--danger);">Failed to load pods</div>';
+        .catch(err => {
+          document.getElementById('pod-list').innerHTML = `<div class="loading-pods" style="color:var(--danger);">Failed to load pods: ${escapeHtml(err.message)}</div>`;
         });
     }
 
