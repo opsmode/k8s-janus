@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
   <style>
     :root {
       --bg:          #080c14;
@@ -1227,19 +1227,21 @@
     }
 
     // ── Quick commands ──────────────────────────────────────────────────────
-    const _BUILTIN_CMDS = [
-      { id: 'b-env',  label: 'env | sort',    command: 'env | sort\r',   icon: 'list' },
-      { id: 'b-ps',   label: 'ps aux',         command: 'ps aux\r',       icon: 'cpu' },
-      { id: 'b-df',   label: 'df -h',          command: 'df -h\r',        icon: 'hard-drive' },
-      { id: 'b-net',  label: 'cat /etc/hosts', command: 'cat /etc/hosts\r', icon: 'network' },
-      { id: 'b-curl', label: 'curl /healthz',  command: 'for p in 8080 80 8000 3000; do r=$(curl -sf http://localhost:$p/healthz 2>/dev/null) && echo ":$p/healthz \u2192 $r" && break; done || echo "no healthz found"\r', icon: 'activity' },
-      { id: 'b-exit', label: 'exit',            command: 'exit\r',         icon: 'log-out', danger: true },
+    // Default commands seeded on first use — fully editable/deletable like user commands
+    const _DEFAULT_CMDS = [
+      { label: 'env | sort',    command: 'env | sort' },
+      { label: 'ps aux',        command: 'ps aux' },
+      { label: 'df -h',         command: 'df -h' },
+      { label: 'cat /etc/hosts',command: 'cat /etc/hosts' },
+      { label: 'curl /healthz', command: 'for p in 8080 80 8000 3000; do r=$(curl -sf http://localhost:$p/healthz 2>/dev/null) && echo ":$p/healthz \u2192 $r" && break; done || echo "no healthz found"' },
+      { label: 'exit',          command: 'exit' },
     ];
     let _userCmds = [];   // {id, label, command} from API / localStorage
     let _cmdsEnabled = false;
     let _editingId = null; // cmd id being edited, or null
 
     const _LS_KEY = 'k8s_janus_quick_cmds';
+    const _SEEDED_KEY = 'k8s_janus_cmds_seeded';
 
     async function loadUserCmds() {
       try {
@@ -1249,17 +1251,23 @@
           if (data.db_enabled === false) {
             // DB not available — use localStorage
             try { _userCmds = JSON.parse(localStorage.getItem(_LS_KEY) || '[]'); } catch(_) { _userCmds = []; }
+            // Seed defaults into localStorage if first time
+            if (!localStorage.getItem(_SEEDED_KEY) && _userCmds.length === 0) {
+              _userCmds = _DEFAULT_CMDS.map((c, i) => ({ id: 'ls-' + i, label: c.label, command: c.command }));
+              _saveLocalFallback();
+              localStorage.setItem(_SEEDED_KEY, '1');
+            }
             return;
           }
           _userCmds = data.commands || [];
-          // Migrate any localStorage commands into DB on first load
-          try {
-            const local = JSON.parse(localStorage.getItem(_LS_KEY) || '[]');
-            if (local.length && _userCmds.length === 0) {
-              for (const c of local) await saveUserCmd(null, c.label, c.command);
-              localStorage.removeItem(_LS_KEY);
-            }
-          } catch(_) {}
+          // Seed defaults into DB if first time (no commands yet)
+          if (_userCmds.length === 0 && !localStorage.getItem(_SEEDED_KEY)) {
+            for (const c of _DEFAULT_CMDS) await saveUserCmd(null, c.label, c.command);
+            localStorage.setItem(_SEEDED_KEY, '1');
+            // re-fetch after seeding
+            const r2 = await fetch('/api/quick-commands');
+            if (r2.ok) { const d2 = await r2.json(); _userCmds = d2.commands || []; }
+          }
           return;
         }
       } catch (_) {}
@@ -1275,21 +1283,7 @@
       const body = document.getElementById('quick-cmd-body');
       body.innerHTML = '';
 
-      // Built-ins
-      _BUILTIN_CMDS.forEach(c => {
-        const row = document.createElement('div');
-        row.className = 'quick-cmd-row';
-        const btn = document.createElement('button');
-        btn.className = 'quick-cmd-btn';
-        btn.disabled = !_cmdsEnabled;
-        btn.title = c.command.trim();
-        btn.innerHTML = `<i data-lucide="${c.icon}" style="width:13px;height:13px;${c.danger ? 'color:var(--danger)' : ''}"></i>${_esc(c.label)}`;
-        btn.onclick = () => sendQuickCmd(c.command);
-        row.appendChild(btn);
-        body.appendChild(row);
-      });
-
-      // User commands
+      // All commands (defaults seeded as user commands — fully editable/deletable)
       _userCmds.forEach(c => {
         if (_editingId === c.id) {
           body.appendChild(_buildEditForm(c));
