@@ -18,10 +18,9 @@ from authlib.integrations.starlette_client import OAuth
 
 from db import (
     init_db, upsert_request, log_audit, get_audit_log,
-    get_recent_audit_logs, get_all_audit_logs, get_phase_counts, _now, db_enabled,
+    get_recent_audit_logs, _now, db_enabled,
     get_user_quick_commands, create_user_quick_command,
     update_user_quick_command, delete_user_quick_command,
-    get_session_commands,
 )
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
@@ -30,16 +29,6 @@ from k8s import (
     CRD_GROUP, CRD_VERSION, JANUS_NAMESPACE,
 )
 from terminal_ws import terminal_websocket_handler, notify_revoked
-from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
-
-# ---------------------------------------------------------------------------
-# Prometheus metrics
-# ---------------------------------------------------------------------------
-_prom_requests = Gauge("janus_requests_total", "Total access requests by phase", ["phase"])
-_prom_sessions  = Gauge("janus_active_sessions", "Number of active (phase=Active) requests")
-_prom_approvals  = Counter("janus_approvals_total", "Total approved requests")
-_prom_denials    = Counter("janus_denials_total", "Total denied requests")
-_prom_revocations = Counter("janus_revocations_total", "Total revoked requests")
 
 # ---------------------------------------------------------------------------
 # Setup wizard — in-memory session state
@@ -228,7 +217,7 @@ templates = Jinja2Templates(directory=f"{_APP_DIR}/templates")
 
 
 _OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout",
-                      "/metrics", "/setup/upload", "/setup/upload-helper"}
+                      "/setup/upload", "/setup/upload-helper"}
 
 
 class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -1221,11 +1210,12 @@ async def approve(request: Request, cluster: str, name: str):
             "approvedAt": datetime.now(timezone.utc).isoformat(),
         }
         if ttl_override:
-            # Patch spec.ttlSeconds on the CRD before approval
-            custom_api, _ = get_api_clients(get_clusters()[0]["name"])
-            custom_api.patch_cluster_custom_object(
+            # Patch spec.ttlSeconds on the CRD. The CRD always lives on the central cluster.
+            central_api, _ = get_api_clients(get_clusters()[0]["name"])
+            central_api.patch_cluster_custom_object(
                 group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=name,
                 body={"spec": {"ttlSeconds": ttl_override}},
+                _content_type="application/merge-patch+json",
             )
         _patch_status(name, status_patch)
         logger.info(f"✅ AccessRequest {name} on {cluster} Approved by {approver}"
@@ -1237,7 +1227,6 @@ async def approve(request: Request, cluster: str, name: str):
                        created_at=_now())
         log_audit(name, "request.approved", actor=approver,
                   detail=f"cluster={cluster}" + (f" ttl_override={ttl_override}s" if ttl_override else ""))
-        _prom_approvals.inc()
     except ApiException as e:
         logger.error(f"💥 Failed to approve AccessRequest {name}: {e}")
         return JSONResponse({"ok": False, "error": "Failed to approve request"}, status_code=500)
@@ -1274,7 +1263,6 @@ async def deny(request: Request, cluster: str, name: str, denial_reason: str = F
                        ttl_seconds=ar.get("spec", {}).get("ttlSeconds", 3600), created_at=_now())
         log_audit(name, "request.denied", actor=approver,
                   detail=denial_reason or f"denied by {approver}")
-        _prom_denials.inc()
     except ApiException as e:
         logger.error(f"💥 Failed to deny AccessRequest {name}: {e}")
         return JSONResponse({"ok": False, "error": "Failed to deny request"}, status_code=500)
@@ -1305,7 +1293,6 @@ async def revoke(request: Request, cluster: str, name: str):
                        requester=ar.get("spec", {}).get("requester", ""),
                        ttl_seconds=ar.get("spec", {}).get("ttlSeconds", 3600), created_at=_now())
         log_audit(name, "access.revoked", actor=caller, detail=f"cluster={cluster} was {current_phase}")
-        _prom_revocations.inc()
         await notify_revoked(name, revoked_by=caller)
     except ApiException as e:
         logger.error(f"💥 Failed to revoke AccessRequest {name}: {e}")
@@ -1701,58 +1688,3 @@ async def healthz():
     return JSONResponse(health, status_code=200 if health["status"] == "ok" else 207)
 
 
-@app.get("/metrics", include_in_schema=False)
-async def metrics():
-    """Prometheus metrics — public (no auth required)."""
-    counts = get_phase_counts()
-    for phase, count in counts.items():
-        _prom_requests.labels(phase=phase).set(count)
-    _prom_sessions.set(counts.get("Active", 0))
-    return StreamingResponse(
-        iter([generate_latest()]),
-        media_type=CONTENT_TYPE_LATEST,
-    )
-
-
-@app.get("/api/audit/export.csv", include_in_schema=False)
-async def audit_export_csv(request: Request):
-    """Export all audit logs as CSV — admin only."""
-    if (err := _require_admin(request)):
-        return err
-    import csv
-    import io
-
-    rows = get_all_audit_logs()
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    def _generate():
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(["timestamp", "event", "request_name", "actor", "detail"])
-        yield buf.getvalue()
-        for row in rows:
-            buf = io.StringIO()
-            writer = csv.writer(buf)
-            writer.writerow([row["timestamp"], row["event"], row["request_name"],
-                             row["actor"], row["detail"]])
-            yield buf.getvalue()
-
-    return StreamingResponse(
-        _generate(),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=audit-{today}.csv"},
-    )
-
-
-@app.get("/api/terminal/{cluster}/{name}/history")
-async def terminal_history(request: Request, cluster: str, name: str):
-    """Return command history for a terminal session — owner or admin only."""
-    user_email, _ = _get_user(request)
-    ar = get_access_request(name, cluster)
-    if not ar:
-        return JSONResponse({"error": "Not found"}, status_code=404)
-    requester = ar.get("spec", {}).get("requester", "")
-    if not _is_admin(user_email) and user_email != requester:
-        return JSONResponse({"error": "Forbidden"}, status_code=403)
-    cmds = get_session_commands(name)
-    return JSONResponse({"commands": [c["command"] for c in cmds]})

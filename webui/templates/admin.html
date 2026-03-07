@@ -596,13 +596,15 @@
                   <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:block;"
                         title="{{ spec.get('requester', '—') }}">{{ spec.get("requester", "—") }}</span>
                 </td>
-                <td style="max-width:200px;">
-                  <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);white-space:nowrap;">{{ ar_cluster_display }}</code>
-                  <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;">
+                <td style="max-width:220px;overflow:hidden;">
+                  <div style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">
+                    <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom;" title="{{ ar_cluster_display }}">{{ ar_cluster_display }}</code>
+                  </div>
+                  <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;max-width:220px;">
                     {% for ns in nss %}<code style="font-size:0.7rem;white-space:nowrap;background:var(--surface-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">{{ ns }}</code>{% endfor %}
                   </div>
                 </td>
-                <td style="white-space:nowrap;">
+                <td style="white-space:nowrap;min-width:110px;">
                   {% if phase == "Active" and st.get("expiresAt") %}
                     <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
                   {% else %}
@@ -697,10 +699,6 @@
         </div>
         <h2>Audit Log</h2>
         <span id="audit-status" style="font-size:0.75rem;color:var(--text-dim);margin-left:6px;"></span>
-        <a href="/api/audit/export.csv" class="action-btn" style="margin-left:auto;font-size:0.75rem;padding:4px 10px;text-decoration:none;">
-          <i data-lucide="download" style="width:12px;height:12px;"></i>
-          Export CSV
-        </a>
       </div>
       <div class="table-wrap">
         <table>

@@ -162,8 +162,9 @@ jobs:
             echo "Removing old chart: $f"
             rm -f "$f" "${f%.tgz}.tgz.prov"
           done
-          # Rebuild index without deleted entries
-          helm repo index . --url https://opsmode.github.io/k8s-janus/ --merge index.yaml
+          # Rebuild index from present files only (no --merge) so deleted versions
+          # are not retained in index.yaml — prevents AH from scanning missing image tags
+          helm repo index . --url https://opsmode.github.io/k8s-janus/
 
       - name: Push to gh-pages
         run: |
