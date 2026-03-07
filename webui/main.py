@@ -12,7 +12,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Stre
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from kubernetes.client.rest import ApiException
 from authlib.integrations.starlette_client import OAuth
 
@@ -62,6 +61,7 @@ except ZoneInfoNotFoundError:
 # Set to "false" when running without an auth proxy (local dev, no ingress SSO).
 # When false, all users are treated as admin (open mode).
 AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() not in ("false", "0", "no")
+APP_VERSION  = os.environ.get("APP_VERSION", "dev")
 
 # ---------------------------------------------------------------------------
 # Native OIDC configuration
@@ -242,26 +242,12 @@ _OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz",
                       "/setup/upload", "/setup/upload-helper"}
 
 
-class _OIDCAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        if not OIDC_ENABLED:
-            return await call_next(request)
-        path = request.url.path
-        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
-            return await call_next(request)
-        if not request.session.get("user_email"):
-            # API callers get 401 JSON; browser pages get a login redirect
-            if path.startswith("/api/") or path.startswith("/ws/"):
-                return JSONResponse({"error": "unauthenticated"}, status_code=401)
-            return RedirectResponse(f"/login?next={path}", status_code=302)
-        return await call_next(request)
-
-
 # Middleware stack order (Starlette LIFO — last added = outermost = runs first):
-#   1. SessionMiddleware  — added last → runs first, populates request.session
-#   2. _OIDCAuthMiddleware — reads request.session populated by SessionMiddleware
-#   3. _security_headers  — @app.middleware decorator, added first → runs last
-app.add_middleware(_OIDCAuthMiddleware)
+#   1. SessionMiddleware   — added last → runs outermost, populates request.session
+#   2. _oidc_auth          — @app.middleware, reads session; plain function avoids
+#                            BaseHTTPMiddleware's response-buffering which drops Set-Cookie
+#                            headers on redirects (causes sign-out-after-sign-in).
+#   3. _security_headers   — @app.middleware, added first → runs innermost
 app.add_middleware(
     SessionMiddleware,
     secret_key=OIDC_SESSION_SECRET,
@@ -269,6 +255,22 @@ app.add_middleware(
     same_site="lax",
     max_age=86400,
 )
+
+
+@app.middleware("http")
+async def _oidc_auth(request: Request, call_next):
+    """OIDC auth guard — plain middleware (not BaseHTTPMiddleware) so Set-Cookie
+    headers on redirects are never dropped by response buffering."""
+    if not OIDC_ENABLED:
+        return await call_next(request)
+    path = request.url.path
+    if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
+        return await call_next(request)
+    if not request.session.get("user_email"):
+        if path.startswith("/api/") or path.startswith("/ws/"):
+            return JSONResponse({"error": "unauthenticated"}, status_code=401)
+        return RedirectResponse(f"/login?next={path}", status_code=302)
+    return await call_next(request)
 
 
 @app.exception_handler(404)
@@ -439,6 +441,7 @@ def _to_berlin(iso_str: str) -> str:
 
 
 templates.env.filters["to_berlin"] = _to_berlin
+templates.env.globals["app_version"] = APP_VERSION
 
 
 def _is_admin(email: str) -> bool:
@@ -1658,4 +1661,3 @@ async def healthz():
     return JSONResponse(health, status_code=200 if health["status"] == "ok" else 207)
 
 
-__version__ = "0.2.0"

@@ -27,4 +27,5 @@ data:
   OIDC_TENANT_ID:       {{ ((.Values.oidc).tenantId) | default "" | quote }}
   OIDC_ALLOWED_DOMAINS: {{ ((.Values.oidc).allowedDomains) | default list | join "," | quote }}
   OIDC_SCOPES:          {{ ((.Values.oidc).scopes) | default "openid email profile" | quote }}
+  APP_VERSION:          {{ .Values.image.tag | default "dev" | quote }}
 {{- end }}

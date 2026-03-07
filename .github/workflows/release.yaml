@@ -274,25 +274,19 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        run: |
+          VERSION=${{ github.ref_name }}
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${VERSION}$" | head -1)
+          python3 "$GITHUB_WORKSPACE/.github/scripts/generate-changelog.py" \
+            "${PREV_TAG}" "${VERSION}" "${{ env.IMAGE }}" /tmp/release-body.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          generate_release_notes: true
-          body: |
-            ## Docker Image
-
-            ```
-            opsmode/k8s-janus:${{ github.ref_name }}
-            ```
-
-            ## Deploy via Helm
-
-            ```bash
-            helm repo add k8s-janus https://opsmode.github.io/k8s-janus
-            helm repo update
-            helm upgrade --install k8s-janus k8s-janus/k8s-janus \
-              --namespace k8s-janus --create-namespace
-            ```
+          body_path: /tmp/release-body.md
