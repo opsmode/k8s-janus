@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Stre
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from kubernetes.client.rest import ApiException
 from authlib.integrations.starlette_client import OAuth
 
@@ -242,12 +243,26 @@ _OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz",
                       "/setup/upload", "/setup/upload-helper"}
 
 
-# Middleware stack order (Starlette LIFO — last added = outermost = runs first):
-#   1. SessionMiddleware   — added last → runs outermost, populates request.session
-#   2. _oidc_auth          — @app.middleware, reads session; plain function avoids
-#                            BaseHTTPMiddleware's response-buffering which drops Set-Cookie
-#                            headers on redirects (causes sign-out-after-sign-in).
-#   3. _security_headers   — @app.middleware, added first → runs innermost
+class _OIDCAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if not OIDC_ENABLED:
+            return await call_next(request)
+        path = request.url.path
+        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
+            return await call_next(request)
+        if not request.session.get("user_email"):
+            if path.startswith("/api/") or path.startswith("/ws/"):
+                return JSONResponse({"error": "unauthenticated"}, status_code=401)
+            return RedirectResponse(f"/login?next={path}", status_code=302)
+        return await call_next(request)
+
+
+# Middleware stack (Starlette LIFO — last added = outermost = runs first):
+#   1. SessionMiddleware    — outermost: populates request.session before anything reads it
+#   2. _OIDCAuthMiddleware  — reads session; short-circuits without call_next on unauthed
+#                             requests so BaseHTTPMiddleware response-buffering is not involved
+#   3. _security_headers    — @app.middleware decorator, always innermost
+app.add_middleware(_OIDCAuthMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=OIDC_SESSION_SECRET,
@@ -255,22 +270,6 @@ app.add_middleware(
     same_site="lax",
     max_age=86400,
 )
-
-
-@app.middleware("http")
-async def _oidc_auth(request: Request, call_next):
-    """OIDC auth guard — plain middleware (not BaseHTTPMiddleware) so Set-Cookie
-    headers on redirects are never dropped by response buffering."""
-    if not OIDC_ENABLED:
-        return await call_next(request)
-    path = request.url.path
-    if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
-        return await call_next(request)
-    if not request.session.get("user_email"):
-        if path.startswith("/api/") or path.startswith("/ws/"):
-            return JSONResponse({"error": "unauthenticated"}, status_code=401)
-        return RedirectResponse(f"/login?next={path}", status_code=302)
-    return await call_next(request)
 
 
 @app.exception_handler(404)
