@@ -1098,7 +1098,9 @@
       const SESSION_MS = 24 * 60 * 60 * 1000;
       const WARN_MS    = 60 * 60 * 1000; // warn 1h before expiry
       const loginKey   = 'janus_login_ts';
-      if (!localStorage.getItem(loginKey)) localStorage.setItem(loginKey, Date.now());
+      // Always reset on page load — stale localStorage from a previous session
+      // would make remaining negative and trigger an immediate /logout.
+      localStorage.setItem(loginKey, Date.now());
       function checkExpiry() {
         const elapsed = Date.now() - parseInt(localStorage.getItem(loginKey) || Date.now());
         const remaining = SESSION_MS - elapsed;
