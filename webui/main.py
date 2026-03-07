@@ -1210,13 +1210,15 @@ async def approve(request: Request, cluster: str, name: str):
             "approvedAt": datetime.now(timezone.utc).isoformat(),
         }
         if ttl_override:
-            # Patch spec.ttlSeconds on the CRD. The CRD always lives on the central cluster.
+            # Write override into both spec (source of truth) and status (so the controller
+            # handler reads it from the same atomic event, avoiding any race window).
             central_api, _ = get_api_clients(get_clusters()[0]["name"])
             central_api.patch_cluster_custom_object(
                 group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=name,
                 body={"spec": {"ttlSeconds": ttl_override}},
                 _content_type="application/merge-patch+json",
             )
+            status_patch["ttlOverride"] = ttl_override
         _patch_status(name, status_patch)
         logger.info(f"✅ AccessRequest {name} on {cluster} Approved by {approver}"
                     + (f" (TTL override {ttl_override}s)" if ttl_override else ""))

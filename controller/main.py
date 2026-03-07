@@ -242,7 +242,7 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
         if status.get("tokenSecret"):
             logger.info(f"⏭️  [{name}] already has tokenSecret, skipping duplicate grant")
             return
-        await grant_access(name, spec, patch)
+        await grant_access(name, spec, patch, status)
     elif new == "Denied":
         approver = status.get("approvedBy", "unknown")
         audit("request.denied", name, requester=requester, cluster=cluster, namespace=namespace, approver=approver)
@@ -327,7 +327,7 @@ async def _ttl_reconcile_loop():
         await asyncio.sleep(30)
 
 
-async def grant_access(name: str, spec: dict, patch):
+async def grant_access(name: str, spec: dict, patch, status: dict = None):
     """Create SA + RoleBinding + token per namespace on target cluster."""
     target_cluster = spec.get("cluster", get_clusters()[0]["name"])
     requester      = spec.get("requester", "unknown")
@@ -355,21 +355,14 @@ async def grant_access(name: str, spec: dict, patch):
         patch.status["message"] = f"Could not connect to cluster {target_cluster}: {e}"
         return
 
-    # Re-fetch the live spec so any TTL override patched just before approval is visible.
-    # kopf delivers the spec snapshot from the watch event which may predate the patch.
-    try:
-        _, _custom = get_k8s_clients()[0], client.CustomObjectsApi()
-        _live_ar   = _custom.get_cluster_custom_object(
-            group=CRD_GROUP, version="v1alpha1", plural="accessrequests", name=name,
-        )
-        live_ttl = _live_ar.get("spec", {}).get("ttlSeconds")
-        if live_ttl is not None:
-            spec = dict(spec)
-            spec["ttlSeconds"] = live_ttl
-    except Exception as _e:
-        logger.warning(f"⚠️  [{name}] could not re-fetch spec for TTL — using event snapshot: {_e}")
-
-    ttl        = int(spec.get("ttlSeconds", 3600))
+    # Prefer status.ttlOverride (set atomically with the Approved status by the webui)
+    # over spec.ttlSeconds which may not have propagated yet due to separate API calls.
+    ttl_from_status = (status or {}).get("ttlOverride")
+    if ttl_from_status:
+        ttl = int(ttl_from_status)
+        logger.info(f"⏱️  [{name}] using TTL override from status: {ttl}s")
+    else:
+        ttl = int(spec.get("ttlSeconds", 3600))
     expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).isoformat()
     labels     = {
         "k8s-janus.opsmode.pro/request":   name,
