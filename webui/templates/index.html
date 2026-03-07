@@ -852,7 +852,8 @@
         }
 
         grid.innerHTML = namespaces.map(ns => `
-          <div class="ns-item" onclick="toggleNs('${ns.replace(/'/g,"\\'")}', this)"
+          <div class="ns-item" data-ns="${ns.replace(/"/g,'&quot;')}"
+               onclick="toggleNs('${ns.replace(/'/g,"\\'")}', this)"
                onmouseenter="previewPods('${ns.replace(/'/g,"\\'")}', this)"
                onmouseleave="hidePreview()">
             <div class="ns-check">
@@ -864,11 +865,40 @@
           </div>
         `).join('');
         grid.style.display = '';
+        _restoreNsPrefs(namespaces);
       } catch (e) {
         loading.style.display = '';
         loading.style.color   = 'var(--danger)';
         loading.textContent   = 'Failed to load namespaces';
       }
+    }
+
+    // ── Namespace preference persistence ──
+    const _NS_PREF_PREFIX = 'janus_ns_prefs_';
+    function _nsPrefKey() {
+      const email = document.getElementById('requester').value.trim().toLowerCase();
+      return email ? _NS_PREF_PREFIX + email : null;
+    }
+    function _saveNsPrefs() {
+      const key = _nsPrefKey();
+      if (!key || !_currentCluster) return;
+      localStorage.setItem(key, JSON.stringify({ cluster: _currentCluster, namespaces: [..._nsSelected] }));
+    }
+    function _restoreNsPrefs(availableNs) {
+      const key = _nsPrefKey();
+      if (!key) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        if (!saved || saved.cluster !== _currentCluster) return;
+        const avSet = new Set(availableNs);
+        saved.namespaces.forEach(ns => {
+          if (!avSet.has(ns)) return;
+          _nsSelected.add(ns);
+          const el = document.querySelector(`.ns-item[data-ns="${CSS.escape(ns)}"]`);
+          if (el) el.classList.add('selected');
+        });
+        _updateSubmitState();
+      } catch { /* ignore */ }
     }
 
     function toggleNs(ns, itemEl) {
@@ -879,6 +909,7 @@
         _nsSelected.add(ns);
         itemEl.classList.add('selected');
       }
+      _saveNsPrefs();
       _updateSubmitState();
     }
 
@@ -1075,6 +1106,23 @@
     renderHistory();
     document.getElementById('requester').addEventListener('change', renderHistory);
     document.getElementById('requester').addEventListener('blur', renderHistory);
+
+    // ── Restore last cluster + namespace selection on page load ──
+    (function() {
+      const key = _nsPrefKey();
+      if (!key) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        if (!saved || !saved.cluster) return;
+        const sel = document.getElementById('cluster');
+        if (!sel) return;
+        // Check if saved cluster exists in the options
+        const opt = Array.from(sel.options).find(o => o.value === saved.cluster);
+        if (!opt) return;
+        sel.value = saved.cluster;
+        onClusterChange(saved.cluster); // loads namespaces; _restoreNsPrefs called inside
+      } catch { /* ignore */ }
+    })();
   </script>
 
   {% include '_profile_modal.html' %}

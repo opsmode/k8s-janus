@@ -7,7 +7,42 @@
     brand_href       — href for logo link (default: "/")
     nav_items        — list of dicts: {href, icon, label, active}
     header_extra     — arbitrary extra HTML rendered after nav (e.g. TTL timer)
+    health_indicator — if true, render a health status dot in the header
 #}
+
+{# Apply saved theme BEFORE first paint to avoid flash #}
+<script>(function(){var t=localStorage.getItem('janus_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}());</script>
+
+<style>
+/* Light theme variable overrides — scoped to [data-theme="light"] on <html> */
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --surface: #fff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --border: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+}
+/* Health dot */
+#hdr-health-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+  flex-shrink: 0;
+  cursor: default;
+  transition: background 0.4s;
+}
+#hdr-health-dot[data-status="degraded"] { background: #f59e0b; }
+#hdr-health-dot[data-status="error"]    { background: #ef4444; }
+</style>
+
 <header>
   <a class="header-brand" href="{{ brand_href if brand_href is defined and brand_href else '/' }}" style="text-decoration:none;">
     <div class="header-logo">
@@ -21,6 +56,16 @@
 
   <div style="display:flex;align-items:center;gap:6px;">
     {% if header_extra is defined %}{{ header_extra }}{% endif %}
+
+    {# Health indicator dot #}
+    {% if health_indicator is defined and health_indicator %}
+    <span id="hdr-health-dot" data-status="ok" title="System healthy"></span>
+    {% endif %}
+
+    {# Dark / light mode toggle #}
+    <button id="hdr-theme-btn" class="hdr-icon-btn" onclick="toggleTheme()" title="Toggle dark/light mode" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;">
+      <i data-lucide="moon" id="hdr-theme-icon" style="width:16px;height:16px;"></i>
+    </button>
 
     <a href="https://github.com/opsmode/k8s-janus" target="_blank" rel="noopener"
        class="hdr-icon-btn" title="View on GitHub">
@@ -68,6 +113,7 @@
 
 <script>
 (function() {
+  /* ---- user dropdown ---- */
   function toggleUserDropdown(e) {
     e.stopPropagation();
     var menu = document.getElementById('hdr-dropdown-menu');
@@ -87,5 +133,46 @@
   });
   window.toggleUserDropdown = toggleUserDropdown;
   window.closeUserDropdown = closeUserDropdown;
+
+  /* ---- dark / light toggle ---- */
+  function _applyTheme(t) {
+    var icon = document.getElementById('hdr-theme-icon');
+    if (t === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      if (icon) icon.setAttribute('data-lucide', 'sun');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      if (icon) icon.setAttribute('data-lucide', 'moon');
+    }
+    if (window.lucide) lucide.createIcons();
+  }
+  function toggleTheme() {
+    var current = localStorage.getItem('janus_theme') || 'dark';
+    var next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('janus_theme', next);
+    _applyTheme(next);
+  }
+  // Apply on load (icon only — attribute already set before paint)
+  _applyTheme(localStorage.getItem('janus_theme') || 'dark');
+  window.toggleTheme = toggleTheme;
+
+  /* ---- health indicator ---- */
+  var _dot = document.getElementById('hdr-health-dot');
+  if (_dot) {
+    function _updateHealth() {
+      fetch('/healthz').then(function(r) { return r.json(); }).then(function(d) {
+        var s = d.status === 'ok' ? 'ok' : (d.status === 'degraded' ? 'degraded' : 'error');
+        _dot.setAttribute('data-status', s);
+        _dot.title = d.status === 'ok'
+          ? 'System healthy (DB: ' + (d.db || 'ok') + ')'
+          : 'System ' + d.status + ' — DB: ' + (d.db || 'unknown');
+      }).catch(function() {
+        _dot.setAttribute('data-status', 'error');
+        _dot.title = 'Health check failed';
+      });
+    }
+    _updateHealth();
+    setInterval(_updateHealth, 30000);
+  }
 })();
 </script>

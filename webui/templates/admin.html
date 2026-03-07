@@ -620,11 +620,22 @@
                   {% set requester = spec.get("requester", "") %}
                   {% if phase == "Pending" %}
                   <div class="action-cell" id="actions-{{ ar.metadata.name }}">
-                    <button class="action-btn approve-btn"
-                      onclick="inlineApprove('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
-                      <i data-lucide="check" style="width:12px;height:12px;"></i>
-                      Approve
-                    </button>
+                    <div class="extend-wrap" id="approve-wrap-{{ ar.metadata.name }}" style="display:flex;align-items:center;gap:4px;">
+                      <button class="action-btn approve-btn"
+                        onclick="inlineApprove('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
+                        <i data-lucide="check" style="width:12px;height:12px;"></i>
+                        Approve
+                      </button>
+                      <select id="approve-ttl-{{ ar.metadata.name }}"
+                        style="font-size:0.72rem;background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);border-radius:4px;padding:2px 4px;cursor:pointer;"
+                        title="TTL override (optional)">
+                        <option value="">keep TTL</option>
+                        <option value="3600">1h</option>
+                        <option value="7200">2h</option>
+                        <option value="14400">4h</option>
+                        <option value="28800">8h</option>
+                      </select>
+                    </div>
                     <button class="action-btn deny-btn"
                       onclick="inlineDeny('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
                       <i data-lucide="x" style="width:12px;height:12px;"></i>
@@ -686,6 +697,10 @@
         </div>
         <h2>Audit Log</h2>
         <span id="audit-status" style="font-size:0.75rem;color:var(--text-dim);margin-left:6px;"></span>
+        <a href="/api/audit/export.csv" class="action-btn" style="margin-left:auto;font-size:0.75rem;padding:4px 10px;text-decoration:none;">
+          <i data-lucide="download" style="width:12px;height:12px;"></i>
+          Export CSV
+        </a>
       </div>
       <div class="table-wrap">
         <table>
@@ -893,8 +908,15 @@
     async function inlineApprove(cluster, name, btn) {
       var cell = document.getElementById('actions-' + name);
       _lockActionCell(cell, 'Approving…');
+      var ttlSel = document.getElementById('approve-ttl-' + name);
+      var body = {};
+      if (ttlSel && ttlSel.value) body.ttl_seconds = parseInt(ttlSel.value);
       try {
-        var resp = await fetch('/approve/' + cluster + '/' + name, { method: 'POST' });
+        var resp = await fetch('/approve/' + cluster + '/' + name, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
         var data = await resp.json();
         if (data.ok) {
           _setRowPhase(name, 'Approved');

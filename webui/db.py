@@ -393,6 +393,52 @@ def update_user_quick_command(user_email: str, cmd_id: int, label: str, command:
         return False
 
 
+def get_phase_counts() -> dict:
+    """Return {phase: count} across all access_requests rows."""
+    if not db_enabled:
+        return {}
+    try:
+        with get_session() as session:
+            if session is None:
+                return {}
+            rows = session.query(AccessRequestRecord.phase, ).all()
+            counts: dict = {}
+            for (phase,) in rows:
+                counts[phase] = counts.get(phase, 0) + 1
+            return counts
+    except Exception as e:
+        logger.error(f"get_phase_counts() failed: {e}")
+        return {}
+
+
+def get_all_audit_logs() -> list[dict]:
+    """Return every audit log entry, oldest first (for CSV export)."""
+    if not db_enabled:
+        return []
+    try:
+        with get_session() as session:
+            if session is None:
+                return []
+            rows = (
+                session.query(AuditLog)
+                .order_by(AuditLog.timestamp)
+                .all()
+            )
+            return [
+                {
+                    "timestamp": r.timestamp.isoformat() if r.timestamp else "",
+                    "event": r.event,
+                    "request_name": r.request_name,
+                    "actor": r.actor or "",
+                    "detail": r.detail or "",
+                }
+                for r in rows
+            ]
+    except Exception as e:
+        logger.error(f"get_all_audit_logs() failed: {e}")
+        return []
+
+
 def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
     if not db_enabled:
         return False
