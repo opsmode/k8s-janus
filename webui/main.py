@@ -1686,5 +1686,3 @@ async def healthz():
             health["db"] = f"error: {e}"
             health["status"] = "degraded"
     return JSONResponse(health, status_code=200 if health["status"] == "ok" else 207)
-
-
