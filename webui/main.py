@@ -652,8 +652,8 @@ async def setup_rename_cluster(request: Request):
                 metadata=k8s_client.V1ObjectMeta(
                     name=secret_name,
                     namespace=JANUS_NAMESPACE,
-                    labels={"k8s-janus.opsmode.pro/managed": "true"},
-                    annotations={"k8s-janus.opsmode.pro/displayName": display_name},
+                    labels={"k8s-janus.infroware.com/managed": "true"},
+                    annotations={"k8s-janus.infroware.com/displayName": display_name},
                 ),
                 type="Opaque",
             )
@@ -668,7 +668,7 @@ async def setup_rename_cluster(request: Request):
             core.patch_namespaced_secret(
                 name=secret_name,
                 namespace=JANUS_NAMESPACE,
-                body={"metadata": {"annotations": {"k8s-janus.opsmode.pro/displayName": display_name}}},
+                body={"metadata": {"annotations": {"k8s-janus.infroware.com/displayName": display_name}}},
             )
         invalidate_clusters_cache()
         return JSONResponse({"ok": True})

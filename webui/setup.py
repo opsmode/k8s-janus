@@ -215,7 +215,7 @@ def _apply_remote_rbac(
     Mirrors helm/templates/remote-rbac.yaml (remote.enabled=true).
     """
     labels = {"app.kubernetes.io/managed-by": "janus-setup-wizard",
-              "k8s-janus.opsmode.pro/managed": "true"}
+              "k8s-janus.infroware.com/managed": "true"}
 
     # 1. Namespace — create if missing (409 = already exists, fine)
     try:
@@ -335,14 +335,14 @@ def _upsert_kubeconfig_secret(
 
     annotations = {}
     if display_name:
-        annotations["k8s-janus.opsmode.pro/displayName"] = display_name
+        annotations["k8s-janus.infroware.com/displayName"] = display_name
 
     secret = client.V1Secret(
         metadata=client.V1ObjectMeta(
             name=secret_name,
             namespace=namespace,
             labels={
-                "k8s-janus.opsmode.pro/managed": "true",
+                "k8s-janus.infroware.com/managed": "true",
                 "app.kubernetes.io/managed-by": "janus-setup-wizard",
             },
             annotations=annotations or None,
@@ -413,7 +413,7 @@ def _revoke_cluster_access(
     central, and patch AccessRequest status → Revoked.
     """
     lines: list[str] = []
-    CRD_GROUP   = "k8s-janus.opsmode.pro"
+    CRD_GROUP   = "k8s-janus.infroware.com"
     CRD_VERSION = "v1alpha1"
 
     try:
@@ -669,7 +669,7 @@ def _cleanup_stale_secrets(
     try:
         secrets = central_core_v1.list_namespaced_secret(
             namespace=namespace,
-            label_selector="k8s-janus.opsmode.pro/managed=true",
+            label_selector="k8s-janus.infroware.com/managed=true",
         )
     except ApiException:
         return 0

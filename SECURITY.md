@@ -13,7 +13,7 @@ We support only the latest release. Please upgrade before reporting.
 
 **Please do not open a public GitHub issue for security vulnerabilities.**
 
-Report vulnerabilities privately by emailing: **devops@opsmode.pro**
+Report vulnerabilities privately by emailing: **devops@infroware.com**
 
 Include:
 - Description of the vulnerability

@@ -18,7 +18,7 @@ from kubernetes.client.rest import ApiException
 logger = logging.getLogger("k8s-janus-webui")
 
 JANUS_NAMESPACE = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
-CRD_GROUP       = "k8s-janus.opsmode.pro"
+CRD_GROUP       = "k8s-janus.infroware.com"
 CRD_VERSION     = "v1alpha1"
 _raw_excluded   = os.environ.get("EXCLUDED_NAMESPACES", "")
 EXCLUDED_NAMESPACES = set(n.strip() for n in _raw_excluded.split(",") if n.strip())
@@ -28,7 +28,7 @@ EXCLUDED_NAMESPACES = set(n.strip() for n in _raw_excluded.split(",") if n.strip
 _CENTRAL_NAME         = os.environ.get("JANUS_CLUSTER_NAME", "local")
 _CENTRAL_DISPLAY_NAME = os.environ.get("JANUS_CLUSTER_DISPLAY_NAME", _CENTRAL_NAME)
 
-_MANAGED_LABEL    = "k8s-janus.opsmode.pro/managed"
+_MANAGED_LABEL    = "k8s-janus.infroware.com/managed"
 _KUBECONFIG_SUFFIX = "-kubeconfig"
 
 
@@ -46,7 +46,7 @@ def _discover_clusters() -> list[dict]:
     Build the live CLUSTERS list:
     1. Central cluster is always first (identity from JANUS_CLUSTER_NAME env or 'local').
     2. Remote clusters are discovered by scanning kubeconfig Secrets labeled
-       ``k8s-janus.opsmode.pro/managed=true`` in JANUS_NAMESPACE.
+       ``k8s-janus.infroware.com/managed=true`` in JANUS_NAMESPACE.
     """
     central = {"name": _CENTRAL_NAME, "displayName": _CENTRAL_DISPLAY_NAME}
 
@@ -63,7 +63,7 @@ def _discover_clusters() -> list[dict]:
     # Check for a runtime display name override for the central cluster
     for s in secrets.items:
         if s.metadata.name == "janus-central-display":
-            override = (s.metadata.annotations or {}).get("k8s-janus.opsmode.pro/displayName", "")
+            override = (s.metadata.annotations or {}).get("k8s-janus.infroware.com/displayName", "")
             if override:
                 central["displayName"] = override
             break
@@ -75,7 +75,7 @@ def _discover_clusters() -> list[dict]:
             continue
         cluster_name = name[: -len(_KUBECONFIG_SUFFIX)]
         display_name = (s.metadata.annotations or {}).get(
-            "k8s-janus.opsmode.pro/displayName", cluster_name
+            "k8s-janus.infroware.com/displayName", cluster_name
         )
         remotes.append({"name": cluster_name, "displayName": display_name, "secretName": name})
 

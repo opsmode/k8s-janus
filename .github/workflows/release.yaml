@@ -207,7 +207,7 @@ jobs:
 
           python3 "${GITHUB_WORKSPACE}/.github/scripts/bump-argocd-tag.py" "${VERSION}"
 
-          git config user.email "ci@opsmode.pro"
+          git config user.email "ci@infroware.com"
           git config user.name "opsmode-ci"
           git add applications/janus.applicationset.yaml
           git diff --cached --quiet && echo "no change" && exit 0

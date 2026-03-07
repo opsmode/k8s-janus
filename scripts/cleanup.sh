@@ -9,7 +9,7 @@
 set -euo pipefail
 
 NAMESPACE="k8s-janus"
-CRD_GROUP="opsmode.pro"
+CRD_GROUP="infroware.com"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

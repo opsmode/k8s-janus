@@ -428,7 +428,7 @@ for i, ctx in enumerate(remote_ctxs, 1):
         secret = client.V1Secret(
             metadata=client.V1ObjectMeta(
                 name=secret_name, namespace=janus_ns,
-                labels={"k8s-janus.opsmode.pro/managed": "true"}
+                labels={"k8s-janus.infroware.com/managed": "true"}
             ),
             data=data
         )
