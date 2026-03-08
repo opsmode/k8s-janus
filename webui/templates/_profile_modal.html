@@ -112,13 +112,41 @@
     reader.readAsDataURL(file);
   }
 
-  // Load other users' avatars from server
+  // Render initials into an avatar element immediately from an email/name string
+  function _fillAvatarInitials(el, nameOrEmail) {
+    el.innerHTML = '';
+    const parts = nameOrEmail.split(/[\s@.]+/).filter(Boolean);
+    el.textContent = parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : nameOrEmail.slice(0, 2).toUpperCase() || '?';
+  }
+
+  // Load all peer avatars from server; also seeds initials immediately for any empty avatar
   async function _loadPeerAvatars() {
     const avatarEls = document.querySelectorAll('.avatar[data-email]');
     const emails = new Set();
     avatarEls.forEach(el => {
       const em = el.dataset.email;
-      if (em && em !== _USER_EMAIL) emails.add(em);
+      if (!em) return;
+      // Seed initials immediately so avatar is never blank while waiting for fetch
+      if (!el.innerHTML.trim()) {
+        if (em === _USER_EMAIL) {
+          // Own avatar — use profile name from localStorage
+          const p = _loadProfile();
+          const rawName = p.name || _USER_NAME || em;
+          if (p.photo) {
+            const img = document.createElement('img');
+            img.src = p.photo;
+            el.innerHTML = '';
+            el.appendChild(img);
+          } else {
+            _fillAvatarInitials(el, rawName);
+          }
+        } else {
+          _fillAvatarInitials(el, em);
+        }
+      }
+      if (em !== _USER_EMAIL) emails.add(em);
     });
     for (const email of emails) {
       try {
@@ -133,11 +161,7 @@
             img.src = d.photo;
             el.appendChild(img);
           } else {
-            const rawName = d.name || email;
-            const parts = rawName.split(/[\s@.]+/).filter(Boolean);
-            el.textContent = parts.length >= 2
-              ? (parts[0][0] + parts[1][0]).toUpperCase()
-              : rawName.slice(0, 2).toUpperCase() || '?';
+            _fillAvatarInitials(el, d.name || email);
           }
         });
         // Update any approver name spans for this email
