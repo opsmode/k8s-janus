@@ -163,9 +163,13 @@
       fetch('/healthz').then(function(r) { return r.json(); }).then(function(d) {
         var s = d.status === 'ok' ? 'ok' : (d.status === 'degraded' ? 'degraded' : 'error');
         _dot.setAttribute('data-status', s);
+        {% if is_admin %}
         _dot.title = d.status === 'ok'
           ? 'System healthy (DB: ' + (d.db || 'ok') + ')'
           : 'System ' + d.status + ' — DB: ' + (d.db || 'unknown');
+        {% else %}
+        _dot.title = d.status === 'ok' ? 'System healthy' : 'System ' + d.status;
+        {% endif %}
       }).catch(function() {
         _dot.setAttribute('data-status', 'error');
         _dot.title = 'Health check failed';
