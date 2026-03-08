@@ -253,7 +253,8 @@ class _OIDCAuthMiddleware(BaseHTTPMiddleware):
         if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
             return await call_next(request)
         if not request.session.get("user_email"):
-            if path.startswith("/api/") or path.startswith("/ws/"):
+            _json_prefixes = ("/api/", "/ws/", "/approve/", "/deny/", "/revoke/", "/cancel/", "/extend/")
+            if path.startswith(_json_prefixes) or request.headers.get("accept", "").startswith("application/json"):
                 return JSONResponse({"error": "unauthenticated"}, status_code=401)
             return RedirectResponse(f"/login?next={path}", status_code=302)
         return await call_next(request)
@@ -508,7 +509,6 @@ def _patch_status(name: str, body: dict) -> None:
     custom_api.patch_cluster_custom_object_status(
         group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=name,
         body={"status": body},
-        _content_type="application/merge-patch+json",
     )
 
 

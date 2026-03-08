@@ -374,6 +374,11 @@
     }
     .toolbar-btn:hover { background: var(--surface-3); border-color: var(--accent); color: var(--text); }
     .toolbar-btn.active { background: rgba(99,102,241,0.12); border-color: var(--accent); color: var(--accent); }
+    /* Split button: green when 1 pane available, faded when already split */
+    #split-btn { border-color: rgba(16,185,129,0.5); color: #10b981; }
+    #split-btn:hover { background: rgba(16,185,129,0.08); border-color: #10b981; color: #10b981; }
+    #split-btn.active { background: var(--surface-2); border-color: var(--border); color: var(--text-dim); opacity: 0.55; cursor: not-allowed; }
+    #split-btn.active:hover { background: var(--surface-2); border-color: var(--border); color: var(--text-dim); }
 
     /* ── TABS ── */
     .tabs {
@@ -1136,7 +1141,8 @@
     }
 
     function toggleSplit() {
-      if (splitOpen) { closeSplit(); } else { openSplit(); }
+      if (splitOpen) return; // button is faded when split open — use ✕ on pane to close
+      openSplit();
     }
 
     function openSplit() {
