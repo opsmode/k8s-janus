@@ -118,14 +118,18 @@ def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
                 logger.debug(f"🔍 Terminal: {shell} probe failed on {pod}")
                 continue
             # Launch shell with colored PS1 pre-configured via exec.
-            # Passing command as a list bypasses any shell parsing — the
-            # setup string is evaluated by the shell itself, not by a wrapper.
+            # bash: --norc --noprofile prevents rc files from overwriting PS1.
+            # sh/ash: don't source .bashrc, so plain -i is fine.
+            if shell == '/bin/bash':
+                exec_cmd = 'exec bash --norc --noprofile -i'
+            else:
+                exec_cmd = f'exec {shell} -i'
             _ps1_setup = (
                 "_c1=$(printf '\\001\\033[0;36m\\002');"
                 "_r=$(printf '\\001\\033[0m\\002');"
                 "_c2=$(printf '\\001\\033[0;34m\\002');"
                 "export PS1=\"${_c1}\\u@\\h${_r}:${_c2}\\w${_r}\\$ \";"
-                f"exec {shell} -i"
+                + exec_cmd
             )
             s = stream(
                 core_v1.connect_get_namespaced_pod_exec,
