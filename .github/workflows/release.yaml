@@ -136,7 +136,7 @@ jobs:
       - name: Package and sign Helm chart
         run: |
           helm package helm/ \
-            --sign --key "InfroWare" --keyring ~/.gnupg/secring.gpg \
+            --sign --key "OpsMode" --keyring ~/.gnupg/secring.gpg \
             --destination .deploy/
 
       - name: Checkout gh-pages branch
