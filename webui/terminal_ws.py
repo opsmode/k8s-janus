@@ -418,11 +418,13 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                 await websocket.send_text(f"\r\n\x1b[32mConnected to {pod} ({used_shell})\x1b[0m\r\n\r\n")
                 await websocket.send_text(json.dumps({"type": "connected", "pod": pod}))
                 # Inject a colored PS1 — cyan user@host, blue path, reset $/#
-                # Use 'export' so sub-shells inherit it; HISTCONTROL hides this line from history
+                # Use $'...' (ANSI-C quoting) so \e and \001/\002 are interpreted by the shell.
+                # \001 = \[ (non-printing start), \002 = \] (non-printing end) — tells readline
+                # to ignore the escape bytes when calculating cursor position.
                 await asyncio.sleep(0.15)
                 _ps1 = (
-                    "export PS1='\\[\\e[0;36m\\]\\u@\\h\\[\\e[0m\\]:\\[\\e[0;34m\\]\\w\\[\\e[0m\\]\\$ ';"
-                    " export HISTCONTROL=ignorespace\r"
+                    "export PS1=$'\\001\\e[0;36m\\002\\u@\\h\\001\\e[0m\\002"
+                    ":\\001\\e[0;34m\\002\\w\\001\\e[0m\\002\\$ '\r"
                 )
                 stdin_q.put(_ps1)
 
