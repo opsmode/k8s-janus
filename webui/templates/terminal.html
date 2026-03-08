@@ -1466,27 +1466,55 @@
 
           const nowPods = new Set(data.pods.map(p => p.name));
           const newPods = [...nowPods].filter(n => !knownPods.has(n));
+          const gonePods = [...knownPods].filter(n => !nowPods.has(n));
           knownPods = nowPods;
 
           const activeA = paneA.currentPod;
           const activeB = paneB ? paneB.currentPod : null;
 
-          podList.innerHTML = '';
+          // Build a map of existing DOM items so we can update in-place
+          // instead of nuking the whole list on every 5s poll.
+          const existingItems = {};
+          podList.querySelectorAll('.pod-item[data-pod]').forEach(el => {
+            existingItems[el.dataset.pod] = el;
+          });
+
+          const podListChanged = newPods.length > 0 || gonePods.length > 0;
+
+          if (podListChanged) {
+            // Remove pods that disappeared
+            gonePods.forEach(name => { if (existingItems[name]) existingItems[name].remove(); });
+          }
+
           data.pods.forEach(pod => {
             const noShell = pod.hasShell === false || paneA.noShellPods.has(pod.name);
-            const isNew   = newPods.includes(pod.name);
             const selA    = activeA === pod.name;
             const selB    = activeB === pod.name;
-
-            const item = document.createElement('div');
-            item.className = 'pod-item' + (selA || selB ? ' selected' : '');
-            item.dataset.pod = pod.name;
-            if (isNew) { item.classList.add('pod-new'); setTimeout(() => item.classList.remove('pod-new'), 3000); }
+            const isNew   = newPods.includes(pod.name);
 
             const paneTag = selA && selB ? ' <span style="color:var(--accent);font-size:0.65rem;">A+B</span>'
                           : selA ? ' <span style="color:var(--accent);font-size:0.65rem;">A</span>'
                           : selB ? ' <span style="color:var(--accent-2);font-size:0.65rem;">B</span>' : '';
             const shellHint = noShell ? ' <span style="color:var(--warning);font-size:0.65rem;font-weight:600;">NO SHELL</span>' : '';
+
+            let item = existingItems[pod.name];
+            if (!item) {
+              // New pod — create and append
+              item = document.createElement('div');
+              item.dataset.pod = pod.name;
+              item.onclick = () => {
+                const targetPane = (splitOpen && activePaneId === 'b') ? paneB : paneA;
+                document.querySelectorAll('.pod-item').forEach(e => e.classList.remove('selected'));
+                item.classList.add('selected');
+                setActivePane(targetPane.id);
+                targetPane.selectPod(pod.name);
+              };
+              podList.appendChild(item);
+              if (isNew) { item.classList.add('pod-new'); setTimeout(() => item.classList.remove('pod-new'), 3000); }
+            }
+
+            // Always update class + inner HTML (status/selection may have changed)
+            item.className = 'pod-item' + (selA || selB ? ' selected' : '');
             item.innerHTML = `
               <div class="pod-icon">
                 <i data-lucide="${noShell ? 'terminal-square' : 'box'}" style="width:15px;height:15px;${noShell ? 'color:var(--warning);' : ''}"></i>
@@ -1496,16 +1524,9 @@
                 <div class="pod-status ${escapeHtml(pod.status.toLowerCase())}">${noShell ? 'logs only' : escapeHtml(pod.status)}</div>
               </div>
             `;
-            item.onclick = () => {
-              const targetPane = (splitOpen && activePaneId === 'b') ? paneB : paneA;
-              document.querySelectorAll('.pod-item').forEach(e => e.classList.remove('selected'));
-              item.classList.add('selected');
-              setActivePane(targetPane.id);
-              targetPane.selectPod(pod.name);
-            };
-            podList.appendChild(item);
           });
-          lucide.createIcons();
+
+          if (podListChanged) lucide.createIcons({ nodes: [podList] });
         })
         .catch(err => {
           document.getElementById('pod-list').innerHTML = `<div class="loading-pods" style="color:var(--danger);">Failed to load pods: ${escapeHtml(err.message)}</div>`;
@@ -1513,9 +1534,9 @@
     }
 
     // Apply initial active styling to the first NS tab
-    if (namespaces.length > 1) switchNamespace(activeNs);
+    // Apply active tab styling for the initial namespace (always, not just when >1)
+    switchNamespace(activeNs);
 
-    loadPods();
     refreshInterval = setInterval(loadPods, 5000);
 
     // ── Resize: re-fit all panes on window resize ──

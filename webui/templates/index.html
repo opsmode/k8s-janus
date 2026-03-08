@@ -752,7 +752,11 @@
               <script type="application/json" id="my-reason-{{ ar.metadata.name }}">{{ (spec.get('reason','') or '') | tojson }}</script>
               <td style="max-width:0;overflow:hidden;">
                 <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
+                  {% if phase in ("Active", "Approved") %}
+                  <a href="/terminal/{{ ar_cluster }}/{{ ar.metadata.name }}" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;" title="Open terminal — {{ ar.metadata.name }}">{{ ar.metadata.name }}</a>
+                  {% else %}
                   <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
+                  {% endif %}
                   <span style="font-size:0.75rem;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ requester }}</span>
                 </div>
               </td>
@@ -772,7 +776,14 @@
                 </span>
               </td>
               <td style="white-space:nowrap;font-size:0.78rem;">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
-              <td>
+              <td style="white-space:nowrap;">
+                {% if phase in ("Active", "Approved") %}
+                <a href="/terminal/{{ ar_cluster }}/{{ ar.metadata.name }}"
+                   class="detail-btn" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+                  <i data-lucide="terminal" style="width:11px;height:11px;"></i>
+                  Terminal
+                </a>
+                {% endif %}
                 <button class="detail-btn" id="my-detail-btn-{{ ar.metadata.name }}"
                   onclick="toggleMyDetailBtn(this)">
                   <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
