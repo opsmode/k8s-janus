@@ -16,10 +16,8 @@ _WEBUI_DIR = os.path.join(os.path.dirname(__file__), "..")
 os.environ.setdefault("APP_DIR", os.path.abspath(_WEBUI_DIR))
 sys.path.insert(0, os.path.abspath(_WEBUI_DIR))
 
-import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from httpx import ASGITransport, AsyncClient
+from unittest.mock import AsyncMock, MagicMock
 
 ADMIN_EMAIL = "admin@test.com"
 USER_EMAIL  = "user@test.com"

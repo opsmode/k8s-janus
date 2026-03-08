@@ -3,9 +3,8 @@ API route tests: approve, deny, revoke, cancel/withdraw, TTL override.
 
 All k8s calls are mocked via conftest fixtures.
 """
-import pytest
-from unittest.mock import MagicMock, patch, call
-from .conftest import CLUSTER, REQ_NAME, ADMIN_EMAIL, USER_EMAIL, fake_ar
+from unittest.mock import MagicMock
+from .conftest import CLUSTER, REQ_NAME, USER_EMAIL, fake_ar
 
 
 # ---------------------------------------------------------------------------
@@ -96,9 +95,8 @@ class TestApprove:
         )
 
         # patch_cluster_custom_object body must contain the override TTL
-        _, pkwargs = mock_api.patch_cluster_custom_object.call_args
-        body = mock_api.patch_cluster_custom_object.call_args[1].get("body") or \
-               mock_api.patch_cluster_custom_object.call_args[0][4]
+        call_args = mock_api.patch_cluster_custom_object.call_args
+        body = call_args[1].get("body") or call_args[0][4]
         assert body["spec"]["ttlSeconds"] == 7200
 
     def test_ttl_override_without_value_uses_original(self, admin_client, monkeypatch):

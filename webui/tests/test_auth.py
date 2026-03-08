@@ -9,7 +9,6 @@ In this mode:
 - Admin user on admin-only routes → 200
 - /healthz is always public
 """
-import pytest
 from .conftest import CLUSTER, REQ_NAME, fake_ar
 
 

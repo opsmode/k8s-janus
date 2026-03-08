@@ -6,10 +6,8 @@ import os
 import pytest
 from datetime import datetime, timezone
 
-# Force SQLite in-memory for all DB tests
-os.environ.setdefault("DB_HOST", "")  # no postgres
-
-import db as _db_module
+# Force SQLite in-memory for all DB tests (must be set before 'import db')
+os.environ.setdefault("DB_HOST", "")
 
 _NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 

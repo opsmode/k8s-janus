@@ -43,9 +43,9 @@ jobs:
       - name: Run webui tests
         working-directory: webui
         run: |
-          pip install pytest pytest-asyncio httpx
-          pip install -r requirements.txt
-          python -m pytest tests/ -v --tb=short
+          pip3 install pytest pytest-asyncio httpx
+          pip3 install -r requirements.txt
+          python3 -m pytest tests/ -v --tb=short
 
   build:
     needs: [lint, helm-lint, test]

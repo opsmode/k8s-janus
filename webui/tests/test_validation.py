@@ -2,13 +2,13 @@
 Unit tests for input validation helpers in main.py.
 No mocking needed — pure regex functions.
 """
-import sys, os
+import sys
+import os
+from unittest.mock import MagicMock, patch
+
 _WEBUI_DIR = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, _WEBUI_DIR)
 os.environ.setdefault("APP_DIR", _WEBUI_DIR)
-
-import pytest
-from unittest.mock import MagicMock, patch
 
 # Patch heavy imports before loading main
 with patch.dict("sys.modules", {
@@ -23,8 +23,7 @@ with patch.dict("sys.modules", {
     "terminal_ws": MagicMock(),
     "db": MagicMock(db_enabled=False, init_db=MagicMock()),
 }):
-    import importlib
-    import main as _main_module
+    import main  # noqa: F401  — side-effect: registers validators
 
 from main import _valid_name, _valid_cluster, _valid_ns
 

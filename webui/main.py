@@ -280,12 +280,12 @@ app.add_middleware(
 
 @app.exception_handler(404)
 async def _not_found(request: Request, exc):
-    return templates.TemplateResponse("404.html", {"request": request, "path": request.url.path}, status_code=404)
+    return templates.TemplateResponse(request, "404.html", {"path": request.url.path}, status_code=404)
 
 
 @app.exception_handler(500)
 async def _server_error(request: Request, exc):
-    return templates.TemplateResponse("500.html", {"request": request, "detail": str(exc)}, status_code=500)
+    return templates.TemplateResponse(request, "500.html", {"detail": str(exc)}, status_code=500)
 
 
 @app.on_event("startup")
@@ -329,8 +329,7 @@ async def oidc_login(request: Request, next: str = "/", error: str = ""):
     if request.session.get("user_email"):
         return RedirectResponse(next or "/")
     provider_name = _PROVIDER_DISPLAY.get(OIDC_PROVIDER, OIDC_PROVIDER or "SSO")
-    return templates.TemplateResponse("login.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "login.html", {
         "provider_name": provider_name,
         "provider": OIDC_PROVIDER,
         "next": next,
@@ -404,11 +403,7 @@ async def oidc_callback(request: Request):
     if OIDC_ALLOWED_DOMAINS:
         domain = email.split("@")[-1].lower()
         if domain not in OIDC_ALLOWED_DOMAINS:
-            return templates.TemplateResponse(
-                "403.html",
-                {"request": request, "user_email": email, "reason": f"Email domain '{domain}' is not allowed."},
-                status_code=403,
-            )
+            return templates.TemplateResponse(request, "403.html", {"user_email": email, "reason": f"Email domain '{domain}' is not allowed."}, status_code=403,)
 
     request.session["user_email"] = email.lower()
     request.session["user_name"]  = name
@@ -426,7 +421,7 @@ async def oidc_logout(request: Request):
                    f"user-agent: {request.headers.get('user-agent', 'none')[:60]}")
     request.session.clear()
     if OIDC_ENABLED:
-        return templates.TemplateResponse("signedout.html", {"request": request})
+        return templates.TemplateResponse(request, "signedout.html")
     return RedirectResponse("/")
 
 
@@ -499,7 +494,7 @@ def _require_admin(request: Request):
         return None
     user_email, _ = _get_user(request)
     if not _is_admin(user_email):
-        return templates.TemplateResponse("403.html", {"request": request, "user_email": user_email}, status_code=403)
+        return templates.TemplateResponse(request, "403.html", {"user_email": user_email}, status_code=403)
     return None
 
 
@@ -558,7 +553,7 @@ def _token_client(name: str, cluster: str, namespace: str = ""):
 @app.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
     """Serve the setup wizard (always accessible from the admin page)."""
-    return templates.TemplateResponse("setup.html", _base_context(request))
+    return templates.TemplateResponse(request, "setup.html", _base_context(request))
 
 
 @app.get("/setup/upload-helper")
@@ -848,7 +843,7 @@ async def index(request: Request):
     ]
     ctx["is_admin"] = False
     ctx["health_indicator"] = True
-    return templates.TemplateResponse("index.html", ctx)
+    return templates.TemplateResponse(request, "index.html", ctx)
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -873,7 +868,7 @@ async def admin(request: Request):
         pass
     ctx["janus_webui_svc"] = webui_svc
     ctx["health_indicator"] = True
-    return templates.TemplateResponse("admin.html", ctx)
+    return templates.TemplateResponse(request, "admin.html", ctx)
 
 
 @app.get("/api/pods/{cluster}/{namespace}")
@@ -1078,7 +1073,7 @@ async def status(request: Request, cluster: str, name: str):
             if ar.get("spec", {}).get("requester", "").lower() == ctx["user_email"].lower()
         ]
         ctx["is_admin"] = False
-        return templates.TemplateResponse("index.html", ctx)
+        return templates.TemplateResponse(request, "index.html", ctx)
 
     ar_status   = ar.get("status", {})
     token = server = ca = ""
@@ -1105,7 +1100,7 @@ async def status(request: Request, cluster: str, name: str):
         "server": server,
         "ca": ca,
     })
-    return templates.TemplateResponse("status.html", ctx)
+    return templates.TemplateResponse(request, "status.html", ctx)
 
 
 @app.get("/callback", response_class=HTMLResponse)
@@ -1114,7 +1109,7 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
         cluster = get_clusters()[0]["name"]
     ar = get_access_request(name, cluster)
     if not ar:
-        return templates.TemplateResponse("404.html", {"request": request, "path": f"/action/{name}"}, status_code=404)
+        return templates.TemplateResponse(request, "404.html", {"path": f"/action/{name}"}, status_code=404)
 
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
@@ -1122,13 +1117,13 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
 
     _cb_base = {**_base_context(request), "cluster_name": cluster_display, "name": name, "spec": ar.get("spec", {})}
     if current_phase not in (Phase.PENDING, ""):
-        return templates.TemplateResponse("callback.html", {
+        return templates.TemplateResponse(request, "callback.html", {
             **_cb_base, "action": action,
             "already_actioned": True, "current_phase": current_phase,
         })
 
     if action == "deny":
-        return templates.TemplateResponse("deny-confirm.html", {
+        return templates.TemplateResponse(request, "deny-confirm.html", {
             **_cb_base, "cluster": cluster,
         })
 
@@ -1143,9 +1138,9 @@ async def callback(request: Request, action: str, name: str, cluster: str = ""):
         logger.info(f"✅ AccessRequest {name} on {cluster} Approved by {approver}")
     except ApiException as e:
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
-        return templates.TemplateResponse("500.html", {"request": request, "detail": "Error updating request."}, status_code=500)
+        return templates.TemplateResponse(request, "500.html", {"detail": "Error updating request."}, status_code=500)
 
-    return templates.TemplateResponse("callback.html", {
+    return templates.TemplateResponse(request, "callback.html", {
         **_cb_base, "action": "approve",
         "already_actioned": False, "current_phase": Phase.APPROVED,
     })
@@ -1158,7 +1153,7 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
     denial_reason = denial_reason.strip()[:500]
     ar = get_access_request(name, cluster)
     if not ar:
-        return templates.TemplateResponse("404.html", {"request": request, "path": f"/deny/{name}"}, status_code=404)
+        return templates.TemplateResponse(request, "404.html", {"path": f"/deny/{name}"}, status_code=404)
 
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
@@ -1177,10 +1172,10 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
         logger.info(f"🚫 AccessRequest {name} on {cluster} Denied by {approver}: {denial_reason or '(no reason)'}")
     except ApiException as e:
         logger.error(f"💥 Failed to update AccessRequest {name}: {e}")
-        return templates.TemplateResponse("500.html", {"request": request, "detail": "Error updating request."}, status_code=500)
+        return templates.TemplateResponse(request, "500.html", {"detail": "Error updating request."}, status_code=500)
 
     _dc_base = {**_base_context(request), "cluster_name": cluster_display, "name": name, "spec": ar.get("spec", {})}
-    return templates.TemplateResponse("callback.html", {
+    return templates.TemplateResponse(request, "callback.html", {
         **_dc_base, "action": "deny",
         "already_actioned": False, "current_phase": Phase.DENIED,
     })
@@ -1292,7 +1287,7 @@ async def revoke(request: Request, cluster: str, name: str):
     caller    = caller or "admin"
     ar = get_access_request(name, cluster)
     if not ar:
-        return templates.TemplateResponse("404.html", {"request": request, "path": f"/revoke/{name}"}, status_code=404)
+        return templates.TemplateResponse(request, "404.html", {"path": f"/revoke/{name}"}, status_code=404)
     current_phase = ar.get("status", {}).get("phase", "")
     if current_phase not in (Phase.ACTIVE, Phase.APPROVED, Phase.PENDING):
         return RedirectResponse(url="/admin", status_code=303)
@@ -1314,7 +1309,7 @@ async def revoke(request: Request, cluster: str, name: str):
         wants_json = "application/json" in (request.headers.get("accept") or "")
         if wants_json:
             return JSONResponse({"ok": False, "error": "Failed to revoke request"}, status_code=500)
-        return templates.TemplateResponse("500.html", {"request": request, "detail": "Error revoking request."}, status_code=500)
+        return templates.TemplateResponse(request, "500.html", {"detail": "Error revoking request."}, status_code=500)
     wants_json = "application/json" in (request.headers.get("accept") or "")
     if wants_json:
         return JSONResponse({"ok": True, "phase": Phase.REVOKED})
@@ -1361,10 +1356,10 @@ async def cancel_request(request: Request, cluster: str, name: str):
 async def terminal(request: Request, cluster: str, name: str):
     ar = get_access_request(name, cluster)
     if not ar:
-        return templates.TemplateResponse("404.html", {"request": request, "path": f"/terminal/{name}"}, status_code=404)
+        return templates.TemplateResponse(request, "404.html", {"path": f"/terminal/{name}"}, status_code=404)
     phase = ar.get("status", {}).get("phase", "")
     if phase != Phase.ACTIVE:
-        return templates.TemplateResponse("403.html", {"request": request, "reason": f"Access is not active. Current phase: {phase}"}, status_code=403)
+        return templates.TemplateResponse(request, "403.html", {"reason": f"Access is not active. Current phase: {phase}"}, status_code=403)
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
     _, user_name    = _get_user(request)
@@ -1379,7 +1374,7 @@ async def terminal(request: Request, cluster: str, name: str):
         "namespaces": namespaces,
         "expires_at": ar.get("status", {}).get("expiresAt", ""),
     })
-    return templates.TemplateResponse("terminal.html", ctx)
+    return templates.TemplateResponse(request, "terminal.html", ctx)
 
 
 @app.websocket("/ws/terminal/{cluster}/{name}")
@@ -1653,7 +1648,7 @@ async def logs_page(request: Request):
     if (err := _require_admin(request)):
         return err
     ctx = _base_context(request)
-    return templates.TemplateResponse("logs.html", ctx)
+    return templates.TemplateResponse(request, "logs.html", ctx)
 
 
 @app.get("/api/system-logs/{component}")
