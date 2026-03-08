@@ -2,22 +2,26 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 1.0.1
-appVersion: "1.0.1"
+version: 1.0.2
+appVersion: "1.0.2"
 annotations:
   artifacthub.io/changes: |
     - kind: added
-      description: "Pod health signals in terminal sidebar — TERM/OOM/CRASH badges, restart counter, danger icon"
+      description: "Namespace filter input on request form — instant client-side search, shown when cluster has >6 namespaces"
+    - kind: added
+      description: "GET /version endpoint — returns {version, build_date} for health checks and tooling"
+    - kind: added
+      description: "Rate limiting on request creation — 10 req/hr per user by default (MAX_REQUESTS_PER_WINDOW env)"
+    - kind: added
+      description: "Max concurrent live requests per user — 5 by default (MAX_ACTIVE_REQUESTS env)"
+    - kind: added
+      description: "BUILD_DATE baked into Docker images at release time — shown in startup log"
     - kind: fixed
-      description: "Terminal no longer hangs on deleted pods — 404/401 API errors shown immediately as clear error message"
+      description: "APP_VERSION now sourced from Chart.appVersion instead of image.tag — no longer shows commit SHA"
     - kind: fixed
-      description: "Pod 404/401 no longer retried 3× with backoff — only transient 5xx/429 errors are retried"
+      description: "Pod health badge backgrounds now render correctly (--warning-rgb/--danger-rgb CSS vars added)"
     - kind: fixed
-      description: "Admin system logs SSE endpoint now correctly requires admin role"
-    - kind: fixed
-      description: "Pod log default tail increased from 100 to 500 lines"
-    - kind: fixed
-      description: "Health dot tooltip hides DB detail from non-admin users"
+      description: "Controller logs cluster registration count on startup"
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/infroware/k8s-janus
