@@ -295,9 +295,9 @@ async def on_startup():
     if OIDC_ENABLED:
         pass  # logged after startup block
     elif AUTH_ENABLED:
-        logger.info("🚀 K8s-Janus WebUI started — auth via ingress/oauth2-proxy (X-Forwarded-Email)")
+        logger.info(f"🚀 K8s-Janus WebUI {APP_VERSION} started — auth via ingress/oauth2-proxy (X-Forwarded-Email)")
     else:
-        logger.warning("🔓 K8s-Janus WebUI started in OPEN MODE — AUTH_ENABLED=false, no authentication required")
+        logger.warning(f"🔓 K8s-Janus WebUI {APP_VERSION} started in OPEN MODE — AUTH_ENABLED=false, no authentication required")
     from k8s import EXCLUDED_NAMESPACES
     if EXCLUDED_NAMESPACES:
         logger.info(f"🚫 Excluded namespaces: {sorted(EXCLUDED_NAMESPACES)}")
@@ -315,7 +315,7 @@ async def on_startup():
                 logger.error(f"💥 DB cleanup failed: {e}")
     asyncio.ensure_future(_db_cleanup_loop())
     if OIDC_ENABLED:
-        logger.info(f"🔐 OIDC auth enabled — provider: {OIDC_PROVIDER or 'custom'}")
+        logger.info(f"🔐 OIDC auth enabled — provider: {OIDC_PROVIDER or 'custom'} version={APP_VERSION}")
 
 
 # ---------------------------------------------------------------------------

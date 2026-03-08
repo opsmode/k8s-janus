@@ -16,6 +16,7 @@ from db import init_db, upsert_request, log_audit, _now
 # Configuration from environment
 # ---------------------------------------------------------------------------
 JANUS_NAMESPACE = os.environ.get("JANUS_NAMESPACE", "k8s-janus")
+APP_VERSION     = os.environ.get("APP_VERSION", "dev")
 MAX_TTL_SECONDS = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
 MIN_TTL_SECONDS = 600
 CRD_GROUP = "k8s-janus.infroware.com"
@@ -762,7 +763,7 @@ async def _setup_remote_clusterroles():
 
 @kopf.on.startup()
 async def startup(**kwargs):
-    logger.info(f"🚀 k8s-janus controller starting up on cluster={get_clusters()[0]['name']}")
+    logger.info(f"🚀 k8s-janus controller {APP_VERSION} starting up on cluster={get_clusters()[0]['name']}")
     init_db()
     try:
         from db import purge_old_records
