@@ -1,0 +1,125 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: fixed
+      description: "use OpsMode GPG key name for helm chart signing"
+    - kind: changed
+      description: "bump to v0.4.0 — update Chart, values, and docs"
+    - kind: fixed
+      description: "improve terminal resilience against transient k8s exec failures"
+    - kind: fixed
+      description: "resolve terminal instability, TTL bugs, auth gaps, and UI polish"
+    - kind: changed
+      description: "rename GitHub/DockerHub org from opsmode to infroware"
+    - kind: fixed
+      description: "pod list flicker/lag + active requests direct terminal link"
+    - kind: fixed
+      description: "apk upgrade in Alpine images to patch CVE-2025-60876, CVE-2026-22184, CVE-2026-27171"
+    - kind: fixed
+      description: "move knownPods/refreshInterval declarations to top of terminal script"
+    - kind: fixed
+      description: "resolve CI lint errors and deprecation warnings"
+    - kind: changed
+      description: "add webui test suite (73 tests) + fix input validation + setup UX"
+    - kind: fixed
+      description: "remove _content_type from patch_cluster_custom_object (TTL override)"
+    - kind: fixed
+      description: "approve/deny/revoke 500, split button green/faded states"
+    - kind: fixed
+      description: "details button, withdraw feature, admin live polling"
+    - kind: fixed
+      description: "make app version visible in green in header"
+    - kind: added
+      description: "compact row+details panel, pagination, quick-cmd label"
+    - kind: fixed
+      description: "read TTL select value before locking action cell (was destroyed by innerHTML replace)"
+    - kind: added
+      description: "cancel request, fix TTL override, quick cmds toolbar, configurable TTL options"
+    - kind: changed
+      description: "log ttl_override value on approve to diagnose silent failure"
+    - kind: fixed
+      description: "show effective TTL and expiry time in approval logs"
+    - kind: changed
+      description: "rename CRD group from k8s-janus.opsmode.pro to k8s-janus.infroware.com"
+    - kind: fixed
+      description: "pass TTL override atomically via status field to avoid spec patch race"
+    - kind: fixed
+      description: "quick cmd manage modal + controller TTL override race condition"
+    - kind: fixed
+      description: "remove trailing blank line in main.py (flake8 W391)"
+    - kind: fixed
+      description: "show actual error from pods fetch instead of generic catch message"
+    - kind: added
+      description: "UI/UX improvements — dark mode, NS persistence, WS reconnect, quick cmd modal, idle timeout"
+    - kind: added
+      description: "UI/UX + observability batch — dark mode, metrics, history, idle timeout, shortcuts"
+    - kind: added
+      description: "pin lucide to 0.474.0, move version to logo, seed built-ins as editable quick commands"
+    - kind: fixed
+      description: "always reset janus_login_ts on page load to prevent stale session expiry"
+    - kind: changed
+      description: "log /logout caller + enable uvicorn access log to trace sign-out issue"
+    - kind: fixed
+      description: "add --proxy-headers to uvicorn + https_only=True for session cookie"
+    - kind: fixed
+      description: "move _security_headers to BaseHTTPMiddleware via add_middleware"
+    - kind: changed
+      description: "set revisionHistoryLimit=1 on both deployments to clean up old ReplicaSets"
+    - kind: fixed
+      description: "restore BaseHTTPMiddleware via add_middleware for correct session ordering"
+    - kind: fixed
+      description: "remove trailing blank line in main.py (W391)"
+    - kind: fixed
+      description: "replace BaseHTTPMiddleware with plain middleware (fixes sign-out-after-sign-in)"
+apiVersion: v2
+appVersion: 0.4.0
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://infroware.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@infroware.com
+  name: infroware
+name: k8s-janus
+sources:
+- - https://github.com/infroware/k8s-janus
+type: application
+version: 0.4.0
+
+...
+files:
+  k8s-janus-0.4.0.tgz: sha256:f5e4e9d75f124057a6b887de2cf243ee505242d2b85ef35196dbbfb3d081743b
+-----BEGIN PGP SIGNATURE-----
+
+wsFcBAEBCgAQBQJprWptCRBDCheZqELC2gAAAzgQAJbJrke12Al5uzENtcim6Eue
+fhunahpHh5jzugL/TBQKULqFB2OIcYm1b3V3WtDyssLl4OgSf93y0Y0aWSu7OwEb
+uRjXaH21F8PtRIOkgQSj04HDO4N1JiEiWDRwM5vT6fV3dszZbijy1CWA6831/U8c
+9+bUbgQaK2svSpmu27NvCguq5Jr2Mtx3xgVtyXfscS8IaL6TUKxwkdkzNrTDE5Hq
+B/zsSNkW4EEBjxZBBukynhFHA1FfcRL/Ack8w7aypSg7WZKnKC4Wdp1owmZMCTEl
+oZ38Zo1es3p5jmWtolU6NYI2i+zksZTlY7u23x93oMlmpRd5G93CVpU2mzeVbZmR
+5vW3UjpsskLnUGxv11iPkoAbHdimtr7zfuNornPT5LQ32jtlJSlqPq1FgWXp0xr0
+H66fqK3iWKyVZY8lxy229hSBlYrcJ/DGAW+9Ix36NIV+Pn0s+iVC+fSsdHKPUI/Z
+z5EQxMfeCumbvDyZNljwcXAhcM/73v6DGE0V84RhJb2yB+WWBq4+KnRcI8UttLQz
+DTvPV0+VLIMOyJHTH8BzuRoFmoQB0T14IbXWpC3bJ4wQP98T8AEGx3RpVlOevhx+
+X7fpQJM62t427F/SvSsysEFSxFA7MoIGgPQ+KzA/YVogpw05168QvkQMJpzhHYIb
++kVPDGOJ1uad+KYvqaRa
+=EVCu
+-----END PGP SIGNATURE-----

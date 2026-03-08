@@ -4,6 +4,112 @@ entries:
   - annotations:
       artifacthub.io/changes: |
         - kind: fixed
+          description: "use OpsMode GPG key name for helm chart signing"
+        - kind: changed
+          description: "bump to v0.4.0 — update Chart, values, and docs"
+        - kind: fixed
+          description: "improve terminal resilience against transient k8s exec failures"
+        - kind: fixed
+          description: "resolve terminal instability, TTL bugs, auth gaps, and UI polish"
+        - kind: changed
+          description: "rename GitHub/DockerHub org from opsmode to infroware"
+        - kind: fixed
+          description: "pod list flicker/lag + active requests direct terminal link"
+        - kind: fixed
+          description: "apk upgrade in Alpine images to patch CVE-2025-60876, CVE-2026-22184, CVE-2026-27171"
+        - kind: fixed
+          description: "move knownPods/refreshInterval declarations to top of terminal script"
+        - kind: fixed
+          description: "resolve CI lint errors and deprecation warnings"
+        - kind: changed
+          description: "add webui test suite (73 tests) + fix input validation + setup UX"
+        - kind: fixed
+          description: "remove _content_type from patch_cluster_custom_object (TTL override)"
+        - kind: fixed
+          description: "approve/deny/revoke 500, split button green/faded states"
+        - kind: fixed
+          description: "details button, withdraw feature, admin live polling"
+        - kind: fixed
+          description: "make app version visible in green in header"
+        - kind: added
+          description: "compact row+details panel, pagination, quick-cmd label"
+        - kind: fixed
+          description: "read TTL select value before locking action cell (was destroyed by innerHTML replace)"
+        - kind: added
+          description: "cancel request, fix TTL override, quick cmds toolbar, configurable TTL options"
+        - kind: changed
+          description: "log ttl_override value on approve to diagnose silent failure"
+        - kind: fixed
+          description: "show effective TTL and expiry time in approval logs"
+        - kind: changed
+          description: "rename CRD group from k8s-janus.opsmode.pro to k8s-janus.infroware.com"
+        - kind: fixed
+          description: "pass TTL override atomically via status field to avoid spec patch race"
+        - kind: fixed
+          description: "quick cmd manage modal + controller TTL override race condition"
+        - kind: fixed
+          description: "remove trailing blank line in main.py (flake8 W391)"
+        - kind: fixed
+          description: "show actual error from pods fetch instead of generic catch message"
+        - kind: added
+          description: "UI/UX improvements — dark mode, NS persistence, WS reconnect, quick cmd modal, idle timeout"
+        - kind: added
+          description: "UI/UX + observability batch — dark mode, metrics, history, idle timeout, shortcuts"
+        - kind: added
+          description: "pin lucide to 0.474.0, move version to logo, seed built-ins as editable quick commands"
+        - kind: fixed
+          description: "always reset janus_login_ts on page load to prevent stale session expiry"
+        - kind: changed
+          description: "log /logout caller + enable uvicorn access log to trace sign-out issue"
+        - kind: fixed
+          description: "add --proxy-headers to uvicorn + https_only=True for session cookie"
+        - kind: fixed
+          description: "move _security_headers to BaseHTTPMiddleware via add_middleware"
+        - kind: changed
+          description: "set revisionHistoryLimit=1 on both deployments to clean up old ReplicaSets"
+        - kind: fixed
+          description: "restore BaseHTTPMiddleware via add_middleware for correct session ordering"
+        - kind: fixed
+          description: "remove trailing blank line in main.py (W391)"
+        - kind: fixed
+          description: "replace BaseHTTPMiddleware with plain middleware (fixes sign-out-after-sign-in)"
+    apiVersion: v2
+    appVersion: 0.4.0
+    created: "2026-03-08T12:24:14.097381294Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: f5e4e9d75f124057a6b887de2cf243ee505242d2b85ef35196dbbfb3d081743b
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@infroware.com
+      name: infroware
+    name: k8s-janus
+    sources:
+    - https://github.com/infroware/k8s-janus
+    type: application
+    urls:
+    - https://infroware.github.io/k8s-janus/k8s-janus-0.4.0.tgz
+    version: 0.4.0
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: fixed
           description: "revert to python:3.12-alpine and block docker auto-merge"
         - kind: changed
           description: "bump python in the docker group (#11)"
@@ -83,7 +189,7 @@ entries:
           description: "remove unused walrus assignment in api_requests_count (F841)"
     apiVersion: v2
     appVersion: 0.3.0
-    created: "2026-03-07T00:03:38.445763323Z"
+    created: "2026-03-08T12:24:14.096491297Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 1ada669a56a8afb399c119a2fc35e2801c3885c91beb75a826e82aa160ed57e9
@@ -113,7 +219,7 @@ entries:
     - https://github.com/opsmode/k8s-janus
     type: application
     urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.3.0.tgz
+    - https://infroware.github.io/k8s-janus/k8s-janus-0.3.0.tgz
     version: 0.3.0
   - annotations:
       artifacthub.io/changes: |
@@ -133,7 +239,7 @@ entries:
           description: "update READMEs for v0.2.1 — native OIDC, user profiles, header redesign"
     apiVersion: v2
     appVersion: 0.2.2
-    created: "2026-03-07T00:03:38.444846869Z"
+    created: "2026-03-08T12:24:14.095612211Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: cd76a872ea8e6b3a4207eeeba3f01871f901a58a022c3de1fb6c3aea0ec48d7c
@@ -163,802 +269,6 @@ entries:
     - https://github.com/opsmode/k8s-janus
     type: application
     urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.2.2.tgz
+    - https://infroware.github.io/k8s-janus/k8s-janus-0.2.2.tgz
     version: 0.2.2
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: added
-          description: "canonical header partial, avatar API, unique header styling, remove GIFs"
-    apiVersion: v2
-    appVersion: 0.2.1
-    created: "2026-03-07T00:03:38.444083661Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 0bec89e7283fa97396abb21f5689255f3c24930fe69c0928dcc16c6f1bd8b491
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.pro
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.2.1.tgz
-    version: 0.2.1
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump chart and image tag to v0.2.0"
-        - kind: changed
-          description: "reset values.yaml to neutral defaults (ingress disabled, UTC timezone)"
-        - kind: added
-          description: "avatar, toast, session expiry, logout, hide admin link, rich log colours"
-        - kind: added
-          description: "add sign out button to header when OIDC is enabled"
-        - kind: fixed
-          description: "write docker auth directly to config.json to bypass macOS keychain entirely"
-        - kind: fixed
-          description: "set DOCKER_CONFIG at job level before buildx setup to avoid keychain"
-        - kind: fixed
-          description: "disable credsStore in docker config to prevent keychain access on self-hosted runner"
-        - kind: fixed
-          description: "use isolated DOCKER_CONFIG dir to bypass macOS keychain on self-hosted runner"
-        - kind: fixed
-          description: "use docker login --password-stdin to bypass macOS keychain on self-hosted runner"
-        - kind: changed
-          description: "remove trigger file"
-        - kind: fixed
-          description: "use python3/pip3 on self-hosted runner, remove trailing blank line"
-        - kind: changed
-          description: "verify self-hosted runner is working"
-        - kind: changed
-          description: "trigger build on self-hosted runner"
-        - kind: changed
-          description: "switch to self-hosted runner, local buildx cache, macOS-compatible sed"
-        - kind: fixed
-          description: "rename exception handlers to avoid shadowing builtins"
-        - kind: changed
-          description: "retrigger build"
-        - kind: changed
-          description: "retrigger"
-        - kind: changed
-          description: "trigger build for error pages and admin redirect"
-        - kind: added
-          description: "styled error pages, admin redirect on login, read-only requester email"
-        - kind: added
-          description: "add styled 403 page and fix all raw HTML error responses"
-        - kind: fixed
-          description: "add configmap checksum annotation to trigger pod rollout on config changes"
-        - kind: fixed
-          description: "use X-Forwarded-Proto for OIDC redirect_uri and disable https_only on session cookie"
-        - kind: fixed
-          description: "replace @app.middleware auth guard with BaseHTTPMiddleware for correct session ordering"
-        - kind: fixed
-          description: "move SessionMiddleware after @app.middleware decorators to ensure correct stack order"
-        - kind: fixed
-          description: "remove duplicate runs-on in lint job"
-        - kind: added
-          description: "add ExternalSecret support for OIDC credentials"
-        - kind: changed
-          description: "install deps from per-component requirements, drop root requirements.txt"
-        - kind: fixed
-          description: "build job checks out latest main to include bot-updated requirements.txt"
-        - kind: changed
-          description: "update requirements.txt"
-    apiVersion: v2
-    appVersion: 0.2.0
-    created: "2026-03-07T00:03:38.370972267Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 686f3bc960ea8fef55b9673255bd723c1340b72674f925d17d1e217f101afb7d
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.pro
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.2.0.tgz
-    version: 0.2.0
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: added
-          description: "add native OIDC/OAuth2 SSO support"
-        - kind: added
-          description: "colorize log line tokens (timestamp, level, logger, message)"
-        - kind: fixed
-          description: "set uvicorn.access to WARNING level to silence scanner noise"
-        - kind: added
-          description: "make oauth2-proxy optional for ingress"
-        - kind: added
-          description: "enable nginx ingress for janus.infroware.com"
-        - kind: fixed
-          description: "drop log lines on QueueFull instead of crashing, increase SSE queue to 1000"
-        - kind: fixed
-          description: "replace kopf field watcher with periodic TTL reconcile loop to eliminate progress patch conflicts"
-        - kind: fixed
-          description: "use kopf when= filter to skip on_expires_at_changed on initial grant"
-        - kind: added
-          description: "drag-to-resize panes in logs and terminal views"
-        - kind: fixed
-          description: "skip on_expires_at_changed on initial grant (old=None) to avoid kopf patch conflict"
-        - kind: changed
-          description: "suppress page request noise from access log"
-        - kind: fixed
-          description: "run log stream iterator in executor thread to avoid blocking event loop"
-        - kind: fixed
-          description: "ci sed pattern matches any image tag (semver, sha, etc)"
-        - kind: added
-          description: "add /logs page and TTL extension for active access requests"
-        - kind: changed
-          description: "add GitHub release badge back to AH readme"
-        - kind: changed
-          description: "trim AH readme to description only, refer to GH for setup refactor: reduce webui log noise — demote polling to DEBUG, filter uvicorn access log fix: redirect-url detects ingress hostname before LB IP fix: browser mode opens select panel instead of auto-running setup"
-        - kind: fixed
-          description: "redirect-url detects ingress hostname before LB IP"
-        - kind: fixed
-          description: "browser mode opens select panel instead of auto-running setup"
-    apiVersion: v2
-    appVersion: 0.1.38
-    created: "2026-03-05T22:00:05.669276395Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 2ceea826d73a05ce2ae04994526de7138d6d3d58e545686200aeca19ff80b636
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.pro
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.38.tgz
-    version: 0.1.38
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump version to 0.1.37"
-        - kind: changed
-          description: "update requirements.txt"
-        - kind: fixed
-          description: "restore missing deps in requirements.txt; fix ci update-requirements to union all req files"
-    apiVersion: v2
-    appVersion: 0.1.37
-    created: "2026-03-05T21:04:27.518265779Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 50a352bdf5be10fca943f8f4e9def2970b1437e0ed9cfb4ffc67419a9c6e085d
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.pro
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.37.tgz
-    version: 0.1.37
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump version to 0.1.36"
-        - kind: added
-          description: "rename CRD group and domain from opsmode.io to opsmode.pro"
-        - kind: changed
-          description: "prune old Helm chart versions and DockerHub tags on release (keep 3)"
-        - kind: fixed
-          description: "remove invalid license field from Chart.yaml (helm lint strict)"
-    apiVersion: v2
-    appVersion: 0.1.36
-    created: "2026-03-05T19:26:46.987866559Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: ce4395b6b2c8d054d11ba136bcfa4deabfbab717953dc83be869321ac663d5ff
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.pro
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.36.tgz
-    version: 0.1.36
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump version to 0.1.35"
-        - kind: fixed
-          description: "terminal disconnect-pod, expired handler, pending auto-expiry, CONTRIBUTING license"
-        - kind: changed
-          description: "switch license from AGPL v3 to Apache 2.0"
-        - kind: changed
-          description: "fix README inaccuracies and add version badge"
-        - kind: changed
-          description: "update READMEs for v0.1.35 — pendingExpirySeconds, remote cleanup"
-        - kind: changed
-          description: "update requirements.txt"
-        - kind: added
-          description: "pending request auto-expiry + CI requirements update"
-        - kind: changed
-          description: "add Docker Scout PR comparison workflow"
-        - kind: changed
-          description: "drop remote.namespace — use janus.namespace everywhere"
-        - kind: changed
-          description: "add logo to DockerHub overview"
-        - kind: changed
-          description: "add DOCKERHUB.md with short description and gh link"
-    apiVersion: v2
-    appVersion: 0.1.35
-    created: "2026-03-05T11:42:38.7761582Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 8d94939a8be1ec5117237401ff9f473370c525684fcf1ea9b50a99f0a6be82fb
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.35.tgz
-    version: 0.1.35
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: fixed
-          description: "UX and reliability improvements"
-        - kind: added
-          description: "allow renaming central cluster display name from edit clusters panel"
-        - kind: fixed
-          description: "add patch verb to webui-secrets Role for cluster rename"
-        - kind: changed
-          description: "remove scheduled rebuild workflow"
-        - kind: changed
-          description: "weekly scheduled rebuild to pick up Alpine security patches"
-        - kind: fixed
-          description: "apk upgrade in Dockerfile to pull latest security patches"
-        - kind: added
-          description: "replace offboard panel with edit clusters — rename display name inline"
-        - kind: added
-          description: "default cluster names to context name, add separate display name field in setup wizard"
-        - kind: changed
-          description: "move DockerHub description update to its own workflow"
-        - kind: changed
-          description: "push DockerHub description on README.md changes to main"
-        - kind: changed
-          description: "update DockerHub overview from README on every release"
-        - kind: changed
-          description: "update READMEs for v0.1.33 multi-namespace support"
-    apiVersion: v2
-    appVersion: 0.1.34
-    created: "2026-03-04T00:09:52.286835639Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: ba3fdeb344eacb4e747c320fab82658d3e0b99a554c90f17505a9917a421f19d
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.34.tgz
-    version: 0.1.34
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: removed
-          description: "command history from status page and API endpoint"
-        - kind: fixed
-          description: "remove duplicate skip block and unused var in _setup_remote_clusterroles"
-        - kind: fixed
-          description: "skip central cluster in _setup_remote_clusterroles"
-        - kind: fixed
-          description: "strip ANSI escape sequences from command history capture"
-        - kind: changed
-          description: "demote shell probe-failed log to DEBUG"
-        - kind: fixed
-          description: "reject duplicate NS requests from same requester"
-        - kind: fixed
-          description: "unique token secret names per namespace + remove NS tab truncation"
-        - kind: fixed
-          description: "correct argocd repo org in ci (opsmode not devcops-xyz)"
-        - kind: changed
-          description: "bold amber cluster name chips in request tables and status page"
-        - kind: fixed
-          description: "add update+patch to controller ClusterRole secrets verbs"
-        - kind: fixed
-          description: "multi-namespace terminal and status page"
-        - kind: changed
-          description: "auto-update ArgoCD image tag after successful build"
-        - kind: added
-          description: "single CRD multi-namespace access + ns selector UI"
-        - kind: changed
-          description: "remove wait-for-kubeconfigs init container"
-        - kind: added
-          description: "multi-namespace access grants + controller init container for setup gating"
-        - kind: changed
-          description: "single cluster + multi-NS selection in request form"
-        - kind: added
-          description: "multi-cluster and multi-namespace selection in request form"
-    apiVersion: v2
-    appVersion: 0.1.33
-    created: "2026-03-04T00:03:03.066990382Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: e61625a38cf75ba9105feb8aedf9b7aa65a8147b5580386cb47ab8345bff52f9
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.33.tgz
-    version: 0.1.33
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump chart to v0.1.32"
-        - kind: changed
-          description: "overhaul helm/README.md — accurate remote cluster model, setup script flow, new config params"
-        - kind: changed
-          description: "delete scripts/setup.sh — superseded by setup-upload.sh"
-        - kind: changed
-          description: "add setup wizard screenshots, overhaul registration docs"
-        - kind: fixed
-          description: "browser mode POSTs setup/run immediately after upload — no token expiry"
-        - kind: changed
-          description: "remove clusters[] — secrets created by wizard, not Helm"
-    apiVersion: v2
-    appVersion: 0.1.32
-    created: "2026-03-03T23:49:26.678822525Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: d022ee8d395a38d316995cdfa8be93e9292bc026445a39fa50d85585c95feb4a
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.32.tgz
-    version: 0.1.32
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump chart to v0.1.31, update READMEs for setup wizard"
-        - kind: fixed
-          description: "skip context selection prompt in browser mode (always use all)"
-        - kind: fixed
-          description: "better upload error reporting + always print URL in browser mode"
-        - kind: added
-          description: "restructure setup-upload.sh — ask CLI vs Browser at start"
-        - kind: fixed
-          description: "remove port-forward command block from admin page"
-        - kind: fixed
-          description: "add list verb to webui deployments RBAC rule"
-        - kind: changed
-          description: "drop CLI mode, always redirect to browser after upload"
-        - kind: changed
-          description: "revert TUI pickers to simple numbered prompts"
-        - kind: fixed
-          description: "remove .sh suffix from mktemp template (macOS mktemp requirement)"
-        - kind: fixed
-          description: "re-exec by re-downloading script when stdin is not a tty"
-        - kind: fixed
-          description: "read escape sequences byte by byte to fix arrow keys in curl|bash"
-        - kind: fixed
-          description: "read arrow keys safely in curl|bash via single read with timeout"
-        - kind: added
-          description: "arrow-key TUI selectors throughout setup-upload.sh"
-        - kind: fixed
-          description: "use /dev/tty for prompts so curl|bash works, clarify central cluster"
-        - kind: fixed
-          description: "ask which context is management before port-forward"
-        - kind: added
-          description: "ask user to select contexts before uploading kubeconfig"
-        - kind: added
-          description: "add close split button to pane A (both panes now closeable)"
-        - kind: fixed
-          description: "align setup wizard header with other pages (gradient logo box + GitHub link)"
-        - kind: fixed
-          description: "revoke all cluster access on offboard before removing kubeconfig secret"
-        - kind: fixed
-          description: "add approved.gif and alert to Approved phase on status page"
-        - kind: added
-          description: "setup wizard offboarding + redirect URL auto-detect + port-forward cmd"
-        - kind: fixed
-          description: "add 'update' verb to webui-secrets Role for kubeconfig secret upsert"
-        - kind: fixed
-          description: "RBAC list secrets + forward-ref + restart button in setup wizard"
-        - kind: fixed
-          description: "rename ambiguous variable 'l' to 'line' in remove-cluster handler (E741)"
-        - kind: changed
-          description: "remove CLUSTERS env entirely — central identity via JANUS_CLUSTER_NAME"
-        - kind: added
-          description: "auto-discover clusters, wizard force-recreate RBAC, pod restart, cluster removal"
-        - kind: fixed
-          description: "replace dropdown with free-text cluster name input; remove configured_remotes dependency"
-        - kind: fixed
-          description: "show cluster name dropdown only on checkbox check; remove wrong auto-assign"
-        - kind: changed
-          description: "remove init container wait-for-kubeconfigs"
-        - kind: fixed
-          description: "map kubeconfig contexts to configured cluster names; fix secret naming"
-        - kind: fixed
-          description: "redesign cluster section headers; fix V1TokenRequestSpec for token issuance"
-        - kind: fixed
-          description: "remove auto-redirect, show Go to Dashboard button when setup completes"
-        - kind: fixed
-          description: "clearer section headers in cluster select; don't redirect on errors; pyyaml venv fallback"
-        - kind: fixed
-          description: "pass session_id to browser URL so wizard skips upload panel after script upload"
-        - kind: fixed
-          description: "auto-install pyyaml if missing in system python"
-        - kind: fixed
-          description: "use raw GitHub URL for upload-helper so it works before port-forward is running"
-        - kind: fixed
-          description: "add heartbeat output so piped script doesn't hang silently"
-        - kind: changed
-          description: "cache pip deps to speed up lint job"
-        - kind: fixed
-          description: "pipe upload-helper directly to bash to avoid filename conflict"
-        - kind: added
-          description: "setup-upload.sh auto starts/stops port-forward, waits for Ctrl+C to clean up"
-        - kind: fixed
-          description: "make curl upload-helper command copyable via cmd-block in drop zone"
-        - kind: fixed
-          description: "use curl -so to save upload-helper with correct filename"
-        - kind: added
-          description: "serve setup-upload.sh from webui at /setup/upload-helper, move script into image"
-        - kind: added
-          description: "add setup-upload.sh to auto-resolve exec-based auth and upload kubeconfig to wizard"
-        - kind: fixed
-          description: "remove accept filter from file input so extensionless kubeconfig files can be selected"
-        - kind: fixed
-          description: "add macOS hidden folder hint (Shift+Cmd+.) to kubeconfig drop zone"
-        - kind: fixed
-          description: "repair copy buttons in setup wizard (fallback for non-secure context, strip comment spans)"
-        - kind: fixed
-          description: "remove stale _setup_complete_cache references after redirect removal"
-        - kind: changed
-          description: "make setup wizard always accessible from admin page, drop redirect middleware"
-        - kind: added
-          description: "add web-based setup wizard for remote cluster onboarding"
-        - kind: changed
-          description: "update artifacthub.io/changes for v0.1.30"
-    apiVersion: v2
-    appVersion: 0.1.31
-    created: "2026-03-03T23:49:26.677831251Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 109e5b5e29c8f9bb4322d755bd334026b0650261d55dcfd3fd9ba7e3f913ffd8
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.31.tgz
-    version: 0.1.31
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: fixed
-          description: "suppress /api/status poll from access log"
-        - kind: changed
-          description: "Update README"
-        - kind: changed
-          description: "add ArtifactHub embed widget to README"
-        - kind: changed
-          description: "add GitHub and AH links at top of helm README"
-        - kind: changed
-          description: "restructure helm README for clarity"
-        - kind: changed
-          description: "move remote agent install into Install section, remove duplicate at bottom"
-        - kind: changed
-          description: "add security section to helm README"
-        - kind: fixed
-          description: "remove unused imports and fix flake8 errors in controller and webui"
-        - kind: fixed
-          description: "remove unused imports and dead assignments in terminal_ws.py (flake8)"
-    apiVersion: v2
-    appVersion: 0.1.30
-    created: "2026-03-03T23:49:26.676932729Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: aed9ec97fbacf0485ffcc93769d307ae530038c23a7c6b08220ebd7358a98e38
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.30.tgz
-    version: 0.1.30
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: fixed
-          description: "apply security and quality improvements from audit review"
-        - kind: fixed
-          description: "apply audit improvements across webui, helm, and CI"
-    apiVersion: v2
-    appVersion: 0.1.29
-    created: "2026-03-03T23:49:26.6761485Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 88cfb7d9b00d3618497407f821a90a6d1ccc4025fe7618b14bd7427a958d72b4
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.29.tgz
-    version: 0.1.29
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: fixed
-          description: "use target_cluster (not undefined cluster_name) when deriving kubeconfig secret name"
-    apiVersion: v2
-    appVersion: 0.1.28
-    created: "2026-03-03T23:49:26.675339154Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: e840e10efe0660328872514a1817b04879eec2ae9df1f07695060c656d4b467b
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@opsmode.io
-      name: OpsMode
-    name: k8s-janus
-    sources:
-    - https://github.com/opsmode/k8s-janus
-    type: application
-    urls:
-    - https://opsmode.github.io/k8s-janus/k8s-janus-0.1.28.tgz
-    version: 0.1.28
-generated: "2026-03-07T00:03:38.443183917Z"
+generated: "2026-03-08T12:24:14.094737513Z"
