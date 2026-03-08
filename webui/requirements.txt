@@ -1,3 +1,5 @@
+pytest>=8
+pytest-asyncio>=0.23
 fastapi==0.135.1
 uvicorn[standard]==0.41.0
 websockets==16.0

@@ -1190,6 +1190,8 @@ async def deny_confirm(request: Request, name: str = Form(...), cluster: str = F
 async def approve(request: Request, cluster: str, name: str):
     if _require_admin(request):
         return JSONResponse({"ok": False, "error": "403 Forbidden"}, status_code=403)
+    if not _valid_cluster(cluster) or not _valid_name(name):
+        return JSONResponse({"ok": False, "error": "Invalid parameters"}, status_code=400)
     ar = get_access_request(name, cluster)
     if not ar:
         return JSONResponse({"ok": False, "error": f"Request '{name}' not found."}, status_code=404)
@@ -1248,6 +1250,8 @@ async def approve(request: Request, cluster: str, name: str):
 async def deny(request: Request, cluster: str, name: str, denial_reason: str = Form("")):
     if _require_admin(request):
         return JSONResponse({"ok": False, "error": "403 Forbidden"}, status_code=403)
+    if not _valid_cluster(cluster) or not _valid_name(name):
+        return JSONResponse({"ok": False, "error": "Invalid parameters"}, status_code=400)
     ar = get_access_request(name, cluster)
     if not ar:
         return JSONResponse({"ok": False, "error": f"Request '{name}' not found."}, status_code=404)

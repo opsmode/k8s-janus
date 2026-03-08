@@ -443,7 +443,7 @@
 <body>
 
   {% set page_subtitle = "The gatekeeper who never sleeps (unlike your on-call engineer)" %}
-  {% set nav_items = [{"href": "/", "icon": "layout-dashboard", "label": "Dashboard"}] %}
+  {% set nav_items = [{"href": "/", "icon": "home", "label": "Open Janus"}] %}
   {% set header_extra %}<div class="setup-badge">Setup Wizard</div>{% endset %}
   {% include '_header.html' %}
 
@@ -703,9 +703,6 @@ choco install kubernetes-cli</span>
             <button class="btn btn-secondary hidden" id="btn-restart-deployments" onclick="restartDeployments()">
               <i data-lucide="refresh-cw" width="14" height="14"></i> Restart Deployments
             </button>
-            <a href="/" class="btn btn-primary" id="btn-go-dashboard">
-              <i data-lucide="layout-dashboard" width="14" height="14"></i> Go to Dashboard
-            </a>
           </div>
         </div>
       </div>
@@ -721,10 +718,6 @@ choco install kubernetes-cli</span>
             <div class="complete-sub">
               Kubeconfig secrets created. The controller is starting up — should be ready in a few seconds.
             </div>
-            <a href="/" class="btn btn-primary" style="display:inline-flex;margin:0 auto 4px">
-              <i data-lucide="layout-dashboard" width="14" height="14"></i>
-              Go to Dashboard
-            </a>
             <div class="countdown" id="countdown-text"></div>
           </div>
         </div>
@@ -1070,11 +1063,6 @@ choco install kubernetes-cli</span>
               } else {
                 hint.textContent = 'Setup complete!';
               }
-              // Resolve the correct dashboard URL (LB IP / ingress / localhost)
-              fetch('/api/setup/redirect-url').then(r => r.json()).then(d => {
-                const dashBtn = document.getElementById('btn-go-dashboard');
-                if (dashBtn && d.url) dashBtn.href = d.url;
-              }).catch(() => {});
               const el = document.getElementById('progress-actions');
               el.style.display = 'flex';
               lucide.createIcons();
@@ -1118,15 +1106,8 @@ choco install kubernetes-cli</span>
     // ---------------------------------------------------------------------------
     // Panel 4 — Complete
     // ---------------------------------------------------------------------------
-    function startCountdown(secs) {
-      const el = document.getElementById('countdown-text');
-      function tick() {
-        if (secs <= 0) { location.href = '/'; return; }
-        el.textContent = `Redirecting to dashboard in ${secs}s…`;
-        secs--;
-        setTimeout(tick, 1000);
-      }
-      tick();
+    function startCountdown(_secs) {
+      // No auto-redirect — setup stays on this page
     }
 
     // ---------------------------------------------------------------------------
