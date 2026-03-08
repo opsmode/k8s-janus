@@ -907,11 +907,11 @@
     }
 
     async function inlineApprove(cluster, name, btn) {
-      var cell = document.getElementById('actions-' + name);
-      _lockActionCell(cell, 'Approving…');
       var ttlSel = document.getElementById('approve-ttl-' + name);
       var body = {};
       if (ttlSel && ttlSel.value) body.ttl_seconds = parseInt(ttlSel.value);
+      var cell = document.getElementById('actions-' + name);
+      _lockActionCell(cell, 'Approving…');
       try {
         var resp = await fetch('/approve/' + cluster + '/' + name, {
           method: 'POST',

@@ -1205,7 +1205,6 @@ async def approve(request: Request, cluster: str, name: str):
     except Exception as _e:
         logger.warning(f"⚠️  approve {name}: failed to parse body: {_e}")
         ttl_override = 0
-    logger.info(f"🕐 approve {name}: ttl_override={ttl_override} MAX={MAX_TTL_SECONDS}")
     if ttl_override < 0 or ttl_override > MAX_TTL_SECONDS:
         ttl_override = 0
 
