@@ -1408,9 +1408,31 @@ async def list_pods(cluster: str, name: str, namespace: str = ""):
         for pod in pods.items:
             images    = [c.image or "" for c in pod.spec.containers]
             has_shell = not any(any(d in img.lower() for d in DISTROLESS) for img in images)
+
+            # Health signals
+            cs_list   = pod.status.container_statuses or []
+            restarts  = sum(cs.restart_count or 0 for cs in cs_list)
+            oom       = any(
+                (cs.last_state and cs.last_state.terminated and
+                 cs.last_state.terminated.reason == "OOMKilled")
+                for cs in cs_list
+            )
+            waiting_reasons = [
+                cs.state.waiting.reason
+                for cs in cs_list
+                if cs.state and cs.state.waiting and cs.state.waiting.reason
+            ]
+            terminating = pod.metadata.deletion_timestamp is not None
+
             pod_list.append({
-                "name": pod.metadata.name, "status": pod.status.phase,
-                "hasShell": has_shell, "namespace": resolved_ns,
+                "name": pod.metadata.name,
+                "status": pod.status.phase,
+                "hasShell": has_shell,
+                "namespace": resolved_ns,
+                "restarts": restarts,
+                "oom": oom,
+                "terminating": terminating,
+                "waitingReasons": waiting_reasons,
             })
         return JSONResponse({"pods": pod_list, "namespace": resolved_ns, "error": None})
     except Exception as e:
@@ -1419,7 +1441,7 @@ async def list_pods(cluster: str, name: str, namespace: str = ""):
 
 
 @app.get("/api/terminal/{cluster}/{name}/{pod}/logs")
-async def get_pod_logs(cluster: str, name: str, pod: str, namespace: str = "", tail: int = 100):
+async def get_pod_logs(cluster: str, name: str, pod: str, namespace: str = "", tail: int = 500):
     if not _valid_cluster(cluster) or not _valid_name(name):
         return JSONResponse({"error": "Invalid parameters", "logs": ""}, status_code=400)
     tail = max(10, min(tail, 5000))
@@ -1660,8 +1682,10 @@ async def logs_page(request: Request):
 
 
 @app.get("/api/system-logs/{component}")
-async def stream_system_logs(component: str, tail: int = 200):
-    """SSE endpoint: stream logs from the controller or webui pod."""
+async def stream_system_logs(request: Request, component: str, tail: int = 200):
+    """SSE endpoint: stream logs from the controller or webui pod. Admin only."""
+    if (err := _require_admin(request)):
+        return err
     if component not in ("controller", "webui"):
         return JSONResponse({"error": "component must be 'controller' or 'webui'"}, status_code=400)
     tail = max(10, min(tail, 5000))

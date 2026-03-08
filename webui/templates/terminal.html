@@ -1090,6 +1090,10 @@
         try {
           const d = await fetch(`/api/terminal/${cluster}/${requestName}/${podName}/logs?namespace=${encodeURIComponent(activeNs)}`).then(r => r.json());
           if (d.error) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">Error: ${d.error}</div>`; return; }
+          if (!d.logs || !d.logs.trim()) {
+            el.innerHTML = '<div style="color:var(--text-dim);padding:16px;">No logs available for this pod.</div>';
+            return;
+          }
           // Add section breaks before lines that start with a timestamp (ISO-8601 or k8s log format)
           const _tsRe = /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
           let prev = null;
@@ -1514,7 +1518,39 @@
                           : selB ? ' <span style="color:var(--accent-2);font-size:0.65rem;">B</span>' : '';
             const shellHint = noShell ? ' <span style="color:var(--warning);font-size:0.65rem;font-weight:600;">NO SHELL</span>' : '';
 
+            // Health signal badges
+            const badgeStyle = 'font-size:0.6rem;font-weight:700;padding:1px 4px;border-radius:3px;margin-left:3px;';
+            let healthBadges = '';
+            if (pod.terminating) {
+              healthBadges += `<span style="${badgeStyle}background:rgba(var(--warning-rgb,255,165,0),0.2);color:var(--warning);">TERM</span>`;
+            }
+            if (pod.oom) {
+              healthBadges += `<span style="${badgeStyle}background:rgba(var(--danger-rgb,220,50,47),0.2);color:var(--danger);">OOM</span>`;
+            }
+            const waitingReasons = pod.waitingReasons || [];
+            if (waitingReasons.includes('CrashLoopBackOff')) {
+              healthBadges += `<span style="${badgeStyle}background:rgba(var(--danger-rgb,220,50,47),0.2);color:var(--danger);">CRASH</span>`;
+            } else if (waitingReasons.length > 0) {
+              healthBadges += `<span style="${badgeStyle}background:rgba(var(--warning-rgb,255,165,0),0.15);color:var(--warning);">${escapeHtml(waitingReasons[0])}</span>`;
+            }
+            const restarts = pod.restarts || 0;
+            const restartBadge = restarts > 0
+              ? `<span style="${badgeStyle}background:rgba(var(--warning-rgb,255,165,0),0.15);color:var(--warning);">${restarts}R</span>`
+              : '';
+
+            // Icon: danger for crash/oom/terminating, warning for restarts, normal otherwise
+            const hasDanger  = pod.oom || waitingReasons.includes('CrashLoopBackOff') || pod.terminating;
+            const hasWarning = !hasDanger && restarts > 0;
+            const iconName   = noShell ? 'terminal-square' : (hasDanger ? 'triangle-alert' : 'box');
+            const iconColor  = hasDanger ? 'var(--danger)' : (hasWarning ? 'var(--warning)' : (noShell ? 'var(--warning)' : ''));
+
             const wantClass = 'pod-item' + (selA || selB ? ' selected' : '');
+
+            // Build status line text
+            const statusText = noShell ? 'logs only' : pod.status;
+
+            // Signature string to detect any meaningful change
+            const sig = `${pod.status}|${pod.oom}|${pod.terminating}|${restarts}|${waitingReasons.join(',')}`;
 
             let item = existingItems[pod.name];
             if (!item) {
@@ -1522,6 +1558,7 @@
               item = document.createElement('div');
               item.dataset.pod    = pod.name;
               item.dataset.status = pod.status;
+              item.dataset.sig    = sig;
               item.onclick = () => {
                 const targetPane = (splitOpen && activePaneId === 'b') ? paneB : paneA;
                 document.querySelectorAll('.pod-item').forEach(e => e.classList.remove('selected'));
@@ -1532,29 +1569,32 @@
               item.className = wantClass;
               item.innerHTML = `
                 <div class="pod-icon">
-                  <i data-lucide="${noShell ? 'terminal-square' : 'box'}" style="width:15px;height:15px;${noShell ? 'color:var(--warning);' : ''}"></i>
+                  <i data-lucide="${iconName}" style="width:15px;height:15px;${iconColor ? 'color:' + iconColor + ';' : ''}"></i>
                 </div>
                 <div class="pod-info">
-                  <div class="pod-name">${escapeHtml(pod.name)}${isNew ? ' <span style="color:var(--success);font-size:0.65rem;font-weight:600;">NEW</span>' : ''}${shellHint}${paneTag}</div>
-                  <div class="pod-status ${escapeHtml(pod.status.toLowerCase())}">${noShell ? 'logs only' : escapeHtml(pod.status)}</div>
+                  <div class="pod-name">${escapeHtml(pod.name)}${isNew ? ' <span style="color:var(--success);font-size:0.65rem;font-weight:600;">NEW</span>' : ''}${shellHint}${paneTag}${healthBadges}${restartBadge}</div>
+                  <div class="pod-status ${escapeHtml(pod.status.toLowerCase())}">${statusText}</div>
                 </div>
               `;
               podList.appendChild(item);
               if (isNew) { item.classList.add('pod-new'); setTimeout(() => item.classList.remove('pod-new'), 3000); }
               iconsNeedRefresh = true;
             } else {
-              // Existing pod — only update if selection or status changed (avoids DOM churn)
-              const statusChanged = item.dataset.status !== pod.status;
-              const selChanged    = item.className !== wantClass;
-              if (statusChanged || selChanged || paneTag) {
+              // Existing pod — only update if something meaningful changed
+              const sigChanged  = item.dataset.sig !== sig;
+              const selChanged  = item.className !== wantClass;
+              if (sigChanged || selChanged || paneTag) {
                 item.dataset.status = pod.status;
+                item.dataset.sig    = sig;
                 item.className = wantClass;
+                item.querySelector('.pod-icon').innerHTML =
+                  `<i data-lucide="${iconName}" style="width:15px;height:15px;${iconColor ? 'color:' + iconColor + ';' : ''}"></i>`;
                 item.querySelector('.pod-name').innerHTML =
-                  `${escapeHtml(pod.name)}${shellHint}${paneTag}`;
+                  `${escapeHtml(pod.name)}${shellHint}${paneTag}${healthBadges}${restartBadge}`;
                 item.querySelector('.pod-status').className =
                   `pod-status ${escapeHtml(pod.status.toLowerCase())}`;
-                item.querySelector('.pod-status').textContent =
-                  noShell ? 'logs only' : pod.status;
+                item.querySelector('.pod-status').textContent = statusText;
+                if (sigChanged) iconsNeedRefresh = true;
               }
             }
           });

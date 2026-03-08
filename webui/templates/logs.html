@@ -520,7 +520,16 @@
       es.onerror = function() {
         _setDot(component, 'error');
         es.close();
-        // Reconnect after 5s
+        // Show a transient error line then reconnect
+        var s2 = _state[component];
+        if (!s2.paused) {
+          var body = document.getElementById('log-' + component);
+          var sp = document.createElement('span');
+          sp.className = 'log-line warning';
+          sp.textContent = '[connection lost — reconnecting in 5s…]';
+          body.appendChild(sp);
+          body.scrollTop = body.scrollHeight;
+        }
         setTimeout(function() { startStream(component); }, 5000);
       };
     }
