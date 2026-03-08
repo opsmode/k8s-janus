@@ -67,6 +67,12 @@ AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() not in ("false", "
 APP_VERSION  = os.environ.get("APP_VERSION", "dev")
 BUILD_DATE   = os.environ.get("BUILD_DATE", "unknown")
 
+# Rate limiting: max requests a user may submit within a rolling window
+MAX_REQUESTS_PER_WINDOW = int(os.environ.get("MAX_REQUESTS_PER_WINDOW", "10"))
+RATE_LIMIT_WINDOW_SECS  = int(os.environ.get("RATE_LIMIT_WINDOW_SECS",  "3600"))  # 1 hour
+# Cap: max simultaneous Pending+Approved+Active requests per user (across all clusters)
+MAX_ACTIVE_REQUESTS     = int(os.environ.get("MAX_ACTIVE_REQUESTS", "5"))
+
 # ---------------------------------------------------------------------------
 # Native OIDC configuration
 # ---------------------------------------------------------------------------
@@ -209,6 +215,27 @@ def _valid_ns(s: str) -> bool:
 
 def _valid_cluster(s: str) -> bool:
     return bool(s and _CLUSTER_RE.match(s))
+
+
+# ---------------------------------------------------------------------------
+# Rate limit tracker: {email: deque of submission timestamps}
+# ---------------------------------------------------------------------------
+import collections as _collections
+_rate_buckets: dict[str, _collections.deque] = {}
+
+def _check_rate_limit(requester: str) -> str | None:
+    """Return an error string if the requester has exceeded the rate limit, else None."""
+    import time as _time
+    now = _time.monotonic()
+    bucket = _rate_buckets.setdefault(requester, _collections.deque())
+    # Evict timestamps outside the rolling window
+    while bucket and now - bucket[0] > RATE_LIMIT_WINDOW_SECS:
+        bucket.popleft()
+    if len(bucket) >= MAX_REQUESTS_PER_WINDOW:
+        window_min = RATE_LIMIT_WINDOW_SECS // 60
+        return f"Rate limit exceeded: max {MAX_REQUESTS_PER_WINDOW} requests per {window_min}min. Try again later."
+    bucket.append(now)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -965,6 +992,24 @@ async def submit_request(request: Request):
     if ttl_hours < 1:
         return JSONResponse({"error": "TTL must be at least 1 hour."}, status_code=400)
 
+    # Rate limit: check before touching the cluster
+    if (rate_err := _check_rate_limit(requester)):
+        return JSONResponse({"error": rate_err}, status_code=429)
+
+    # Cap concurrent live requests per user
+    all_requests = list_access_requests()
+    live_phases  = (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
+    user_live = [
+        ar for ar in all_requests
+        if ar.get("spec", {}).get("requester") == requester
+        and ar.get("status", {}).get("phase", "") in live_phases
+    ]
+    if len(user_live) >= MAX_ACTIVE_REQUESTS:
+        return JSONResponse(
+            {"error": f"You already have {len(user_live)} active/pending requests (max {MAX_ACTIVE_REQUESTS}). Cancel or wait for existing requests to expire."},
+            status_code=429,
+        )
+
     ttl_seconds = min(ttl_hours * 3600, MAX_TTL_SECONDS)
 
     # All targets must be for the same cluster
@@ -995,8 +1040,7 @@ async def submit_request(request: Request):
         return JSONResponse({"error": "No valid namespaces.", "skipped": skipped, "errors": errors}, status_code=400)
 
     # Dedup: reject namespaces already covered by a live request from this requester on this cluster
-    all_requests = list_access_requests()
-    live_phases  = (Phase.PENDING, Phase.APPROVED, Phase.ACTIVE)
+    # (all_requests and live_phases already populated above for the concurrent-cap check)
     busy_ns: set[str] = set()
     for ar in all_requests:
         sp = ar.get("spec", {})
@@ -1779,6 +1823,11 @@ async def stream_system_logs(request: Request, component: str, tail: int = 200):
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
+
+@app.get("/version")
+async def version_endpoint():
+    return JSONResponse({"version": APP_VERSION, "build_date": BUILD_DATE})
+
 
 @app.get("/healthz")
 async def healthz():

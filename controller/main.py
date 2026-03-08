@@ -764,7 +764,8 @@ async def _setup_remote_clusterroles():
 
 @kopf.on.startup()
 async def startup(**kwargs):
-    logger.info(f"🚀 k8s-janus controller {APP_VERSION} (built {BUILD_DATE}) starting up on cluster={get_clusters()[0]['name']}")
+    _clusters = get_clusters()
+    logger.info(f"🚀 k8s-janus controller {APP_VERSION} (built {BUILD_DATE}) starting up on cluster={_clusters[0]['name']} — {len(_clusters)} cluster(s) registered ({len(_clusters)-1} remote)")
     init_db()
     try:
         from db import purge_old_records

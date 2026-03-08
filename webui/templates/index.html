@@ -670,6 +670,9 @@
               Namespaces
               <span id="ns-selected-count" style="margin-left:6px;color:var(--accent);font-weight:600;display:none;"></span>
             </label>
+            <input id="ns-filter" type="text" placeholder="Filter namespaces…"
+              style="display:none;width:100%;margin-bottom:8px;padding:6px 10px;background:var(--surface-3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.82rem;outline:none;"
+              oninput="filterNs(this.value)" autocomplete="off" spellcheck="false" />
             <div id="ns-loading" style="font-size:0.8rem;color:var(--text-dim);padding:6px 0;">Loading…</div>
             <div class="ns-grid" id="ns-grid" style="display:none;"></div>
           </div>
@@ -1091,6 +1094,7 @@
       loading.textContent   = 'Loading namespaces…';
       grid.style.display    = 'none';
       grid.innerHTML        = '';
+      document.getElementById('ns-filter').style.display = 'none';
 
       try {
         const resp = await fetch('/namespaces/' + encodeURIComponent(clusterName));
@@ -1098,9 +1102,11 @@
         const namespaces = await resp.json();
 
         loading.style.display = 'none';
+        const nsFilter = document.getElementById('ns-filter');
         if (!namespaces.length) {
           loading.style.display = '';
           loading.textContent = 'No namespaces available';
+          nsFilter.style.display = 'none';
           return;
         }
 
@@ -1118,12 +1124,22 @@
           </div>
         `).join('');
         grid.style.display = '';
+        nsFilter.value = '';
+        nsFilter.style.display = namespaces.length > 6 ? '' : 'none';
         _restoreNsPrefs(namespaces);
       } catch (e) {
         loading.style.display = '';
         loading.style.color   = 'var(--danger)';
         loading.textContent   = 'Failed to load namespaces';
       }
+    }
+
+    // ── Namespace filter ──
+    function filterNs(q) {
+      const term = q.trim().toLowerCase();
+      document.querySelectorAll('#ns-grid .ns-item').forEach(el => {
+        el.style.display = el.dataset.ns.toLowerCase().includes(term) ? '' : 'none';
+      });
     }
 
     // ── Namespace preference persistence ──
