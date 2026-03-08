@@ -14,7 +14,7 @@ labels: {}
 # → templates: controller-deployment.yaml, webui-deployment.yaml
 image:
   repository: infroware/k8s-janus
-  tag: "v1.0.4"
+  tag: "v1.0.5"
   pullPolicy: IfNotPresent
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.

@@ -2,18 +2,16 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 1.0.4
-appVersion: "1.0.4"
+version: 1.0.5
+appVersion: "1.0.5"
 annotations:
   artifacthub.io/changes: |
-    - kind: added
-      description: "Colored PS1 prompt injected on every shell connect — cyan user@host, blue working directory"
-    - kind: added
-      description: "Copy terminal output button — copies full scrollback buffer to clipboard with one click"
     - kind: fixed
-      description: "Avatar initials rendered immediately on page load — no blank circles while waiting for API"
+      description: "Colored PS1 now works in bash — use --norc --noprofile so rc files don't overwrite it"
     - kind: fixed
-      description: "Own-email avatars now populate correctly in admin peer rows and detail panel"
+      description: "Quick commands ReferenceError on pod click — _cmdsEnabled declared before setActivePane"
+    - kind: fixed
+      description: "Status page: approved-by shown for Active/Expired/Revoked phases; cancel button grouped with terminal link"
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/infroware/k8s-janus

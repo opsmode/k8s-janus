@@ -30,13 +30,13 @@
 
 ---
 
-## 🎉 v1.0.4 — Terminal Polish
+## 🎉 v1.0.5 — Bug Fixes
 
 | | |
 |-|-|
-| 🎨 | **Colored terminal prompt** — `user@host` in cyan, working directory in blue, injected automatically on every shell connect |
-| 📋 | **Copy terminal output** — copy the full terminal buffer to clipboard with one click from the toolbar |
-| 👤 | **Avatar improvements** — initials rendered immediately (no blank circles); own-email avatars now appear correctly in admin peer rows |
+| 🎨 | **Colored prompt fixed for bash** — `--norc --noprofile` prevents container rc files from overwriting the injected PS1 |
+| 🐛 | **Quick commands crash fixed** — `ReferenceError: Cannot access '_cmdsEnabled' before initialization` on pod click |
+| 📋 | **Status page improvements** — approved-by shown for Active/Expired/Revoked; cancel session grouped with terminal button |
 
 ---
 
