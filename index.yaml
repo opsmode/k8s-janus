@@ -3,6 +3,56 @@ entries:
   k8s-janus:
   - annotations:
       artifacthub.io/changes: |
+        - kind: changed
+          description: "bump to v1.0.4 — colored prompt, copy output, avatar fixes"
+        - kind: fixed
+          description: "remove screenshot button (xterm 5 OffscreenCanvas blocks pixel reads); keep Copy"
+        - kind: fixed
+          description: "use ANSI-C quoting for PS1 so escape sequences render correctly"
+        - kind: fixed
+          description: "screenshot uses xterm canvas layers directly instead of html2canvas"
+        - kind: added
+          description: "inject colored PS1 (cyan user@host, blue path) on shell connect"
+        - kind: added
+          description: "add Copy Output and Screenshot buttons to terminal toolbar"
+        - kind: fixed
+          description: "seed initials immediately for all avatar elements; populate own-email avatars in peer rows"
+    apiVersion: v2
+    appVersion: 1.0.4
+    created: "2026-03-08T16:44:12.958304594Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: e8e45014a59c3dd7c8b96c78e7740f4902c9d0e30d0cccfdd3cb9d46407c9151
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@infroware.com
+      name: infroware
+    name: k8s-janus
+    sources:
+    - https://github.com/infroware/k8s-janus
+    type: application
+    urls:
+    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.4.tgz
+    version: 1.0.4
+  - annotations:
+      artifacthub.io/changes: |
         - kind: fixed
           description: "disable build cache on release to ensure BUILD_DATE is baked correctly"
         - kind: changed
@@ -11,7 +61,7 @@ entries:
           description: "requester/approver avatars in admin list; fix BUILD_DATE in root Dockerfile"
     apiVersion: v2
     appVersion: 1.0.3
-    created: "2026-03-08T15:50:09.584683735Z"
+    created: "2026-03-08T16:44:12.957489288Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: b08e4ad869901c2877b3343b504cb974bc95e1399cbdf599ba8f21efd0b2186c
@@ -55,7 +105,7 @@ entries:
           description: "log version on startup in controller and webui"
     apiVersion: v2
     appVersion: 1.0.2
-    created: "2026-03-08T15:50:09.583805525Z"
+    created: "2026-03-08T16:44:12.956654817Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ef7ddc73d7c3c5a1f4ca188dd7327135902c782601952652d03abacaa93ddb77
@@ -87,48 +137,4 @@ entries:
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-1.0.2.tgz
     version: 1.0.2
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump to v1.0.1"
-        - kind: fixed
-          description: "handle pod 404/401 in terminal without retrying + show clear error"
-        - kind: added
-          description: "pod health signals in terminal sidebar + admin log SSE fixes"
-        - kind: fixed
-          description: "hide DB detail from health dot tooltip for non-admin users"
-    apiVersion: v2
-    appVersion: 1.0.1
-    created: "2026-03-08T15:50:09.582733963Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: 3d3fc4aa418cfe513a0d498f057835ce0cb135bb66cd1901abd0792ecfedd627
-    home: https://infroware.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@infroware.com
-      name: infroware
-    name: k8s-janus
-    sources:
-    - https://github.com/infroware/k8s-janus
-    type: application
-    urls:
-    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.1.tgz
-    version: 1.0.1
-generated: "2026-03-08T15:50:09.581189016Z"
+generated: "2026-03-08T16:44:12.955703247Z"

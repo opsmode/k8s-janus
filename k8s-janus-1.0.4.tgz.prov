@@ -1,0 +1,69 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "bump to v1.0.4 — colored prompt, copy output, avatar fixes"
+    - kind: fixed
+      description: "remove screenshot button (xterm 5 OffscreenCanvas blocks pixel reads); keep Copy"
+    - kind: fixed
+      description: "use ANSI-C quoting for PS1 so escape sequences render correctly"
+    - kind: fixed
+      description: "screenshot uses xterm canvas layers directly instead of html2canvas"
+    - kind: added
+      description: "inject colored PS1 (cyan user@host, blue path) on shell connect"
+    - kind: added
+      description: "add Copy Output and Screenshot buttons to terminal toolbar"
+    - kind: fixed
+      description: "seed initials immediately for all avatar elements; populate own-email avatars in peer rows"
+apiVersion: v2
+appVersion: 1.0.4
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://infroware.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@infroware.com
+  name: infroware
+name: k8s-janus
+sources:
+- - https://github.com/infroware/k8s-janus
+type: application
+version: 1.0.4
+
+...
+files:
+  k8s-janus-1.0.4.tgz: sha256:e8e45014a59c3dd7c8b96c78e7740f4902c9d0e30d0cccfdd3cb9d46407c9151
+-----BEGIN PGP SIGNATURE-----
+
+wsFcBAEBCgAQBQJpradcCRBDCheZqELC2gAA+mEQAJ2P0sO+lgrzr4zILCqah1Bd
+jveh0+nBmvbBWB0UC/ERdKQwXafdVz0vQEH7mLMvM3pLUgkL9Mis2DQMxo5PX8cj
+MhzZi+jY+l8bkI13R1G/7hCbg6W/dS2mhxQqFbkQU4e8tCcl6lTM51Oj4yvhIcbz
+5xgO+mPVN6OK3KvA6+OV14RLWTaApJn96Ra9zhQ2IWjHGDSIHtw14ZbSjZ7cDUMv
+kjuFGGy7tz0O+xwnEqZ10BsHHVxkbt9BYyf3OVRoFY8snka3uVnCPMIZ3hpPkqVn
+ZEI9I/VQ4z3nI/y8potEVKEzzNfJ+ujqa95RDGQURFZr0WXxvMQb9hQmXN2uji6E
+r+OCuYROF3oXeD4yNVtq2x2XsqaQr41+8FMdwXe+XuXw/4nQutcED7eH+fbt1yZe
+vFKoY9vOUgw4hDdy9fmNQ5wAxlxz0Bc4TvqCTC8hxbpN+VToSt0BAEqSZhMHS7l2
+v+J+1AoH/PJglGQmqAPJjOaO8AimRuDFF/KO+sHSQ4YCiMgxwFZw9h1HzQQT7rV0
+S6AfE5cONwf4R3aFjGQnrERiwtmMP8mERaTD9qN16dY0ORuVLt+4Ctn7v84VWpWJ
+p5GDV+yV9bl8oGK0PDgbwSPOvZDz7J/kOFzjw9I6KkTfEvVoQYHnF8yeU5Yj5XCL
+TQpfKPAeYMB+FXXuZ+4D
+=Fth3
+-----END PGP SIGNATURE-----
