@@ -193,8 +193,8 @@ entries:
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 1ada669a56a8afb399c119a2fc35e2801c3885c91beb75a826e82aa160ed57e9
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
     keywords:
     - kubernetes
     - k8s-janus
@@ -212,11 +212,11 @@ entries:
     - terminal
     - pod-access
     maintainers:
-    - email: devops@opsmode.pro
+    - email: devops@infroware.com
       name: OpsMode
     name: k8s-janus
     sources:
-    - https://github.com/opsmode/k8s-janus
+    - https://github.com/infroware/k8s-janus
     type: application
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-0.3.0.tgz
@@ -243,8 +243,8 @@ entries:
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: cd76a872ea8e6b3a4207eeeba3f01871f901a58a022c3de1fb6c3aea0ec48d7c
-    home: https://opsmode.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
     keywords:
     - kubernetes
     - k8s-janus
@@ -262,11 +262,11 @@ entries:
     - terminal
     - pod-access
     maintainers:
-    - email: devops@opsmode.pro
+    - email: devops@infroware.com
       name: OpsMode
     name: k8s-janus
     sources:
-    - https://github.com/opsmode/k8s-janus
+    - https://github.com/infroware/k8s-janus
     type: application
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-0.2.2.tgz
