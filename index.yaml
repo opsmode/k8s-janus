@@ -4,10 +4,54 @@ entries:
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
+          description: "bump to v1.0.1"
+        - kind: fixed
+          description: "handle pod 404/401 in terminal without retrying + show clear error"
+        - kind: added
+          description: "pod health signals in terminal sidebar + admin log SSE fixes"
+        - kind: fixed
+          description: "hide DB detail from health dot tooltip for non-admin users"
+    apiVersion: v2
+    appVersion: 1.0.1
+    created: "2026-03-08T13:42:09.388979324Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: 3d3fc4aa418cfe513a0d498f057835ce0cb135bb66cd1901abd0792ecfedd627
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@infroware.com
+      name: infroware
+    name: k8s-janus
+    sources:
+    - https://github.com/infroware/k8s-janus
+    type: application
+    urls:
+    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.1.tgz
+    version: 1.0.1
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
           description: "bump to v1.0.0 — first stable release"
     apiVersion: v2
     appVersion: 1.0.0
-    created: "2026-03-08T12:35:48.811981553Z"
+    created: "2026-03-08T13:42:09.388182951Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 4d82e97b1591b5199f6868f3798f40667738c1444d4e46a55c1954d2ae1d85af
@@ -39,4 +83,4 @@ entries:
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-1.0.0.tgz
     version: 1.0.0
-generated: "2026-03-08T12:35:48.810971422Z"
+generated: "2026-03-08T13:42:09.387262676Z"

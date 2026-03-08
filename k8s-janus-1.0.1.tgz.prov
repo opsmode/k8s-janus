@@ -1,0 +1,63 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "bump to v1.0.1"
+    - kind: fixed
+      description: "handle pod 404/401 in terminal without retrying + show clear error"
+    - kind: added
+      description: "pod health signals in terminal sidebar + admin log SSE fixes"
+    - kind: fixed
+      description: "hide DB detail from health dot tooltip for non-admin users"
+apiVersion: v2
+appVersion: 1.0.1
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://infroware.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@infroware.com
+  name: infroware
+name: k8s-janus
+sources:
+- - https://github.com/infroware/k8s-janus
+type: application
+version: 1.0.1
+
+...
+files:
+  k8s-janus-1.0.1.tgz: sha256:3d3fc4aa418cfe513a0d498f057835ce0cb135bb66cd1901abd0792ecfedd627
+-----BEGIN PGP SIGNATURE-----
+
+wsFcBAEBCgAQBQJprXywCRBDCheZqELC2gAAW6IQAL0JbJOba2VZUSDorP9dHR0x
+1mWYA8zZBSYIEpNyX76SnBC6gDoDE4WcS8z5XH7Q+IsnOpYsYhdl14dAXSEfbf2H
+4teaPyT2XQETuWxxBJ3AR4Oq825wELipCc50AQv/LDHN2jPMTnMLbDJTaGyLqnbs
+3mpgOlx0oBz3kwILDH9tgClUcuVqre51AGPxdY3LZxw7ONTqrHsVHqL94sgPD4pu
++D3P3i5r5ZFNfCUITiicA0iR6OQS+1jh+kPBWYVfRrW6/wOUuY8przWBmK+pNLiu
+2ErMIc8Y33CDx8MHzfJzfxCHj1VXBo8DhvlThdLqeSjIpxukj3WXHmIeXUbYYprR
+yQ2oB4zilhFxmG/mrJkEc303mYbHaBFOZ85V5XJc/90whsPPFata4hhvb/g2BEXy
+z/VHEmQg3FW/gN+l0i6ZcTZPMH6kPl5DxuoTbOtUx6jO5zYLlwuq+0IVfk8jfKD5
+6mzRue5ttLtuGI5QysJY/T+VDqoRhu7pVR9Mv2B+C5M/+k63YYsb4KAIpISJl339
+NliLF7hGrE8xE1DRUyyKqu0I7Unhn0W7yRO687NLpBk9Hwgf/UnOs1luRL69SM2y
+1x77dVChdY9wA3KMLwrw8Gs3HUA4VFQkfraia1vmd72eD79Nu1mkJd5laiHyQ9UJ
+J86mtRIa9cyn43bzcDL5
+=eWRx
+-----END PGP SIGNATURE-----
