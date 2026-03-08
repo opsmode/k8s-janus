@@ -804,6 +804,11 @@
     let   activeNs    = namespaces[0] || {{ namespace | tojson }};
     const WS_URL      = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal/${cluster}/${requestName}`;
 
+    // Declared early to avoid TDZ errors if loadPods() is called before
+    // the pod-list section of the script is reached (e.g. via a resolved Promise).
+    let knownPods      = new Set();
+    let refreshInterval = null;
+
     function switchNamespace(ns) {
       activeNs = ns;
       document.querySelectorAll('.ns-tab').forEach(btn => {
@@ -1433,9 +1438,6 @@
     // ========================================================================
     // Pod list (shared sidebar)
     // ========================================================================
-    let knownPods = new Set();
-    let refreshInterval = null;
-
     function loadPods() {
       fetch(`/api/terminal/${cluster}/${requestName}/pods?namespace=${encodeURIComponent(activeNs)}`)
         .then(async r => {
