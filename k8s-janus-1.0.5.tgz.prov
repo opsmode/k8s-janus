@@ -1,0 +1,67 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "bump to v1.0.5 — PS1/bash fix, quick cmds TDZ fix, status page improvements"
+    - kind: fixed
+      description: "use bash --norc --noprofile to prevent rc files overwriting colored PS1"
+    - kind: fixed
+      description: "move _cmdsEnabled before setActivePane to fix TDZ ReferenceError; improve status page layout and approved-by visibility"
+    - kind: fixed
+      description: "inject colored PS1 via shell -c + exec at open time, not stdin injection"
+    - kind: fixed
+      description: "colored PS1 — use temp vars for escape bytes, tested locally"
+    - kind: fixed
+      description: "use printf to inject PS1 escape bytes — works in bash/sh/ash"
+apiVersion: v2
+appVersion: 1.0.5
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://infroware.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@infroware.com
+  name: infroware
+name: k8s-janus
+sources:
+- - https://github.com/infroware/k8s-janus
+type: application
+version: 1.0.5
+
+...
+files:
+  k8s-janus-1.0.5.tgz: sha256:ef240104cafbae50a6de0a480af7bd2c0d70eda657153cee8c76d94d896f6841
+-----BEGIN PGP SIGNATURE-----
+
+wsFcBAEBCgAQBQJprbfOCRBDCheZqELC2gAAJZYQACgXXiR7aYRXdjTn3JLYFUhR
+97dxbXau5ZiMwl/EdV2OWG4obTtXtHFWTDFR7hOGPrVh5BixBXum5+lVRLULFNTJ
+QyZOw6xs5xjHZS27crC3WpP87oTFRaKJvRcye75aOfAxKUUjoyfW2i31CS+B8ZCi
+uYH3YJRSHSZnqZIOPd6rCwDcCkLx7kEobRWfB5Jzt+FAUXgktLLihkJzxuakfDOO
+1FcyxWBrb6De3Bw7+pm+DjnuEMgmWpI/bC6fF0tzfKmAb/VX1ukqu3NuGOT8xmBP
+Mk7NctAXQOHFOX1bbtzfMHnyU58LsQ768E+2Ohvq92bGZXLethY3p9EhslL9vcT3
+Yr6Z7M7yoFJQ1VmjeIVu4daNO5gNk6Ubl63e/aS5XM/pxgYsD5SsXiBv9PSQ129P
+uBUvymD1uZPRtt+H3f6v3Gh/MlhEwgf+ysAODUW9mXZ2dg231U/z+RkCLSie8Db6
+eM6FpqM7vnXO9GS1TpydK6mYLKQXBhJnYaf2xD4wjedqGqOa9EKDS/RnJ6BJxgQI
+R0+McwDpXo/CnXfYoAmqaMHon4ZpNHbl28D1+njtImQ7VMyqmAc4pgsnlhJwEuDV
+NBsgYFiIvisaODJYpisLXImBY2ojdmCvIseUu13k5ki0wBUQD7ZK7AtU4KJ6GVSb
+iPkISO8gKGmjzZWrYnZM
+=wy+w
+-----END PGP SIGNATURE-----
