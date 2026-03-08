@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Required env vars (injected by docker run / launchd plist):
-#   GITHUB_OWNER_REPO  — e.g. opsmode/k8s-janus
+#   GITHUB_OWNER_REPO  — e.g. infroware/k8s-janus
 #   GITHUB_PAT         — fine-grained PAT with Actions:Read/Write scope
 #   RUNNER_NAME        — e.g. janus-runner-local (defaults to hostname)
 

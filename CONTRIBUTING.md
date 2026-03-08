@@ -7,7 +7,7 @@ Thanks for your interest in contributing! Here's everything you need to get star
 **Prerequisites:** Python 3.12, Docker, kubectl, helm
 
 ```bash
-git clone https://github.com/opsmode/k8s-janus
+git clone https://github.com/infroware/k8s-janus
 cd k8s-janus
 
 # Controller
@@ -50,7 +50,7 @@ refactor: simplify TTL cleanup logic
 
 ## Reporting Bugs
 
-Open a [GitHub issue](https://github.com/opsmode/k8s-janus/issues) with:
+Open a [GitHub issue](https://github.com/infroware/k8s-janus/issues) with:
 - What you expected to happen
 - What actually happened
 - Kubernetes version and distribution

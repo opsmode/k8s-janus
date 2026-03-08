@@ -11,7 +11,7 @@
 
   Register this cluster from any machine with kubectl access:
 
-    bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
+    bash <(curl -fsSL https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/setup-upload.sh)
 
 {{- else }}
 

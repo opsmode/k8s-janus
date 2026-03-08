@@ -18,7 +18,7 @@
     "image": {
       "type": "object",
       "properties": {
-        "repository": { "type": "string", "default": "opsmode/k8s-janus" },
+        "repository": { "type": "string", "default": "infroware/k8s-janus" },
         "tag":        { "type": "string" },
         "pullPolicy": {
           "type": "string",

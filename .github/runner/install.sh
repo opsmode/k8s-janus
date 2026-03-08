@@ -4,12 +4,12 @@
 set -euo pipefail
 
 PAT="${1:?Usage: $0 <GITHUB_PAT>}"
-PLIST_SRC="$(cd "$(dirname "$0")" && pwd)/com.opsmode.janus-runner.plist"
-PLIST_DEST="${HOME}/Library/LaunchAgents/com.opsmode.janus-runner.plist"
+PLIST_SRC="$(cd "$(dirname "$0")" && pwd)/com.infroware.janus-runner.plist"
+PLIST_DEST="${HOME}/Library/LaunchAgents/com.infroware.janus-runner.plist"
 
 echo "→ Pulling runner image..."
 # Use a plain config dir to avoid macOS keychain credential helper
-DOCKER_CONFIG=/tmp/.docker-install docker pull opsmode/k8s-janus-runner:latest
+DOCKER_CONFIG=/tmp/.docker-install docker pull infroware/k8s-janus-runner:latest
 
 echo "→ Installing launchd plist..."
 sed "s|__REPLACE_WITH_PAT__|${PAT}|g" "${PLIST_SRC}" > "${PLIST_DEST}"

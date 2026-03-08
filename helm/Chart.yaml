@@ -10,9 +10,9 @@ annotations:
       description: Restore missing sqlalchemy/uvicorn/jinja2/pyyaml in Docker image requirements
   artifacthub.io/links: |
     - name: GitHub
-      url: https://github.com/opsmode/k8s-janus
+      url: https://github.com/infroware/k8s-janus
     - name: Helm Repository
-      url: https://opsmode.github.io/k8s-janus
+      url: https://infroware.github.io/k8s-janus
 keywords:
   - kubernetes
   - k8s-janus
@@ -29,10 +29,10 @@ keywords:
   - audit
   - terminal
   - pod-access
-icon: https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-home: https://opsmode.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+home: https://infroware.github.io/k8s-janus
 sources:
-  - https://github.com/opsmode/k8s-janus
+  - https://github.com/infroware/k8s-janus
 maintainers:
-  - name: OpsMode
+  - name: infroware
     email: devops@infroware.com

@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 env:
-  IMAGE: opsmode/k8s-janus
+  IMAGE: infroware/k8s-janus
 
 jobs:
   build:
@@ -51,7 +51,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: opsmode/k8s-janus
+          repository: infroware/k8s-janus
           readme-filepath: ./DOCKERHUB.md
 
   publish-helm:
@@ -136,7 +136,7 @@ jobs:
       - name: Package and sign Helm chart
         run: |
           helm package helm/ \
-            --sign --key "OpsMode" --keyring ~/.gnupg/secring.gpg \
+            --sign --key "InfroWare" --keyring ~/.gnupg/secring.gpg \
             --destination .deploy/
 
       - name: Checkout gh-pages branch
@@ -151,7 +151,7 @@ jobs:
           cp .deploy/*.tgz gh-pages-dir/
           cp .deploy/*.tgz.prov gh-pages-dir/
           helm repo index gh-pages-dir/ \
-            --url https://opsmode.github.io/k8s-janus/ \
+            --url https://infroware.github.io/k8s-janus/ \
             --merge gh-pages-dir/index.yaml
 
       - name: Prune old Helm chart versions (keep 3)
@@ -164,7 +164,7 @@ jobs:
           done
           # Rebuild index from present files only (no --merge) so deleted versions
           # are not retained in index.yaml — prevents AH from scanning missing image tags
-          helm repo index . --url https://opsmode.github.io/k8s-janus/
+          helm repo index . --url https://infroware.github.io/k8s-janus/
 
       - name: Push to gh-pages
         run: |
@@ -202,13 +202,13 @@ jobs:
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
 
           rm -rf /tmp/argocd-release
-          git clone git@github.com:opsmode/argocd.git /tmp/argocd-release
+          git clone git@github.com:infroware/argocd.git /tmp/argocd-release
           cd /tmp/argocd-release
 
           python3 "${GITHUB_WORKSPACE}/.github/scripts/bump-argocd-tag.py" "${VERSION}"
 
           git config user.email "ci@infroware.com"
-          git config user.name "opsmode-ci"
+          git config user.name "infroware-ci"
           git add applications/janus.applicationset.yaml
           git diff --cached --quiet && echo "no change" && exit 0
           git commit -m "ci: bump k8s-janus image tag to ${VERSION}"
@@ -226,7 +226,7 @@ jobs:
           python3 - <<'PYEOF'
           import json, os, re, sys, urllib.request, urllib.error
 
-          IMAGE = "opsmode/k8s-janus"
+          IMAGE = "infroware/k8s-janus"
           user  = os.environ["DOCKERHUB_USERNAME"]
           token = os.environ["DOCKERHUB_TOKEN"]
 

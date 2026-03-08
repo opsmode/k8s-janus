@@ -91,7 +91,7 @@ lines.append("")
 lines.append("## ⎈ Install / Upgrade via Helm")
 lines.append("")
 lines.append("```bash")
-lines.append("helm repo add k8s-janus https://opsmode.github.io/k8s-janus")
+lines.append("helm repo add k8s-janus https://infroware.github.io/k8s-janus")
 lines.append("helm repo update")
 lines.append("helm upgrade --install k8s-janus k8s-janus/k8s-janus \\")
 lines.append("  --namespace k8s-janus --create-namespace")
@@ -100,7 +100,7 @@ lines.append("```")
 if PREV_TAG:
     lines.append("")
     lines.append(f"**Full diff:** [`{PREV_TAG} → {NEW_TAG}`]"
-                 f"(https://github.com/opsmode/k8s-janus/compare/{PREV_TAG}...{NEW_TAG})")
+                 f"(https://github.com/infroware/k8s-janus/compare/{PREV_TAG}...{NEW_TAG})")
 
 with open(OUT, "w") as f:
     f.write("\n".join(lines) + "\n")

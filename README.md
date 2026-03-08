@@ -6,11 +6,11 @@
 
 ### *Just-in-Time Kubernetes Pod Access*
 
-[![CI](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml/badge.svg)](https://github.com/opsmode/k8s-janus/actions/workflows/ci.yaml)
+[![CI](https://github.com/infroware/k8s-janus/actions/workflows/ci.yaml/badge.svg)](https://github.com/infroware/k8s-janus/actions/workflows/ci.yaml)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus)](https://artifacthub.io/packages/helm/k8s-janus/k8s-janus)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Operator-326CE5?logo=kubernetes&logoColor=white)
-[![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)](https://opsmode.github.io/k8s-janus)
+[![Helm](https://img.shields.io/badge/Helm-Chart-0F1689?logo=helm&logoColor=white)](https://infroware.github.io/k8s-janus)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue)
 
@@ -149,7 +149,7 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 ### Install via Helm
 
 ```bash
-helm repo add k8s-janus https://opsmode.github.io/k8s-janus
+helm repo add k8s-janus https://infroware.github.io/k8s-janus
 helm repo update
 helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
@@ -160,7 +160,7 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
 Run the setup script — it walks you through everything interactively:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/setup-upload.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/setup-upload.sh)
 ```
 
 Choose **CLI mode** (terminal only) or **Browser mode** (opens the web wizard). The script:
@@ -174,15 +174,15 @@ No cloud-specific setup, no IAM bindings, no repo clone needed.
 
 **Select central and remote clusters:**
 
-![Select clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-onboarding.jpeg)
+![Select clusters](https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/setup-onboarding.jpeg)
 
 **Live configuration progress — RBAC, tokens, secrets, pod restart:**
 
-![Configuring clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-configuring.jpeg)
+![Configuring clusters](https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/setup-configuring.jpeg)
 
 **Rename or remove clusters at any time from the Edit Clusters panel:**
 
-![Remove clusters](https://raw.githubusercontent.com/opsmode/k8s-janus/main/webui/static/setup-offboarding.jpeg)
+![Remove clusters](https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/setup-offboarding.jpeg)
 
 **Optional — exclude additional namespaces from the request form:**
 
@@ -297,6 +297,6 @@ INFO:     10.0.0.1:54321 - "GET /terminal/prod/alice-debug-api HTTP/1.1" 200 OK
 
 <div align="center">
 
-Apache 2.0 License · Built with ☕ by [opsmode](https://github.com/opsmode)
+Apache 2.0 License · Built with ☕ by [infroware](https://github.com/infroware)
 
 </div>

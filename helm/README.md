@@ -1,7 +1,7 @@
 # K8s-Janus
 
-[![GitHub release](https://img.shields.io/github/v/release/opsmode/k8s-janus?style=flat-square&color=6366f1)](https://github.com/opsmode/k8s-janus/releases/latest)
-[![License](https://img.shields.io/github/license/opsmode/k8s-janus?style=flat-square&color=10b981)](https://github.com/opsmode/k8s-janus/blob/main/LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/infroware/k8s-janus?style=flat-square&color=6366f1)](https://github.com/infroware/k8s-janus/releases/latest)
+[![License](https://img.shields.io/github/license/infroware/k8s-janus?style=flat-square&color=10b981)](https://github.com/infroware/k8s-janus/blob/main/LICENSE)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/k8s-janus&style=flat-square)](https://artifacthub.io/packages/helm/k8s-janus/k8s-janus)
 
 > **Just-in-Time `kubectl exec` access for Kubernetes.**
@@ -46,7 +46,7 @@ Pending ──▶ Approved ──▶ Active ──▶ Expired
 ## Quick install
 
 ```bash
-helm repo add k8s-janus https://opsmode.github.io/k8s-janus
+helm repo add k8s-janus https://infroware.github.io/k8s-janus
 helm repo update
 helm upgrade --install k8s-janus k8s-janus/k8s-janus \
   --namespace k8s-janus --create-namespace
@@ -84,4 +84,4 @@ open http://localhost:8080/setup
 
 Full configuration reference, multi-cluster setup guide, OIDC setup, and screenshots:
 
-**→ [github.com/opsmode/k8s-janus](https://github.com/opsmode/k8s-janus)**
+**→ [github.com/infroware/k8s-janus](https://github.com/infroware/k8s-janus)**

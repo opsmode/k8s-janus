@@ -10,7 +10,7 @@ on:
       - 'webui/**'
 
 env:
-  IMAGE: opsmode/k8s-janus
+  IMAGE: infroware/k8s-janus
 
 jobs:
   scout:
