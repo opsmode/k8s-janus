@@ -645,9 +645,12 @@
                 <script type="application/json" id="ns-{{ ar.metadata.name }}">{{ nss | tojson }}</script>
                 <script type="application/json" id="reason-{{ ar.metadata.name }}">{{ (spec.get('reason','') or '') | tojson }}</script>
                 <td style="max-width:0;overflow:hidden;">
-                  <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
-                    <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ requester }}">{{ requester }}</span>
+                  <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+                    <div class="avatar" data-email="{{ requester | lower }}" style="width:26px;height:26px;font-size:0.6rem;flex-shrink:0;cursor:default;"></div>
+                    <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
+                      <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ requester }}">{{ requester }}</span>
+                    </div>
                   </div>
                 </td>
                 <td style="white-space:nowrap;">
@@ -950,14 +953,14 @@
         '<div class="detail-panel">'
         +'<div class="detail-section"><span class="detail-label">Request ID</span>'
         +'<span class="detail-value"><a href="/status/'+cluster+'/'+name+'" style="color:var(--accent);font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;">'+name+'</a></span></div>'
-        +'<div class="detail-section"><span class="detail-label">Requester</span><span class="detail-value">'+requester+'</span></div>'
+        +'<div class="detail-section"><span class="detail-label">Requester</span><span class="detail-value" style="display:flex;align-items:center;gap:8px;"><div class="avatar" data-email="'+requester.toLowerCase()+'" style="width:22px;height:22px;font-size:0.55rem;flex-shrink:0;cursor:default;"></div><span>'+requester+'</span></span></div>'
         +'<div class="detail-section"><span class="detail-label">Cluster</span>'
         +'<span class="detail-value"><code style="color:#fb923c;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);">'+clusterDisplay+'</code></span></div>'
         +'<div class="detail-section" style="grid-column:1/-1;"><span class="detail-label">Namespaces ('+namespaces.length+')</span>'
         +'<div style="margin-top:4px;">'+nsHtml+'</div></div>'
         +(reason ? '<div class="detail-section" style="grid-column:1/-1;"><span class="detail-label">Reason</span><span class="detail-value" style="font-style:italic;">'+reason+'</span></div>' : '')
         +'<div class="detail-section"><span class="detail-label">TTL / Remaining</span><span class="detail-value" id="detail-ttl-'+name+'">'+ttlStr+'</span></div>'
-        +(approvedBy ? '<div class="detail-section"><span class="detail-label">Approved by</span><span class="detail-value">'+approvedBy+'</span></div>' : '')
+        +(approvedBy ? '<div class="detail-section"><span class="detail-label">Approved by</span><span class="detail-value" style="display:flex;align-items:center;gap:8px;"><div class="avatar" data-email="'+approvedBy.toLowerCase()+'" style="width:22px;height:22px;font-size:0.55rem;flex-shrink:0;cursor:default;"></div><span data-approver-email="'+approvedBy.toLowerCase()+'">'+approvedBy+'</span></span></div>' : '')
         +(actionsHtml ? '<div class="detail-actions">'+actionsHtml+'</div>' : '')
         +'</div>';
 
@@ -971,6 +974,8 @@
 
       lucide.createIcons({ nodes: [detailRow] });
       updateTtlRemaining();
+      // Load avatars + names for the newly injected detail panel avatars
+      if (typeof _loadPeerAvatars === 'function') _loadPeerAvatars();
     }
 
     // ── Initial render ──

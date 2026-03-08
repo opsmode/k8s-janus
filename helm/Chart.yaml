@@ -2,10 +2,14 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 1.0.2
-appVersion: "1.0.2"
+version: 1.0.3
+appVersion: "1.0.3"
 annotations:
   artifacthub.io/changes: |
+    - kind: added
+      description: "Requester profile pic and display name in admin requests list and detail panel Approved by"
+    - kind: fixed
+      description: "BUILD_DATE now correctly baked into root Dockerfile (was only in component Dockerfiles)"
     - kind: added
       description: "Namespace filter input on request form — instant client-side search, shown when cluster has >6 namespaces"
     - kind: added

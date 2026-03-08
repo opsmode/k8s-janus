@@ -125,6 +125,7 @@
         const r = await fetch('/api/avatar/' + encodeURIComponent(email));
         if (!r.ok) continue;
         const d = await r.json();
+        if (d.name) _peerNameCache[email.toLowerCase()] = d.name;
         document.querySelectorAll('.avatar[data-email="' + email + '"]').forEach(el => {
           el.innerHTML = '';
           if (d.photo) {
@@ -139,8 +140,18 @@
               : rawName.slice(0, 2).toUpperCase() || '?';
           }
         });
+        // Update any approver name spans for this email
+        document.querySelectorAll('[data-approver-email="' + email + '"]').forEach(el => {
+          if (d.name) { el.title = email; el.textContent = d.name + ' (' + email + ')'; }
+        });
       } catch (_) { /* ignore */ }
     }
+  }
+
+  // Return cached display name for a given email (from server-side profile store)
+  const _peerNameCache = {};
+  function _getProfileName(email) {
+    return _peerNameCache[email.toLowerCase()] || '';
   }
 
   // Wire avatar click to open modal (only own avatar)
