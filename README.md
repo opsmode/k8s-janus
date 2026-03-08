@@ -30,14 +30,16 @@
 
 ---
 
-## 🆕 What's New in v0.4.0
+## 🎉 v1.0.0 — First Stable Release
+
+K8s-Janus is production-ready. All core workflows are stable, tested, and hardened.
 
 | | |
 |-|-|
-| 🔌 | **Terminal reconnect stability** — pod re-attaches automatically after WebSocket disconnect; transient API server errors (node recycling, 500s) retried with backoff instead of falling through to logs-only |
-| 🚪 | **Withdraw button** — engineers can cancel Pending or Active requests directly from the Request Status page |
-| 🛡️ | **Terminal session isolation** — users can only open exec sessions for their own requests; admin impersonation blocked at route level |
-| ⏱️ | **TTL display fixes** — countdown only shown for Active phase; admin TTL override reflected immediately without page refresh |
+| 🔌 | **Terminal reconnect stability** — pod re-attaches automatically after WebSocket disconnect; transient API server errors retried with backoff |
+| 🚪 | **Self-service withdraw** — engineers cancel Pending or Active requests from the dashboard or Request Status page |
+| 🛡️ | **Terminal session isolation** — users can only open exec sessions for their own approved requests |
+| ⏱️ | **TTL display fixes** — countdown only shown for Active phase; TTL override reflected immediately |
 | 🔒 | **CVE patches** — Alpine base images updated (CVE-2025-60876, CVE-2026-22184, CVE-2026-27171) |
 | 🧪 | **Test suite** — 73 automated tests covering routes, auth middleware, DB layer, and input validation |
 

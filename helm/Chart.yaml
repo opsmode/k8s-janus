@@ -2,34 +2,36 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 0.4.0
-appVersion: "0.4.0"
+version: 1.0.0
+appVersion: "1.0.0"
 annotations:
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Terminal: pod re-selection on WS reconnect — previouslyselected pod now automatically re-attaches after disconnect"
-    - kind: fixed
-      description: "Terminal: noShellPods cache cleared on reconnect so transient exec failures don't permanently lock pod to logs-only view"
-    - kind: fixed
-      description: "terminal_ws: _open_shell retries up to 3x with backoff — tolerates transient API server 500s during node recycling"
-    - kind: fixed
-      description: "Terminal: Loading pods... placeholder never removed after first successful pod load"
-    - kind: fixed
-      description: "Admin/index: TTL countdown shown for Revoked/Expired phases — now gated on Active phase only"
-    - kind: fixed
-      description: "Admin: TTL override value not reflected until page refresh — approve response now returns ttlSeconds + expiresAt"
-    - kind: fixed
-      description: "Index: terminal link/button stays after cancel — removed for non-Active phases"
-    - kind: fixed
-      description: "Terminal route: admin could open another user's exec session — now 403 if caller != requester"
-    - kind: fixed
-      description: "Status page: added Withdraw button for Pending and Active requests"
-    - kind: fixed
-      description: "Header: version display changed from v0.4.0 to version 0.4.0"
-    - kind: security
-      description: "CVE fixes: apk upgrade in Alpine images (CVE-2025-60876, CVE-2026-22184, CVE-2026-27171)"
     - kind: added
-      description: "Test suite: 73 tests covering routes, auth, DB layer, and input validation"
+      description: "v1.0.0 — first stable release"
+    - kind: added
+      description: "Browser-based kubectl exec terminal with split-pane, logs, events, and quick commands"
+    - kind: added
+      description: "Multi-cluster and multi-namespace support — one approval spans multiple namespaces"
+    - kind: added
+      description: "Native OIDC/SSO — Google, GitHub, Entra ID, Okta, GitLab, custom provider"
+    - kind: added
+      description: "Self-service withdraw — engineers cancel Pending or Active requests from dashboard or status page"
+    - kind: added
+      description: "Full audit trail — every session, command, idle timeout, and revocation logged"
+    - kind: added
+      description: "PostgreSQL backend — optional persistent history across pod restarts"
+    - kind: added
+      description: "Remote cluster registration via setup wizard (CLI or browser) or GitOps Helm remote mode"
+    - kind: added
+      description: "Test suite — 73 automated tests covering routes, auth middleware, DB layer, and validation"
+    - kind: security
+      description: "Terminal session isolation — users can only exec into their own approved sessions"
+    - kind: security
+      description: "Alpine base images patched for CVE-2025-60876, CVE-2026-22184, CVE-2026-27171"
+    - kind: fixed
+      description: "Terminal reconnect stability — pod re-attaches automatically after WebSocket disconnect"
+    - kind: fixed
+      description: "TTL countdown gated on Active phase only — no longer shown for Revoked/Expired"
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/infroware/k8s-janus
