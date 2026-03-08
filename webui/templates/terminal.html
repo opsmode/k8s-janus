@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
   <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <style>
     :root {
       --bg:          #080c14;
@@ -658,6 +659,15 @@
           Split
         </button>
         <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
+        <button class="toolbar-btn" id="copy-output-btn" onclick="copyTerminalOutput()" title="Copy terminal output as text">
+          <i data-lucide="copy" style="width:13px;height:13px;"></i>
+          Copy
+        </button>
+        <button class="toolbar-btn" id="screenshot-btn" onclick="screenshotTerminal()" title="Download terminal screenshot as PNG">
+          <i data-lucide="camera" style="width:13px;height:13px;"></i>
+          Screenshot
+        </button>
+        <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
         <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:600;color:var(--text-dim);white-space:nowrap;flex-shrink:0;letter-spacing:0.03em;line-height:1.4;">
           <i data-lucide="zap" style="width:11px;height:11px;flex-shrink:0;"></i>
           Quick Commands
@@ -867,6 +877,72 @@
         } catch(_) {}
       }, 30000);
     })();
+
+    // ========================================================================
+    // ========================================================================
+    // Terminal capture helpers
+    // ========================================================================
+
+    // Returns the active pane (whichever has focus)
+    function _activePane() {
+      return (activePaneId === 'b' && paneB) ? paneB : paneA;
+    }
+
+    // Copy full terminal buffer as plain text to clipboard
+    function copyTerminalOutput() {
+      const pane = _activePane();
+      if (!pane || !pane.term) {
+        if (typeof showToast === 'function') showToast('No terminal active', 'warning');
+        return;
+      }
+      const buf = pane.term.buffer.active;
+      const lines = [];
+      for (let i = 0; i < buf.length; i++) {
+        lines.push(buf.getLine(i).translateToString(true));
+      }
+      // Strip trailing blank lines
+      while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+      const text = lines.join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        if (typeof showToast === 'function') showToast('Output copied to clipboard', 'success', 2500);
+      }).catch(() => {
+        if (typeof showToast === 'function') showToast('Clipboard access denied', 'error');
+      });
+    }
+
+    // Screenshot the active terminal canvas and download as PNG
+    async function screenshotTerminal() {
+      const pane = _activePane();
+      if (!pane || !pane.term) {
+        if (typeof showToast === 'function') showToast('No terminal active', 'warning');
+        return;
+      }
+      if (typeof html2canvas === 'undefined') {
+        if (typeof showToast === 'function') showToast('Screenshot library not loaded yet', 'warning');
+        return;
+      }
+      const btn = document.getElementById('screenshot-btn');
+      if (btn) btn.disabled = true;
+      try {
+        const canvas = await html2canvas(pane.termEl, {
+          backgroundColor: '#0a0e1a',
+          scale: window.devicePixelRatio || 1,
+          useCORS: true,
+          logging: false,
+        });
+        const pod = pane.currentPod || 'terminal';
+        const ts  = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const link = document.createElement('a');
+        link.download = `${pod}-${ts}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        if (typeof showToast === 'function') showToast('Screenshot saved', 'success', 2500);
+      } catch (e) {
+        if (typeof showToast === 'function') showToast('Screenshot failed', 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
 
     // ========================================================================
     // TermPane — one terminal pane (xterm + websocket + tabs)
