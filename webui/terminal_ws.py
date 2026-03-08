@@ -417,14 +417,15 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                 read_task = asyncio.ensure_future(_read_pod(loop, websocket, out_q, pod))
                 await websocket.send_text(f"\r\n\x1b[32mConnected to {pod} ({used_shell})\x1b[0m\r\n\r\n")
                 await websocket.send_text(json.dumps({"type": "connected", "pod": pod}))
-                # Inject a colored PS1 using printf to embed real ESC bytes.
-                # \033 = ESC, \001/\002 = readline non-printing markers (\[/\]).
-                # printf works in bash, sh, and ash — no $'...' quoting needed.
+                # Inject a colored PS1 — store escape sequences in temp vars via printf,
+                # then build PS1 with double-quoted string so \u \h \w \$ expand correctly.
+                # Tested locally: works in bash, sh, ash.
                 await asyncio.sleep(0.25)
                 _ps1 = (
-                    r"export PS1=\"$(printf '\001\033[0;36m\002')\\u@\\h$(printf '\001\033[0m\002')"
-                    r":$(printf '\001\033[0;34m\002')\\w$(printf '\001\033[0m\002')\$ \""
-                    "\r"
+                    "_c1=$(printf '\\001\\033[0;36m\\002'); "
+                    "_r=$(printf '\\001\\033[0m\\002'); "
+                    "_c2=$(printf '\\001\\033[0;34m\\002'); "
+                    "export PS1=\"${_c1}\\u@\\h${_r}:${_c2}\\w${_r}\\$ \"\r"
                 )
                 stdin_q.put(_ps1)
 
