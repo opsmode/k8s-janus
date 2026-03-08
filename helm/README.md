@@ -69,6 +69,7 @@ open http://localhost:8080/setup
 - **Quick commands** — personal per-cluster command palette, saved and replayed with one click
 - **Multi-cluster** — manage access to any number of remote clusters from one central install
 - **Multi-namespace** — single request covers multiple namespaces, namespace tab strip in terminal
+- **Self-service withdraw** — engineers cancel Pending or Active requests from the dashboard or status page
 - **Instant revoke** — terminate any active session immediately from the admin dashboard
 - **Pending auto-expiry** — auto-deny requests that go unapproved past a configurable limit
 - **Native OIDC/SSO** — Google, GitHub, Entra ID, Okta, GitLab, or any OIDC provider. No oauth2-proxy required.
@@ -76,6 +77,7 @@ open http://localhost:8080/setup
 - **PostgreSQL backend** — optional persistent request history that survives pod restarts
 - **GitOps-ready** — pure Helm, no CRD pre-install steps, ArgoCD compatible
 - **Least-privilege RBAC** — scoped to `pods/exec` only, no wildcard grants, no cluster-admin
+- **Terminal session isolation** — users can only exec into their own approved sessions
 
 ---
 

@@ -30,6 +30,19 @@
 
 ---
 
+## 🆕 What's New in v0.4.0
+
+| | |
+|-|-|
+| 🔌 | **Terminal reconnect stability** — pod re-attaches automatically after WebSocket disconnect; transient API server errors (node recycling, 500s) retried with backoff instead of falling through to logs-only |
+| 🚪 | **Withdraw button** — engineers can cancel Pending or Active requests directly from the Request Status page |
+| 🛡️ | **Terminal session isolation** — users can only open exec sessions for their own requests; admin impersonation blocked at route level |
+| ⏱️ | **TTL display fixes** — countdown only shown for Active phase; admin TTL override reflected immediately without page refresh |
+| 🔒 | **CVE patches** — Alpine base images updated (CVE-2025-60876, CVE-2026-22184, CVE-2026-27171) |
+| 🧪 | **Test suite** — 73 automated tests covering routes, auth middleware, DB layer, and input validation |
+
+---
+
 ## 🚨 The Problem
 
 In most Kubernetes environments, granting pod access means either:
@@ -55,6 +68,7 @@ In most Kubernetes environments, granting pod access means either:
 | 🏢 | **Multi-Cluster** | One instance manages multiple clusters — any distribution (GKE, EKS, AKS, on-prem, vCluster) |
 | 📦 | **Multi-Namespace** | Request access to multiple namespaces in a single CRD — one approval, namespace tab strip in terminal |
 | ✅ | **One-Click Approval** | Admins see all pending requests in the dashboard — approve, deny, or override TTL without leaving the browser |
+| 🚪 | **Self-Service Withdraw** | Engineers can cancel their own Pending or Active requests from the dashboard or request status page |
 | ⏱️ | **Auto-Cleanup** | ServiceAccount + RoleBinding + token Secret deleted automatically on TTL expiry |
 | ⚡ | **Instant Revoke** | Terminate any active session immediately from the admin dashboard |
 | ⏰ | **Pending Auto-Expiry** | Auto-deny requests that go unapproved beyond a configurable time limit |
@@ -211,9 +225,13 @@ Engineers fill in:
 - **Duration** — up to the configured `maxTtlSeconds` (default 8h)
 - **Reason** — free-text justification shown to the approver
 
-### Cancelling a pending request (engineer)
+### Cancelling / withdrawing a request (engineer)
 
-Engineers can withdraw their own **Pending** or **Active** requests from the dashboard using the Cancel button. Cancellation triggers immediate cleanup if credentials were already provisioned.
+Engineers can withdraw their own **Pending** or **Active** requests in two places:
+- **Dashboard** — Cancel button on each row
+- **Request Status page** — "Withdraw request" (Pending) or "Cancel session" (Active) button
+
+Cancellation triggers immediate cleanup if credentials were already provisioned.
 
 ### Approving with TTL override (admin)
 
