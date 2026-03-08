@@ -1209,6 +1209,8 @@ async def approve(request: Request, cluster: str, name: str):
             "approvedBy": approver,
             "approvedAt": datetime.now(timezone.utc).isoformat(),
         }
+        effective_ttl = ttl_override or ar.get("spec", {}).get("ttlSeconds", 3600)
+        expires_at = (datetime.now(timezone.utc) + timedelta(seconds=effective_ttl)).isoformat()
         if ttl_override:
             # Write override into both spec (source of truth) and status (so the controller
             # handler reads it from the same atomic event, avoiding any race window).
@@ -1221,14 +1223,16 @@ async def approve(request: Request, cluster: str, name: str):
             status_patch["ttlOverride"] = ttl_override
         _patch_status(name, status_patch)
         logger.info(f"✅ AccessRequest {name} on {cluster} Approved by {approver}"
-                    + (f" (TTL override {ttl_override}s)" if ttl_override else ""))
+                    + (f" (TTL override {ttl_override}s)" if ttl_override else "")
+                    + f" — expires {expires_at}")
         upsert_request(name, phase=Phase.APPROVED, approved_by=approver, approved_at=_now(),
                        cluster=cluster, namespace=ar.get("spec", {}).get("namespace", ""),
                        requester=ar.get("spec", {}).get("requester", ""),
-                       ttl_seconds=ttl_override or ar.get("spec", {}).get("ttlSeconds", 3600),
+                       ttl_seconds=effective_ttl,
                        created_at=_now())
         log_audit(name, "request.approved", actor=approver,
-                  detail=f"cluster={cluster}" + (f" ttl_override={ttl_override}s" if ttl_override else ""))
+                  detail=f"cluster={cluster} ttl={effective_ttl}s expires={expires_at}"
+                         + (f" ttl_override={ttl_override}s" if ttl_override else ""))
     except ApiException as e:
         logger.error(f"💥 Failed to approve AccessRequest {name}: {e}")
         return JSONResponse({"ok": False, "error": "Failed to approve request"}, status_code=500)
