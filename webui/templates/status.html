@@ -482,7 +482,7 @@
         </span>
         <span class="fact-value">{{ spec.get("reason", "—") }}</span>
 
-        {% if status.get("approvedBy") and status.get("phase") == "Approved" %}
+        {% if status.get("approvedBy") and status.get("phase") in ["Approved", "Active", "Expired", "Revoked"] %}
         <span class="fact-label">
           <i data-lucide="check-circle" style="width:12px;height:12px;"></i>
           Approved by
@@ -582,13 +582,13 @@
       {% endif %}
     </div>
 
-    <!-- ── WITHDRAW BUTTON ── -->
-    {% if can_withdraw %}
+    <!-- ── WITHDRAW BUTTON (Pending only) ── -->
+    {% if can_withdraw and status.get("phase") != "Active" %}
     <div style="margin-top:8px;margin-bottom:4px;">
       <button id="withdraw-btn" onclick="doWithdraw()"
         style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:var(--radius-sm);font-size:0.83rem;font-weight:500;cursor:pointer;transition:background 0.15s,border-color 0.15s;">
         <i data-lucide="undo-2" style="width:14px;height:14px;"></i>
-        {% if status.get("phase") == "Active" %}Cancel session{% else %}Withdraw request{% endif %}
+        Withdraw request
       </button>
     </div>
     {% endif %}
@@ -603,11 +603,20 @@
         <h2>Access Granted 🎉</h2>
       </div>
 
-      <a href="/terminal/{{ cluster }}/{{ name }}"
-         style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;text-decoration:none;box-shadow:0 2px 16px rgba(99,102,241,0.35);margin-top:4px;">
-        <i data-lucide="terminal" style="width:15px;height:15px;"></i>
-        Open Web Terminal
-      </a>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:4px;flex-wrap:wrap;">
+        <a href="/terminal/{{ cluster }}/{{ name }}"
+           style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;text-decoration:none;box-shadow:0 2px 16px rgba(99,102,241,0.35);">
+          <i data-lucide="terminal" style="width:15px;height:15px;"></i>
+          Open Web Terminal
+        </a>
+        {% if can_withdraw %}
+        <button id="withdraw-btn" onclick="doWithdraw()"
+          style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:var(--radius-sm);font-size:0.83rem;font-weight:500;cursor:pointer;transition:background 0.15s,border-color 0.15s;">
+          <i data-lucide="x" style="width:13px;height:13px;"></i>
+          Cancel session
+        </button>
+        {% endif %}
+      </div>
     </div>
     {% endif %}
 

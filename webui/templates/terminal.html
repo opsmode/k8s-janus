@@ -1202,6 +1202,7 @@
     loadPods();
     let activePaneId = 'a';
     let splitOpen = false;
+    let _cmdsEnabled = false;
 
     function setActivePane(id) {
       activePaneId = id;
@@ -1280,7 +1281,6 @@
       { label: 'exit',          command: 'exit' },
     ];
     let _userCmds = [];   // {id, label, command} from API / localStorage
-    let _cmdsEnabled = false;
 
     const _LS_KEY = 'k8s_janus_quick_cmds';
     const _SEEDED_KEY = 'k8s_janus_cmds_seeded';
