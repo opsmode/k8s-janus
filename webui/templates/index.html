@@ -534,62 +534,80 @@
 
     /* ── CANCEL BUTTON ── */
     .cancel-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: transparent;
-      border: 1px solid rgba(167,139,250,0.3);
-      color: #c4b5fd;
-      border-radius: 5px;
-      padding: 3px 9px;
-      font-size: 0.72rem;
-      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+      background: transparent; border: 1px solid rgba(167,139,250,0.3); color: #c4b5fd;
+      border-radius: 5px; padding: 3px 9px; font-size: 0.72rem; cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
     .cancel-btn:hover { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.6); }
 
     /* ── REVOKE BUTTON ── */
     .revoke-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: transparent;
-      border: 1px solid rgba(239,68,68,0.35);
-      color: #f87171;
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+      background: transparent; border: 1px solid rgba(239,68,68,0.35); color: #f87171;
+      padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer;
       transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
-    .revoke-btn:hover {
-      background: rgba(239,68,68,0.15);
-      border-color: rgba(239,68,68,0.6);
-      color: #fca5a5;
-    }
+    .revoke-btn:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.6); color: #fca5a5; }
 
     /* ── EMPTY STATE ── */
     .empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      padding: 48px 24px;
-      color: var(--text-dim);
-      font-size: 0.85rem;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 10px; padding: 48px 24px; color: var(--text-dim); font-size: 0.85rem;
     }
     .empty svg { color: var(--border-light); }
 
     /* ── MISC ── */
     .section-meta {
-      margin-left: auto;
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      display: flex;
-      align-items: center;
-      gap: 5px;
+      margin-left: auto; font-size: 0.75rem; color: var(--text-dim);
+      display: flex; align-items: center; gap: 5px;
     }
+
+    /* ── DETAIL PANEL ── */
+    .detail-row { background: var(--surface-2); }
+    .detail-row td { padding: 0; border-bottom: 2px solid var(--border); }
+    .detail-panel {
+      padding: 16px 20px; display: grid;
+      grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+    }
+    .detail-section { display: flex; flex-direction: column; gap: 4px; }
+    .detail-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-dim); }
+    .detail-value { font-size: 0.82rem; color: var(--text-muted); }
+    .ns-chip {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; padding: 1px 6px;
+      background: var(--surface-3); border: 1px solid var(--border); border-radius: 3px; margin: 1px;
+    }
+    .detail-actions { grid-column: 1/-1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border); }
+
+    /* ── DETAIL TOGGLE BUTTON ── */
+    .detail-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-dim); border-radius: 5px; padding: 3px 8px;
+      font-size: 0.72rem; cursor: pointer; transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+    }
+    .detail-btn:hover { color: var(--text); border-color: var(--border-light); }
+    .detail-btn.open { color: var(--accent); border-color: rgba(99,102,241,0.4); }
+
+    /* ── PAGINATION ── */
+    .pagination-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0 4px; font-size: 0.8rem; color: var(--text-dim); flex-wrap: wrap; gap: 8px;
+    }
+    .pagination-bar .pg-info { display: flex; align-items: center; gap: 8px; }
+    .pagination-bar .pg-pages { display: flex; align-items: center; gap: 4px; }
+    .pg-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 28px; height: 28px; padding: 0 6px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-dim); font-size: 0.78rem;
+      cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .pg-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-light); background: var(--surface-3); }
+    .pg-btn:disabled { opacity: 0.35; cursor: default; }
+    .pg-btn.active { background: var(--accent); border-color: transparent; color: #fff; }
+    .pg-per-page { display: flex; align-items: center; gap: 6px; }
   </style>
 </head>
 <body>
@@ -698,20 +716,18 @@
 
       {% if access_requests %}
       <div class="table-wrap">
-        <table>
+        <table id="my-requests-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Requester</th>
-              <th>Cluster</th>
-              <th>Namespace</th>
-              <th>Duration</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Action</th>
+              <th style="width:40%">Request</th>
+              <th style="width:18%">Cluster</th>
+              <th style="width:10%">TTL</th>
+              <th style="width:12%">Status</th>
+              <th style="width:12%">Created</th>
+              <th style="width:8%"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="my-requests-tbody">
             {% for ar in access_requests %}
             {% set spec = ar.get("spec", {}) %}
             {% set st = ar.get("status", {}) %}
@@ -719,59 +735,71 @@
             {% set ttl = spec.get("ttlSeconds", 3600) %}
             {% set ar_cluster = ar.get("_cluster", "") %}
             {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
-            <tr>
-              <td><a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}">{{ ar.metadata.name }}</a></td>
-              <td>{{ spec.get("requester", "—") }}</td>
-              <td><code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);">{{ ar_cluster_display }}</code></td>
-              <td style="max-width:220px;">
-                {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
-                <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;">
-                  {% for ns in nss %}<code style="white-space:nowrap;font-size:0.72rem;">{{ ns }}</code>{% endfor %}
-                  {% if not nss %}<span>—</span>{% endif %}
+            {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
+            {% set requester = spec.get("requester", "—") %}
+            <tr class="my-req-row"
+                data-name="{{ ar.metadata.name }}"
+                data-phase="{{ phase }}"
+                data-ts="{{ ar.metadata.creationTimestamp }}">
+              <td style="max-width:0;overflow:hidden;">
+                <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
+                  <span style="font-size:0.75rem;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ requester }}</span>
                 </div>
               </td>
-              <td>
+              <td style="white-space:nowrap;">
+                <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);">{{ ar_cluster_display }}</code>
+              </td>
+              <td style="white-space:nowrap;font-size:0.82rem;">
                 {% if phase == "Active" and st.get("expiresAt") %}
                   <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
                 {% else %}
-                  {{ (ttl // 3600) }}h {{ ((ttl % 3600) // 60) }}m
+                  {{ (ttl // 3600) }}h{% if (ttl % 3600) // 60 %} {{ (ttl % 3600) // 60 }}m{% endif %}
                 {% endif %}
               </td>
               <td>
                 <span class="badge badge-{{ phase | lower }}">
-                  <span class="badge-dot"></span>
-                  {{ phase }}
+                  <span class="badge-dot"></span>{{ phase }}
                 </span>
               </td>
-              <td>{{ ar.metadata.creationTimestamp | to_berlin }}</td>
+              <td style="white-space:nowrap;font-size:0.78rem;">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
               <td>
-                {% set requester = spec.get("requester", "") %}
-                {% if phase in ("Active", "Approved", "Pending") %}
-                <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                  {% if phase in ("Pending", "Active") %}
-                  <button class="cancel-btn" onclick="cancelRequest('{{ ar_cluster }}', '{{ ar.metadata.name }}', '{{ phase }}', this)">
-                    <i data-lucide="x-circle" style="width:12px;height:12px;"></i>
-                    Cancel
-                  </button>
-                  {% endif %}
-                  {% if is_admin %}
-                  <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
-                    onsubmit="return confirm('Revoke access for {{ requester }}?')">
-                    <button type="submit" class="revoke-btn">
-                      <i data-lucide="shield-off" style="width:12px;height:12px;"></i>
-                      Revoke
-                    </button>
-                  </form>
-                  {% endif %}
-                </div>
-                {% else %}
-                <span style="color:var(--text-dim);">—</span>
-                {% endif %}
+                <button class="detail-btn" id="my-detail-btn-{{ ar.metadata.name }}"
+                  data-name="{{ ar.metadata.name }}"
+                  data-cluster="{{ ar_cluster }}"
+                  data-cluster-display="{{ ar_cluster_display }}"
+                  data-requester="{{ requester }}"
+                  data-namespaces="{{ nss | tojson | e }}"
+                  data-phase="{{ phase }}"
+                  data-ttl="{{ ttl }}"
+                  data-expires="{{ st.get('expiresAt','') }}"
+                  data-reason="{{ (spec.get('reason','') or '') | e }}"
+                  data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
+                  onclick="toggleMyDetailBtn(this)">
+                  <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
+                  Details
+                </button>
               </td>
             </tr>
+            <!-- detail injected by JS -->
             {% endfor %}
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination bar -->
+      <div class="pagination-bar" id="my-pagination-bar">
+        <div class="pg-info"><span id="my-pg-info-text"></span></div>
+        <div class="pg-pages" id="my-pg-pages"></div>
+        <div class="pg-per-page">
+          <span style="color:var(--text-dim);">Per page:</span>
+          <select class="filter-select" id="my-per-page-sel" onchange="mySetPerPage(this.value)"
+            style="width:auto;padding:4px 8px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:0.8rem;outline:none;">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
       </div>
       {% else %}
       <div class="empty">
@@ -807,6 +835,133 @@
   <script>
     lucide.createIcons();
 
+    // ── My Requests pagination + detail ──
+    var _myAllRows = [], _myFilteredRows = [], _myPage = 1, _myPerPage = 25, _myOpenDetail = null;
+
+    function _myGetAllRows() { return Array.from(document.querySelectorAll('#my-requests-tbody tr.my-req-row')); }
+
+    function myRenderPage() {
+      var total = _myFilteredRows.length;
+      var totalPages = Math.max(1, Math.ceil(total / _myPerPage));
+      if (_myPage > totalPages) _myPage = totalPages;
+      var start = (_myPage - 1) * _myPerPage, end = Math.min(start + _myPerPage, total);
+      _myAllRows.forEach(function(r) { r.style.display = 'none'; });
+      _myFilteredRows.forEach(function(r, i) { r.style.display = (i >= start && i < end) ? '' : 'none'; });
+      var bar = document.getElementById('my-pagination-bar');
+      var infoEl = document.getElementById('my-pg-info-text');
+      var pgPages = document.getElementById('my-pg-pages');
+      if (infoEl) infoEl.textContent = total === 0 ? '' : 'Showing ' + (start+1) + '–' + end + ' of ' + total;
+      if (!pgPages || !bar) return;
+      pgPages.innerHTML = '';
+      if (totalPages <= 1) { bar.style.display = 'none'; return; }
+      bar.style.display = 'flex';
+      function mkBtn(label, page, isActive, isDisabled) {
+        var b = document.createElement('button');
+        b.className = 'pg-btn' + (isActive ? ' active' : '');
+        b.textContent = label; b.disabled = isDisabled;
+        if (!isDisabled) b.onclick = function() { _myPage = page; myCloseDetail(); myRenderPage(); };
+        return b;
+      }
+      pgPages.appendChild(mkBtn('‹', _myPage-1, false, _myPage===1));
+      var ws = Math.max(1, _myPage-2), we = Math.min(totalPages, _myPage+2);
+      if (ws > 1) { pgPages.appendChild(mkBtn('1', 1, false, false)); if (ws > 2) { var e = document.createElement('span'); e.textContent='…'; e.style.cssText='padding:0 4px;color:var(--text-dim);'; pgPages.appendChild(e); } }
+      for (var p = ws; p <= we; p++) pgPages.appendChild(mkBtn(p, p, p===_myPage, p===_myPage));
+      if (we < totalPages) { if (we < totalPages-1) { var e2 = document.createElement('span'); e2.textContent='…'; e2.style.cssText='padding:0 4px;color:var(--text-dim);'; pgPages.appendChild(e2); } pgPages.appendChild(mkBtn(totalPages, totalPages, false, false)); }
+      pgPages.appendChild(mkBtn('›', _myPage+1, false, _myPage===totalPages));
+    }
+
+    function mySetPerPage(val) { _myPerPage = parseInt(val); _myPage = 1; myCloseDetail(); myRenderPage(); }
+
+    function toggleMyDetailBtn(btn) {
+      var d = btn.dataset;
+      var nss = JSON.parse(d.namespaces || '[]');
+      toggleMyDetail(d.name, d.cluster, d.clusterDisplay, d.requester, nss, d.phase, d.ttl, d.expires, d.reason, d.approvedBy, btn);
+    }
+
+    function myCloseDetail() {
+      if (_myOpenDetail) {
+        var ex = document.getElementById('my-detail-row-' + _myOpenDetail);
+        if (ex) ex.remove();
+        var btn = document.getElementById('my-detail-btn-' + _myOpenDetail);
+        if (btn) { btn.classList.remove('open'); var ic = btn.querySelector('i'); if (ic) ic.style.transform = ''; }
+        _myOpenDetail = null;
+      }
+    }
+
+    function toggleMyDetail(name, cluster, clusterDisplay, requester, namespaces, phase, ttl, expiresAt, reason, approvedBy, btn) {
+      if (_myOpenDetail === name) { myCloseDetail(); return; }
+      myCloseDetail();
+      _myOpenDetail = name;
+      btn.classList.add('open');
+      var icon = btn.querySelector('i'); if (icon) icon.style.transform = 'rotate(180deg)';
+
+      var nsHtml = namespaces.map(function(n) { return '<span class="ns-chip">'+n+'</span>'; }).join('');
+      var ttlNum = parseInt(ttl) || 3600;
+      var h = Math.floor(ttlNum/3600), m = Math.floor((ttlNum%3600)/60);
+      var ttlStr = expiresAt
+        ? '<span class="ttl-remaining" data-expires="'+expiresAt+'">…</span>'
+        : (h && m ? h+'h '+m+'m' : h ? h+'h' : m+'m');
+
+      var actionsHtml = '';
+      if (phase === 'Pending' || phase === 'Active') {
+        actionsHtml = '<button class="cancel-btn" onclick="cancelRequest(\''+cluster+'\',\''+name+'\',\''+phase+'\',this)">'
+          +'<i data-lucide="x-circle" style="width:12px;height:12px;"></i> Cancel</button>';
+      }
+      {% if is_admin %}
+      if (phase === 'Active' || phase === 'Approved') {
+        actionsHtml += '<form method="POST" action="/revoke/'+cluster+'/'+name+'" style="display:inline"'
+          +' onsubmit="return confirm(\'Revoke access for '+requester+'?\')">'
+          +'<button type="submit" class="revoke-btn"><i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button></form>';
+      }
+      {% endif %}
+
+      var panelHtml =
+        '<div class="detail-panel">'
+        +'<div class="detail-section"><span class="detail-label">Request ID</span>'
+        +'<span class="detail-value"><a href="/status/'+cluster+'/'+name+'" style="color:var(--accent);font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;">'+name+'</a></span></div>'
+        +'<div class="detail-section"><span class="detail-label">Requester</span><span class="detail-value">'+requester+'</span></div>'
+        +'<div class="detail-section"><span class="detail-label">Cluster</span>'
+        +'<span class="detail-value"><code style="color:#fb923c;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);">'+clusterDisplay+'</code></span></div>'
+        +'<div class="detail-section" style="grid-column:1/-1;"><span class="detail-label">Namespaces ('+namespaces.length+')</span>'
+        +'<div style="margin-top:4px;">'+nsHtml+'</div></div>'
+        +(reason ? '<div class="detail-section" style="grid-column:1/-1;"><span class="detail-label">Reason</span><span class="detail-value" style="font-style:italic;">'+reason+'</span></div>' : '')
+        +'<div class="detail-section"><span class="detail-label">TTL / Remaining</span><span class="detail-value">'+ttlStr+'</span></div>'
+        +(approvedBy ? '<div class="detail-section"><span class="detail-label">Approved by</span><span class="detail-value">'+approvedBy+'</span></div>' : '')
+        +(actionsHtml ? '<div class="detail-actions">'+actionsHtml+'</div>' : '')
+        +'</div>';
+
+      var row = document.querySelector('tr.my-req-row[data-name="'+name+'"]');
+      var detailRow = document.createElement('tr');
+      detailRow.id = 'my-detail-row-' + name;
+      detailRow.className = 'detail-row';
+      detailRow.innerHTML = '<td colspan="6">'+panelHtml+'</td>';
+      row.insertAdjacentElement('afterend', detailRow);
+      lucide.createIcons({ nodes: [detailRow] });
+      updateTtlRemaining();
+    }
+
+    // TTL remaining countdown for Active requests
+    function updateTtlRemaining() {
+      document.querySelectorAll('.ttl-remaining').forEach(function(el) {
+        var expires = new Date(el.dataset.expires);
+        var diff = Math.floor((expires - Date.now()) / 1000);
+        if (diff <= 0) {
+          el.textContent = 'Expired'; el.style.color = 'var(--danger)';
+        } else {
+          var h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+          el.textContent = h > 0 ? h + 'h ' + m + 'm left' : m + 'm ' + s + 's left';
+          el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--success)';
+        }
+      });
+    }
+    updateTtlRemaining();
+    setInterval(updateTtlRemaining, 1000);
+
+    // Init pagination
+    _myAllRows = _myGetAllRows();
+    _myFilteredRows = _myAllRows.slice();
+    myRenderPage();
+
     async function cancelRequest(cluster, name, phase, btn) {
       var label = phase === 'Active' ? 'Cancel your active session?' : 'Cancel this pending request?';
       if (!confirm(label)) return;
@@ -816,10 +971,14 @@
         var resp = await fetch('/cancel/' + cluster + '/' + name, { method: 'POST' });
         var data = await resp.json();
         if (data.ok) {
-          var row = btn.closest('tr');
-          var badge = row ? row.querySelector('.badge') : null;
-          if (badge) { badge.className = 'badge badge-cancelled'; badge.innerHTML = '<span class="badge-dot"></span>Cancelled'; }
-          btn.closest('td').innerHTML = '<span style="color:var(--text-dim);">—</span>';
+          // Update badge on the summary row
+          var row = document.querySelector('tr.my-req-row[data-name="'+name+'"]');
+          if (row) {
+            var badge = row.querySelector('.badge');
+            if (badge) { badge.className = 'badge badge-cancelled'; badge.innerHTML = '<span class="badge-dot"></span>Cancelled'; }
+            row.dataset.phase = 'Cancelled';
+          }
+          myCloseDetail();
           lucide.createIcons();
         } else {
           alert('Cancel failed: ' + (data.error || 'unknown error'));
@@ -831,32 +990,6 @@
         btn.disabled = false;
         btn.textContent = 'Cancel';
       }
-    }
-
-    // TTL remaining countdown for Active requests
-    var _ttlInterval = null;
-    function updateTtlRemaining() {
-      var allExpired = true;
-      document.querySelectorAll('.ttl-remaining').forEach(el => {
-        var expires = new Date(el.dataset.expires);
-        var diff = Math.floor((expires - Date.now()) / 1000);
-        if (diff <= 0) {
-          el.textContent = 'Expired';
-          el.style.color = 'var(--danger)';
-        } else {
-          allExpired = false;
-          var h = Math.floor(diff / 3600);
-          var m = Math.floor((diff % 3600) / 60);
-          var s = diff % 60;
-          el.textContent = h > 0 ? h + 'h ' + m + 'm left' : m + 'm ' + s + 's left';
-          el.style.color = diff < 300 ? 'var(--danger)' : diff < 900 ? 'var(--warning)' : 'var(--success)';
-        }
-      });
-      if (allExpired && _ttlInterval) { clearInterval(_ttlInterval); _ttlInterval = null; }
-    }
-    if (document.querySelector('.ttl-remaining')) {
-      updateTtlRemaining();
-      _ttlInterval = setInterval(updateTtlRemaining, 1000);
     }
 
     // ── Single cluster, multi-NS selector ──

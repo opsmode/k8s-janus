@@ -1482,6 +1482,32 @@ async def api_requests_count(request: Request):
     return JSONResponse({"count": len(reqs)})
 
 
+@app.get("/api/requests")
+async def api_get_requests(request: Request):
+    """Returns all access requests as JSON for admin live-update."""
+    if _require_admin(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    reqs = list_access_requests()
+    result = []
+    for ar in reqs:
+        spec   = ar.get("spec", {})
+        status = ar.get("status", {})
+        result.append({
+            "name":        ar["metadata"]["name"],
+            "cluster":     ar.get("_cluster", ""),
+            "clusterDisplay": ar.get("_clusterDisplay", ar.get("_cluster", "")),
+            "requester":   spec.get("requester", ""),
+            "namespaces":  spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []),
+            "reason":      spec.get("reason", ""),
+            "ttlSeconds":  spec.get("ttlSeconds", 3600),
+            "phase":       status.get("phase", "Pending"),
+            "approvedBy":  status.get("approvedBy", ""),
+            "expiresAt":   status.get("expiresAt", ""),
+            "createdAt":   ar["metadata"].get("creationTimestamp", ""),
+        })
+    return JSONResponse({"requests": result})
+
+
 # ---------------------------------------------------------------------------
 # User quick commands CRUD
 # ---------------------------------------------------------------------------

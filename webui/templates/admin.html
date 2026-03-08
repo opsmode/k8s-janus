@@ -442,6 +442,56 @@
     #refresh-btn.spinning #refresh-icon { animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── DETAIL PANEL (slide-in under row) ── */
+    .detail-row { background: var(--surface-2); }
+    .detail-row td { padding: 0; border-bottom: 2px solid var(--border); }
+    .detail-panel {
+      padding: 16px 20px; display: grid;
+      grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+    }
+    .detail-section { display: flex; flex-direction: column; gap: 4px; }
+    .detail-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-dim); }
+    .detail-value { font-size: 0.82rem; color: var(--text-muted); }
+    .ns-chip {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; padding: 1px 6px;
+      background: var(--surface-3); border: 1px solid var(--border);
+      border-radius: 3px; margin: 1px;
+    }
+    .detail-actions { grid-column: 1/-1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border); }
+
+    /* ── DETAIL TOGGLE BUTTON ── */
+    .detail-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-dim); border-radius: 5px; padding: 3px 8px;
+      font-size: 0.72rem; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .detail-btn:hover { color: var(--text); border-color: var(--border-light); }
+    .detail-btn.open { color: var(--accent); border-color: rgba(99,102,241,0.4); }
+
+    /* ── PAGINATION ── */
+    .pagination-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0 4px; font-size: 0.8rem; color: var(--text-dim); flex-wrap: wrap; gap: 8px;
+    }
+    .pagination-bar .pg-info { display: flex; align-items: center; gap: 8px; }
+    .pagination-bar .pg-pages { display: flex; align-items: center; gap: 4px; }
+    .pg-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 28px; height: 28px; padding: 0 6px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-dim); font-size: 0.78rem;
+      cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .pg-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-light); background: var(--surface-3); }
+    .pg-btn:disabled { opacity: 0.35; cursor: default; }
+    .pg-btn.active { background: var(--accent); border-color: transparent; color: #fff; }
+    .pg-per-page {
+      display: flex; align-items: center; gap: 6px;
+    }
+
     /* ── AUDIT LOG ── */
     .audit-event {
       display: inline-block;
@@ -558,23 +608,16 @@
 
       {% if access_requests %}
       <div id="requests-container">
-        {# Group by date bucket server-side #}
-        {% set ns = namespace(today=[], yesterday=[], week=[], older=[]) %}
-        {% for ar in access_requests %}
-          {% set ts = ar.metadata.creationTimestamp %}
-          {# Use data attributes on rows — grouping done in JS for accuracy #}
-        {% endfor %}
-
         <div class="table-wrap">
           <table id="requests-table">
             <thead>
               <tr>
-                <th>Requester</th>
-                <th>Cluster · Namespace</th>
-                <th>TTL / Remaining</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Action</th>
+                <th style="width:38%">Requester</th>
+                <th style="width:18%">Cluster</th>
+                <th style="width:10%">TTL</th>
+                <th style="width:10%">Status</th>
+                <th style="width:14%">Created</th>
+                <th style="width:10%"></th>
               </tr>
             </thead>
             <tbody id="requests-tbody">
@@ -586,101 +629,77 @@
               {% set ar_cluster = ar.get("_cluster", "") %}
               {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
               {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
+              {% set requester = spec.get("requester", "—") %}
               <tr class="req-row"
-                  data-requester="{{ spec.get('requester', '') | lower }}"
-                  data-namespace="{{ spec.get('namespace', '') | lower }}"
+                  data-name="{{ ar.metadata.name }}"
+                  data-requester="{{ requester | lower }}"
+                  data-namespace="{{ (nss | join(' ')) | lower }}"
                   data-cluster="{{ ar_cluster }}"
                   data-phase="{{ phase }}"
                   data-ts="{{ ar.metadata.creationTimestamp }}">
-                <td>
-                  <a href="/status/{{ ar_cluster }}/{{ ar.metadata.name }}"
-                     style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);display:block;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;"
-                     title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</a>
-                  <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:block;"
-                        title="{{ spec.get('requester', '—') }}">{{ spec.get("requester", "—") }}</span>
-                </td>
-                <td style="max-width:220px;overflow:hidden;">
-                  <div style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">
-                    <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom;" title="{{ ar_cluster_display }}">{{ ar_cluster_display }}</code>
-                  </div>
-                  <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;max-width:220px;">
-                    {% for ns in nss %}<code style="font-size:0.7rem;white-space:nowrap;background:var(--surface-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">{{ ns }}</code>{% endfor %}
+                <td style="max-width:0;overflow:hidden;">
+                  <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
+                    <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ requester }}">{{ requester }}</span>
                   </div>
                 </td>
-                <td style="white-space:nowrap;min-width:110px;">
+                <td style="white-space:nowrap;">
+                  <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);" title="{{ ar_cluster_display }}">{{ ar_cluster_display }}</code>
+                </td>
+                <td style="white-space:nowrap;">
                   {% if phase == "Active" and st.get("expiresAt") %}
                     <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
                   {% else %}
-                    {{ (ttl // 3600) }}h {{ ((ttl % 3600) // 60) }}m
+                    {{ (ttl // 3600) }}h{% if (ttl % 3600) // 60 %} {{ (ttl % 3600) // 60 }}m{% endif %}
                   {% endif %}
                 </td>
                 <td>
                   <span class="badge badge-{{ phase | lower }}">
-                    <span class="badge-dot"></span>
-                    {{ phase }}
+                    <span class="badge-dot"></span>{{ phase }}
                   </span>
                 </td>
                 <td style="white-space:nowrap;font-size:0.78rem;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
                 <td>
-                  {% set requester = spec.get("requester", "") %}
-                  {% if phase == "Pending" %}
-                  <div class="action-cell" id="actions-{{ ar.metadata.name }}">
-                    <div class="extend-wrap" id="approve-wrap-{{ ar.metadata.name }}" style="display:flex;align-items:center;gap:4px;">
-                      <button class="action-btn approve-btn"
-                        onclick="inlineApprove('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
-                        <i data-lucide="check" style="width:12px;height:12px;"></i>
-                        Approve
-                      </button>
-                      <select id="approve-ttl-{{ ar.metadata.name }}"
-                        style="font-size:0.72rem;background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);border-radius:4px;padding:2px 4px;cursor:pointer;"
-                        title="TTL override (optional)">
-                        <option value="">keep TTL</option>
-                        {% for secs in approval_ttl_options %}
-                        {% set h = secs // 3600 %}{% set m = (secs % 3600) // 60 %}
-                        <option value="{{ secs }}">{% if h and m %}{{ h }}h{{ m }}m{% elif h %}{{ h }}h{% else %}{{ m }}m{% endif %}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                    <button class="action-btn deny-btn"
-                      onclick="inlineDeny('{{ ar_cluster }}', '{{ ar.metadata.name }}', this)">
-                      <i data-lucide="x" style="width:12px;height:12px;"></i>
-                      Deny
-                    </button>
-                  </div>
-                  {% elif phase in ("Active", "Approved") %}
-                  <div class="action-cell" id="actions-{{ ar.metadata.name }}">
-                    {% if phase == "Active" %}
-                    <div class="extend-wrap" id="extend-wrap-{{ ar.metadata.name }}">
-                      <button class="action-btn extend-btn"
-                        onclick="toggleExtend('{{ ar.metadata.name }}', '{{ ar_cluster }}', event)">
-                        <i data-lucide="clock-4" style="width:12px;height:12px;"></i>
-                        Extend
-                      </button>
-                      <div class="extend-menu" id="extend-menu-{{ ar.metadata.name }}">
-                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',3600,this)">+1h</button>
-                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',7200,this)">+2h</button>
-                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',14400,this)">+4h</button>
-                        <button onclick="doExtend('{{ ar.metadata.name }}','{{ ar_cluster }}',28800,this)">+8h</button>
-                      </div>
-                    </div>
-                    {% endif %}
-                    <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
-                      onsubmit="return confirm('Revoke access for {{ requester }}?')">
-                      <button type="submit" class="action-btn revoke-btn">
-                        <i data-lucide="shield-off" style="width:12px;height:12px;"></i>
-                        Revoke
-                      </button>
-                    </form>
-                  </div>
-                  {% else %}
-                  <span style="color:var(--text-dim);">—</span>
-                  {% endif %}
+                  <button class="detail-btn" id="detail-btn-{{ ar.metadata.name }}"
+                    data-name="{{ ar.metadata.name }}"
+                    data-cluster="{{ ar_cluster }}"
+                    data-cluster-display="{{ ar_cluster_display }}"
+                    data-requester="{{ requester }}"
+                    data-namespaces="{{ nss | tojson | e }}"
+                    data-phase="{{ phase }}"
+                    data-ttl="{{ ttl }}"
+                    data-expires="{{ st.get('expiresAt','') }}"
+                    data-reason="{{ (spec.get('reason','') or '') | e }}"
+                    data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
+                    onclick="toggleDetailBtn(this)">
+                    <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
+                    Details
+                  </button>
                 </td>
               </tr>
+              <!-- detail row injected by JS -->
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination bar -->
+        <div class="pagination-bar" id="pagination-bar">
+          <div class="pg-info">
+            <span id="pg-info-text"></span>
+          </div>
+          <div class="pg-pages" id="pg-pages"></div>
+          <div class="pg-per-page">
+            <span style="color:var(--text-dim);">Per page:</span>
+            <select class="filter-select" id="per-page-sel" onchange="setPerPage(this.value)" style="width:auto;padding:4px 8px;">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+
         <div id="no-results">
           <i data-lucide="search-x" style="width:32px;height:32px;margin-bottom:8px;"></i><br>
           No requests match your filters
@@ -752,151 +771,228 @@
         }
       });
     }
-    if (document.querySelector('.ttl-remaining')) {
-      updateTtlRemaining();
-      setInterval(updateTtlRemaining, 1000);
+    setInterval(updateTtlRemaining, 1000);
+    updateTtlRemaining();
+
+    // ── Pagination + filter state ──
+    var _allRows = [];
+    var _filteredRows = [];
+    var _currentPage = 1;
+    var _perPage = 25;
+    var _openDetail = null; // name of currently open detail row
+
+    function _getAllRows() {
+      return Array.from(document.querySelectorAll('#requests-tbody tr.req-row'));
     }
-
-    // ── Date grouping ──
-    function dateBucket(tsStr) {
-      var d = new Date(tsStr);
-      var now = new Date();
-      var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var yesterdayStart = new Date(todayStart - 86400000);
-      var weekStart = new Date(todayStart - 6 * 86400000);
-      if (d >= todayStart)      return 'today';
-      if (d >= yesterdayStart)  return 'yesterday';
-      if (d >= weekStart)       return 'this-week';
-      return 'older';
-    }
-
-    var BUCKET_LABELS = {
-      'today':     'Today',
-      'yesterday': 'Yesterday',
-      'this-week': 'This Week',
-      'older':     'Older',
-    };
-    var BUCKET_ORDER = ['today', 'yesterday', 'this-week', 'older'];
-
-    function buildGroups() {
-      var tbody = document.getElementById('requests-tbody');
-      var rows = Array.from(tbody.querySelectorAll('tr.req-row'));
-
-      // Remove existing group wrappers (re-render on filter)
-      tbody.innerHTML = '';
-
-      // Group rows by bucket
-      var groups = {};
-      BUCKET_ORDER.forEach(b => groups[b] = []);
-      rows.forEach(row => {
-        var ts = row.dataset.ts;
-        groups[dateBucket(ts)].push(row);
-      });
-
-      var totalVisible = 0;
-      BUCKET_ORDER.forEach(bucket => {
-        var bucketRows = groups[bucket].filter(r => !r.classList.contains('hidden'));
-        if (bucketRows.length === 0) return;
-        totalVisible += bucketRows.length;
-
-        // Group header row
-        var headerRow = document.createElement('tr');
-        headerRow.className = 'group-header-row';
-        headerRow.innerHTML = `<td colspan="9" style="padding:14px 12px 4px;background:transparent;border-bottom:1px solid var(--border);">
-          <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="toggleGroup('${bucket}')">
-            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);">${BUCKET_LABELS[bucket]}</span>
-            <span id="count-${bucket}" style="font-size:0.7rem;background:var(--surface-3);border:1px solid var(--border);border-radius:10px;padding:1px 7px;color:var(--text-dim);">${bucketRows.length}</span>
-            <i data-lucide="chevron-down" id="chevron-${bucket}" style="width:13px;height:13px;color:var(--text-dim);margin-left:auto;transition:transform 0.2s;"></i>
-          </div>
-        </td>`;
-        tbody.appendChild(headerRow);
-
-        bucketRows.forEach(row => {
-          row.dataset.bucket = bucket;
-          tbody.appendChild(row);
-        });
-      });
-
-      // Update total count
-      var total = rows.filter(r => !r.classList.contains('hidden')).length;
-      document.getElementById('count-text').textContent = total + ' request' + (total !== 1 ? 's' : '');
-
-      // No results message
-      document.getElementById('no-results').style.display = total === 0 ? 'block' : 'none';
-
-      lucide.createIcons();
-    }
-
-    function toggleGroup(bucket) {
-      var chevron = document.getElementById('chevron-' + bucket);
-      var rows = document.querySelectorAll('[data-bucket="' + bucket + '"]');
-      var collapsed = chevron.style.transform === 'rotate(-90deg)';
-      chevron.style.transform = collapsed ? '' : 'rotate(-90deg)';
-      rows.forEach(r => r.style.display = collapsed ? '' : 'none');
-    }
-
-    // ── Filtering ──
-    var _allRows = null;
 
     function applyFilters() {
-      if (!_allRows) {
-        _allRows = Array.from(document.querySelectorAll('tr.req-row'));
-      }
-      var text = document.getElementById('filter-text').value.toLowerCase().trim();
+      _allRows = _getAllRows();
+      var text    = document.getElementById('filter-text').value.toLowerCase().trim();
       var cluster = document.getElementById('filter-cluster').value;
-      var phase = document.getElementById('filter-phase').value;
+      var phase   = document.getElementById('filter-phase').value;
 
-      _allRows.forEach(row => {
-        var match =
-          (!text    || row.dataset.requester.includes(text) || row.dataset.namespace.includes(text) || row.querySelector('a').textContent.toLowerCase().includes(text)) &&
-          (!cluster || row.dataset.cluster === cluster) &&
-          (!phase   || row.dataset.phase === phase);
-        row.classList.toggle('hidden', !match);
+      _filteredRows = _allRows.filter(function(row) {
+        return (!text    || row.dataset.requester.includes(text) || row.dataset.namespace.includes(text) || row.dataset.name.toLowerCase().includes(text)) &&
+               (!cluster || row.dataset.cluster === cluster) &&
+               (!phase   || row.dataset.phase === phase);
       });
 
-      buildGroups();
+      _currentPage = 1;
+      closeDetail();
+      renderPage();
+    }
+
+    function renderPage() {
+      var total = _filteredRows.length;
+      var totalPages = Math.max(1, Math.ceil(total / _perPage));
+      if (_currentPage > totalPages) _currentPage = totalPages;
+
+      var start = (_currentPage - 1) * _perPage;
+      var end   = Math.min(start + _perPage, total);
+
+      // Hide all, show only page slice
+      _allRows.forEach(function(r) { r.style.display = 'none'; });
+      _filteredRows.forEach(function(r, i) {
+        r.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+
+      // Count text
+      document.getElementById('count-text').textContent = total + ' request' + (total !== 1 ? 's' : '');
+
+      // No results
+      document.getElementById('no-results').style.display = total === 0 ? 'block' : 'none';
+
+      // Pagination info
+      document.getElementById('pg-info-text').textContent = total === 0 ? '' :
+        'Showing ' + (start + 1) + '–' + end + ' of ' + total;
+
+      // Pagination buttons
+      var pgPages = document.getElementById('pg-pages');
+      pgPages.innerHTML = '';
+      if (totalPages <= 1) { document.getElementById('pagination-bar').style.display = 'none'; return; }
+      document.getElementById('pagination-bar').style.display = 'flex';
+
+      function mkBtn(label, page, isActive, isDisabled) {
+        var b = document.createElement('button');
+        b.className = 'pg-btn' + (isActive ? ' active' : '');
+        b.textContent = label;
+        b.disabled = isDisabled;
+        if (!isDisabled) b.onclick = function() { _currentPage = page; closeDetail(); renderPage(); };
+        return b;
+      }
+
+      pgPages.appendChild(mkBtn('‹', _currentPage - 1, false, _currentPage === 1));
+      // Show window of pages
+      var winStart = Math.max(1, _currentPage - 2);
+      var winEnd   = Math.min(totalPages, _currentPage + 2);
+      if (winStart > 1) { pgPages.appendChild(mkBtn('1', 1, false, false)); if (winStart > 2) { var e = document.createElement('span'); e.textContent = '…'; e.style.cssText = 'padding:0 4px;color:var(--text-dim);'; pgPages.appendChild(e); } }
+      for (var p = winStart; p <= winEnd; p++) { pgPages.appendChild(mkBtn(p, p, p === _currentPage, p === _currentPage)); }
+      if (winEnd < totalPages) { if (winEnd < totalPages - 1) { var e2 = document.createElement('span'); e2.textContent = '…'; e2.style.cssText = 'padding:0 4px;color:var(--text-dim);'; pgPages.appendChild(e2); } pgPages.appendChild(mkBtn(totalPages, totalPages, false, false)); }
+      pgPages.appendChild(mkBtn('›', _currentPage + 1, false, _currentPage === totalPages));
+    }
+
+    function setPerPage(val) {
+      _perPage = parseInt(val);
+      _currentPage = 1;
+      closeDetail();
+      renderPage();
+    }
+
+    // ── Detail panel ──
+    function toggleDetailBtn(btn) {
+      var d = btn.dataset;
+      var nss = JSON.parse(d.namespaces || '[]');
+      toggleDetail(d.name, d.cluster, d.clusterDisplay, d.requester, nss, d.phase, d.ttl, d.expires, d.reason, d.approvedBy, btn);
+    }
+
+    var APPROVAL_TTL_OPTIONS = {{ approval_ttl_options | tojson }};
+
+    function _fmtSecs(s) {
+      s = parseInt(s);
+      var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+      return h && m ? h+'h '+m+'m' : h ? h+'h' : m+'m';
+    }
+
+    function _buildTtlSelect(name) {
+      var opts = '<option value="">keep TTL</option>';
+      APPROVAL_TTL_OPTIONS.forEach(function(s) { opts += '<option value="'+s+'">'+_fmtSecs(s)+'</option>'; });
+      return '<select id="approve-ttl-'+name+'" style="font-size:0.72rem;background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);border-radius:4px;padding:2px 6px;cursor:pointer;" title="TTL override (optional)">'+opts+'</select>';
+    }
+
+    function closeDetail() {
+      if (_openDetail) {
+        var existing = document.getElementById('detail-row-' + _openDetail);
+        if (existing) existing.remove();
+        var btn = document.getElementById('detail-btn-' + _openDetail);
+        if (btn) {
+          btn.classList.remove('open');
+          var icon = btn.querySelector('i');
+          if (icon) icon.style.transform = '';
+        }
+        _openDetail = null;
+      }
+    }
+
+    function toggleDetail(name, cluster, clusterDisplay, requester, namespaces, phase, ttl, expiresAt, reason, approvedBy, btn) {
+      // Close if already open
+      if (_openDetail === name) { closeDetail(); return; }
+      closeDetail();
+      _openDetail = name;
+
+      btn.classList.add('open');
+      var icon = btn.querySelector('i');
+      if (icon) icon.style.transform = 'rotate(180deg)';
+
+      // Build actions HTML
+      var actionsHtml = '';
+      if (phase === 'Pending') {
+        actionsHtml =
+          '<div class="action-cell" id="actions-'+name+'">'
+          +'<div class="extend-wrap" style="display:flex;align-items:center;gap:4px;">'
+          +'<button class="action-btn approve-btn" onclick="inlineApprove(\''+cluster+'\',\''+name+'\',this)">'
+          +'<i data-lucide="check" style="width:12px;height:12px;"></i> Approve</button>'
+          +_buildTtlSelect(name)
+          +'</div>'
+          +'<button class="action-btn deny-btn" onclick="inlineDeny(\''+cluster+'\',\''+name+'\',this)">'
+          +'<i data-lucide="x" style="width:12px;height:12px;"></i> Deny</button>'
+          +'</div>';
+      } else if (phase === 'Active' || phase === 'Approved') {
+        actionsHtml = '<div class="action-cell" id="actions-'+name+'">';
+        if (phase === 'Active') {
+          actionsHtml +=
+            '<div class="extend-wrap" id="extend-wrap-'+name+'">'
+            +'<button class="action-btn extend-btn" onclick="toggleExtend(\''+name+'\',\''+cluster+'\',event)">'
+            +'<i data-lucide="clock-4" style="width:12px;height:12px;"></i> Extend</button>'
+            +'<div class="extend-menu" id="extend-menu-'+name+'">'
+            +'<button onclick="doExtend(\''+name+'\',\''+cluster+'\',3600,this)">+1h</button>'
+            +'<button onclick="doExtend(\''+name+'\',\''+cluster+'\',7200,this)">+2h</button>'
+            +'<button onclick="doExtend(\''+name+'\',\''+cluster+'\',14400,this)">+4h</button>'
+            +'<button onclick="doExtend(\''+name+'\',\''+cluster+'\',28800,this)">+8h</button>'
+            +'</div></div>';
+        }
+        actionsHtml +=
+          '<form method="POST" action="/revoke/'+cluster+'/'+name+'" style="display:inline"'
+          +' onsubmit="return confirm(\'Revoke access for '+requester+'?\')">'
+          +'<button type="submit" class="action-btn revoke-btn">'
+          +'<i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button></form>'
+          +'</div>';
+      }
+
+      // Namespaces chips
+      var nsHtml = namespaces.map(function(n) { return '<span class="ns-chip">'+n+'</span>'; }).join('');
+
+      // TTL display
+      var ttlStr = expiresAt
+        ? '<span class="ttl-remaining" data-expires="'+expiresAt+'">…</span>'
+        : _fmtSecs(ttl);
+
+      var panelHtml =
+        '<div class="detail-panel">'
+        +'<div class="detail-section"><span class="detail-label">Request ID</span>'
+        +'<span class="detail-value"><a href="/status/'+cluster+'/'+name+'" style="color:var(--accent);font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;">'+name+'</a></span></div>'
+        +'<div class="detail-section"><span class="detail-label">Requester</span><span class="detail-value">'+requester+'</span></div>'
+        +'<div class="detail-section"><span class="detail-label">Cluster</span>'
+        +'<span class="detail-value"><code style="color:#fb923c;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);">'+clusterDisplay+'</code></span></div>'
+        +'<div class="detail-section" style="grid-column:1/-1;"><span class="detail-label">Namespaces ('+namespaces.length+')</span>'
+        +'<div style="margin-top:4px;">'+nsHtml+'</div></div>'
+        +(reason ? '<div class="detail-section" style="grid-column:1/-1;"><span class="detail-label">Reason</span><span class="detail-value" style="font-style:italic;">'+reason+'</span></div>' : '')
+        +'<div class="detail-section"><span class="detail-label">TTL / Remaining</span><span class="detail-value" id="detail-ttl-'+name+'">'+ttlStr+'</span></div>'
+        +(approvedBy ? '<div class="detail-section"><span class="detail-label">Approved by</span><span class="detail-value">'+approvedBy+'</span></div>' : '')
+        +(actionsHtml ? '<div class="detail-actions">'+actionsHtml+'</div>' : '')
+        +'</div>';
+
+      // Insert after the row
+      var row = document.querySelector('tr.req-row[data-name="'+name+'"]');
+      var detailRow = document.createElement('tr');
+      detailRow.id = 'detail-row-' + name;
+      detailRow.className = 'detail-row';
+      detailRow.innerHTML = '<td colspan="6">'+panelHtml+'</td>';
+      row.insertAdjacentElement('afterend', detailRow);
+
+      lucide.createIcons({ nodes: [detailRow] });
+      updateTtlRemaining();
     }
 
     // ── Initial render ──
-    _allRows = Array.from(document.querySelectorAll('tr.req-row'));
-    buildGroups();
+    _allRows = _getAllRows();
+    _filteredRows = _allRows.slice();
+    renderPage();
 
     // ── Inline approve/deny ──
     function _setRowPhase(name, phase) {
-      var row = null;
-      var rows = document.querySelectorAll('tr.req-row');
-      for (var r of rows) {
-        var link = r.querySelector('a');
-        if (link && link.textContent.trim() === name) {
-          row = r;
-          break;
-        }
-      }
+      var row = document.querySelector('tr.req-row[data-name="'+name+'"]');
       if (!row) return;
 
-      // Update badge
+      // Update badge in the summary row
       var badge = row.querySelector('.badge');
       if (badge) {
         badge.className = 'badge badge-' + phase.toLowerCase();
-        badge.querySelector('.badge-dot').className = 'badge-dot';
-        badge.childNodes[badge.childNodes.length - 1].textContent = phase;
+        badge.innerHTML = '<span class="badge-dot"></span>' + phase;
       }
-
-      // Update data-phase for filters
       row.dataset.phase = phase;
 
-      // Update action cell
-      var actionCell = row.querySelector('.action-cell');
-      if (actionCell) {
-        if (phase === 'Approved') {
-          // Show revoke button
-          var cluster = row.dataset.cluster;
-          actionCell.innerHTML = '<form method="POST" action="/revoke/' + cluster + '/' + name + '" style="display:inline" onsubmit="return confirm(\'Revoke access?\')"><button type="submit" class="action-btn revoke-btn"><i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button></form>';
-        } else {
-          actionCell.outerHTML = '<span style="color:var(--text-dim);">—</span>';
-        }
-        lucide.createIcons();
-      }
+      // Close detail panel so it re-opens fresh
+      if (_openDetail === name) closeDetail();
     }
 
     function _lockActionCell(cell, label) {
@@ -904,6 +1000,15 @@
         <i data-lucide="loader" style="width:12px;height:12px;animation:spin 0.8s linear infinite;"></i>${label}
       </span>`;
       lucide.createIcons();
+    }
+
+    async function _jsonOrErr(resp) {
+      var ct = resp.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        var text = await resp.text();
+        throw new Error('HTTP ' + resp.status + ' (non-JSON response)');
+      }
+      return resp.json();
     }
 
     async function inlineApprove(cluster, name, btn) {
@@ -918,16 +1023,16 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(body),
         });
-        var data = await resp.json();
+        var data = await _jsonOrErr(resp);
         if (data.ok) {
           _setRowPhase(name, 'Approved');
         } else {
-          alert('Approve failed: ' + (data.error || 'unknown error'));
-          location.reload();
+          _showBanner('Approve failed: ' + (data.error || 'unknown error'), 'error');
+          closeDetail();
         }
       } catch(e) {
-        alert('Approve failed: ' + e);
-        location.reload();
+        _showBanner('Approve failed: ' + e, 'error');
+        closeDetail();
       }
     }
 
@@ -940,16 +1045,16 @@
         var body = new FormData();
         body.append('denial_reason', reason || '');
         var resp = await fetch('/deny/' + cluster + '/' + name, { method: 'POST', body: body });
-        var data = await resp.json();
+        var data = await _jsonOrErr(resp);
         if (data.ok) {
           _setRowPhase(name, 'Denied');
         } else {
-          alert('Deny failed: ' + (data.error || 'unknown error'));
-          location.reload();
+          _showBanner('Deny failed: ' + (data.error || 'unknown error'), 'error');
+          closeDetail();
         }
       } catch(e) {
-        alert('Deny failed: ' + e);
-        location.reload();
+        _showBanner('Deny failed: ' + e, 'error');
+        closeDetail();
       }
     }
 
@@ -1105,28 +1210,81 @@
     })();
     {% endif %}
 
-    // ── Auto-refresh when new requests arrive ──
+    // ── Auto-refresh: inject new rows ──
     (function() {
-      var _knownCount = {{ access_requests | length }};
-      var _notified = false;
-      function checkNewRequests() {
-        fetch('/api/requests/count')
+      function _insertRow(r) {
+        var tbody = document.getElementById('requests-tbody');
+        var tr = document.createElement('tr');
+        tr.className = 'req-row';
+        tr.dataset.name      = r.name;
+        tr.dataset.requester = r.requester.toLowerCase();
+        tr.dataset.namespace = (r.namespaces || []).join(' ').toLowerCase();
+        tr.dataset.cluster   = r.cluster;
+        tr.dataset.phase     = r.phase;
+        tr.dataset.ts        = r.createdAt;
+        var ttlStr = _fmtSecs(r.ttlSeconds);
+        var clust = '<code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);">'+r.clusterDisplay+'</code>';
+        var badge = '<span class="badge badge-'+r.phase.toLowerCase()+'"><span class="badge-dot"></span>'+r.phase+'</span>';
+        var nsArr = r.namespaces || [];
+        tr.innerHTML =
+          '<td style="max-width:0;overflow:hidden;">'
+          +'<div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">'
+          +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.name+'</span>'
+          +'<span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.requester+'</span>'
+          +'</div></td>'
+          +'<td style="white-space:nowrap;">'+clust+'</td>'
+          +'<td style="white-space:nowrap;">'+ttlStr+'</td>'
+          +'<td>'+badge+'</td>'
+          +'<td style="white-space:nowrap;font-size:0.78rem;">'+r.createdAt+'</td>'
+          +'<td></td>';
+        // Set data attributes on the last cell's button after DOM insertion (avoids quoting issues)
+        var detailBtn = document.createElement('button');
+        detailBtn.className = 'detail-btn';
+        detailBtn.id = 'detail-btn-' + r.name;
+        detailBtn.dataset.name = r.name;
+        detailBtn.dataset.cluster = r.cluster;
+        detailBtn.dataset.clusterDisplay = r.clusterDisplay;
+        detailBtn.dataset.requester = r.requester;
+        detailBtn.dataset.namespaces = JSON.stringify(nsArr);
+        detailBtn.dataset.phase = r.phase;
+        detailBtn.dataset.ttl = r.ttlSeconds;
+        detailBtn.dataset.expires = r.expiresAt || '';
+        detailBtn.dataset.reason = r.reason || '';
+        detailBtn.dataset.approvedBy = r.approvedBy || '';
+        detailBtn.setAttribute('onclick', 'toggleDetailBtn(this)');
+        detailBtn.innerHTML = '<i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i> Details';
+        tr.lastElementChild.appendChild(detailBtn);
+        tbody.insertBefore(tr, tbody.firstChild);
+        lucide.createIcons({ nodes: [tr] });
+        _allRows = _getAllRows();
+        _filteredRows = _allRows.filter(function(row) {
+          var text    = document.getElementById('filter-text').value.toLowerCase().trim();
+          var cluster = document.getElementById('filter-cluster').value;
+          var phase   = document.getElementById('filter-phase').value;
+          return (!text    || row.dataset.requester.includes(text) || row.dataset.namespace.includes(text) || row.dataset.name.toLowerCase().includes(text)) &&
+                 (!cluster || row.dataset.cluster === cluster) &&
+                 (!phase   || row.dataset.phase === phase);
+        });
+        renderPage();
+      }
+
+      function pollRequests() {
+        fetch('/api/requests')
           .then(function(r) { return r.json(); })
           .then(function(d) {
-            if (d.count !== undefined && d.count !== _knownCount && !_notified) {
-              _notified = true;
-              var bar = document.createElement('div');
-              bar.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:9000;background:#1e40af;color:#bfdbfe;border:1px solid #3b82f6;border-radius:8px;padding:8px 18px;font-size:0.82rem;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,0.4);cursor:pointer;';
-              bar.innerHTML = '<i data-lucide="bell" style="width:14px;height:14px;flex-shrink:0;"></i> New requests — <u>click to refresh</u>';
-              bar.onclick = function() { location.reload(); };
-              document.body.appendChild(bar);
-              lucide.createIcons({ nodes: [bar] });
-            }
+            if (!d.requests) return;
+            var existing = {};
+            document.querySelectorAll('#requests-tbody tr.req-row').forEach(function(tr) {
+              existing[tr.dataset.name] = true;
+            });
+            d.requests.forEach(function(r) {
+              if (!existing[r.name]) _insertRow(r);
+            });
           })
           .catch(function() {})
-          .finally(function() { setTimeout(checkNewRequests, 8000); });
+          .finally(function() { setTimeout(pollRequests, 6000); });
       }
-      setTimeout(checkNewRequests, 8000);
+      setTimeout(pollRequests, 6000);
     })();
   </script>
 </body>

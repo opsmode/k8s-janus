@@ -501,14 +501,15 @@
     .quick-cmd-btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 5px 10px;
+      gap: 4px;
+      padding: 3px 9px;
       background: var(--surface-2);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 5px;
       color: var(--text-muted);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-family: 'JetBrains Mono', monospace;
+      line-height: 1.4;
       cursor: pointer;
       white-space: nowrap;
       max-width: 130px;
@@ -650,6 +651,10 @@
           Split
         </button>
         <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:600;color:var(--text-dim);white-space:nowrap;flex-shrink:0;letter-spacing:0.03em;line-height:1.4;">
+          <i data-lucide="zap" style="width:11px;height:11px;flex-shrink:0;"></i>
+          Quick Commands
+        </span>
         <div id="quick-cmd-toolbar"><!-- populated by renderQuickCmds() --></div>
         <button onclick="openQcmdManage()" title="Manage quick commands"
           style="background:none;border:none;padding:4px 5px;border-radius:4px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;flex-shrink:0;transition:color 0.15s,background 0.15s;"
@@ -657,7 +662,7 @@
           onmouseout="this.style.color='var(--text-dim)';this.style.background='none'">
           <i data-lucide="settings-2" style="width:13px;height:13px;"></i>
         </button>
-        <span id="active-pane-label" style="font-size:0.75rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-left:4px;"></span>
+        <span id="active-pane-label" style="font-size:0.72rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-left:4px;"></span>
       </div>
 
       <!-- Quick commands manage modal -->
