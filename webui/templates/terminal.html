@@ -662,10 +662,6 @@
           <i data-lucide="copy" style="width:13px;height:13px;"></i>
           Copy
         </button>
-        <button class="toolbar-btn" id="screenshot-btn" onclick="screenshotTerminal()" title="Download terminal screenshot as PNG">
-          <i data-lucide="camera" style="width:13px;height:13px;"></i>
-          Screenshot
-        </button>
         <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
         <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:600;color:var(--text-dim);white-space:nowrap;flex-shrink:0;letter-spacing:0.03em;line-height:1.4;">
           <i data-lucide="zap" style="width:11px;height:11px;flex-shrink:0;"></i>
@@ -909,43 +905,6 @@
       });
     }
 
-    // Screenshot the active terminal canvas and download as PNG
-    function screenshotTerminal() {
-      const pane = _activePane();
-      if (!pane || !pane.term) {
-        if (typeof showToast === 'function') showToast('No terminal active', 'warning');
-        return;
-      }
-      // xterm.js renders into one or more <canvas> elements inside termEl.
-      // Composite them onto an off-screen canvas, then download.
-      const canvases = Array.from(pane.termEl.querySelectorAll('canvas'));
-      if (!canvases.length) {
-        if (typeof showToast === 'function') showToast('Terminal canvas not ready', 'warning');
-        return;
-      }
-      try {
-        // Use the largest canvas as the reference size (usually the text layer)
-        const w = Math.max(...canvases.map(c => c.width));
-        const h = Math.max(...canvases.map(c => c.height));
-        const out = document.createElement('canvas');
-        out.width  = w;
-        out.height = h;
-        const ctx = out.getContext('2d');
-        ctx.fillStyle = '#0a0e1a';
-        ctx.fillRect(0, 0, w, h);
-        // Draw each layer in DOM order (background → text → cursor)
-        canvases.forEach(c => { if (c.width && c.height) ctx.drawImage(c, 0, 0); });
-        const pod  = pane.currentPod || 'terminal';
-        const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const link = document.createElement('a');
-        link.download = `${pod}-${ts}.png`;
-        link.href = out.toDataURL('image/png');
-        link.click();
-        if (typeof showToast === 'function') showToast('Screenshot saved', 'success', 2500);
-      } catch (e) {
-        if (typeof showToast === 'function') showToast('Screenshot failed: ' + e.message, 'error');
-      }
-    }
 
     // ========================================================================
     // TermPane — one terminal pane (xterm + websocket + tabs)
