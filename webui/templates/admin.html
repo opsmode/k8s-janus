@@ -635,8 +635,15 @@
                   data-requester="{{ requester | lower }}"
                   data-namespace="{{ (nss | join(' ')) | lower }}"
                   data-cluster="{{ ar_cluster }}"
+                  data-cluster-display="{{ ar_cluster_display }}"
                   data-phase="{{ phase }}"
+                  data-ttl="{{ ttl }}"
+                  data-expires="{{ st.get('expiresAt','') }}"
+                  data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
                   data-ts="{{ ar.metadata.creationTimestamp }}">
+                {# Store namespaces as a script tag to avoid attribute quoting issues #}
+                <script type="application/json" id="ns-{{ ar.metadata.name }}">{{ nss | tojson }}</script>
+                <script type="application/json" id="reason-{{ ar.metadata.name }}">{{ (spec.get('reason','') or '') | tojson }}</script>
                 <td style="max-width:0;overflow:hidden;">
                   <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
                     <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
@@ -661,16 +668,6 @@
                 <td style="white-space:nowrap;font-size:0.78rem;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
                 <td>
                   <button class="detail-btn" id="detail-btn-{{ ar.metadata.name }}"
-                    data-name="{{ ar.metadata.name }}"
-                    data-cluster="{{ ar_cluster }}"
-                    data-cluster-display="{{ ar_cluster_display }}"
-                    data-requester="{{ requester }}"
-                    data-namespaces="{{ nss | tojson | e }}"
-                    data-phase="{{ phase }}"
-                    data-ttl="{{ ttl }}"
-                    data-expires="{{ st.get('expiresAt','') }}"
-                    data-reason="{{ (spec.get('reason','') or '') | e }}"
-                    data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
                     onclick="toggleDetailBtn(this)">
                     <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
                     Details
@@ -860,9 +857,14 @@
 
     // ── Detail panel ──
     function toggleDetailBtn(btn) {
-      var d = btn.dataset;
-      var nss = JSON.parse(d.namespaces || '[]');
-      toggleDetail(d.name, d.cluster, d.clusterDisplay, d.requester, nss, d.phase, d.ttl, d.expires, d.reason, d.approvedBy, btn);
+      var row = btn.closest('tr.req-row');
+      var d = row.dataset;
+      // Prefer embedded script tags (Jinja-rendered rows); fall back to button dataset (poll-inserted rows)
+      var nssEl = document.getElementById('ns-' + d.name);
+      var reasonEl = document.getElementById('reason-' + d.name);
+      var nss = nssEl ? JSON.parse(nssEl.textContent || '[]') : JSON.parse(btn.dataset.namespaces || '[]');
+      var reason = reasonEl ? JSON.parse(reasonEl.textContent || '""') : (btn.dataset.reason || '');
+      toggleDetail(d.name, d.cluster, d.clusterDisplay, d.requester, nss, d.phase, d.ttl, d.expires, reason, d.approvedBy, btn);
     }
 
     var APPROVAL_TTL_OPTIONS = {{ approval_ttl_options | tojson }};
@@ -931,10 +933,8 @@
             +'</div></div>';
         }
         actionsHtml +=
-          '<form method="POST" action="/revoke/'+cluster+'/'+name+'" style="display:inline"'
-          +' onsubmit="return confirm(\'Revoke access for '+requester+'?\')">'
-          +'<button type="submit" class="action-btn revoke-btn">'
-          +'<i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button></form>'
+          '<button class="action-btn revoke-btn" onclick="inlineRevoke(\''+cluster+'\',\''+name+'\',\''+requester+'\')">'
+          +'<i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button>'
           +'</div>';
       }
 
@@ -982,17 +982,52 @@
     function _setRowPhase(name, phase) {
       var row = document.querySelector('tr.req-row[data-name="'+name+'"]');
       if (!row) return;
-
-      // Update badge in the summary row
+      // Update badge
       var badge = row.querySelector('.badge');
       if (badge) {
         badge.className = 'badge badge-' + phase.toLowerCase();
         badge.innerHTML = '<span class="badge-dot"></span>' + phase;
       }
       row.dataset.phase = phase;
+      // Update filter array
+      _filteredRows = _getAllRows().filter(function(r) {
+        var text    = document.getElementById('filter-text').value.toLowerCase().trim();
+        var cluster = document.getElementById('filter-cluster').value;
+        var ph      = document.getElementById('filter-phase').value;
+        return (!text    || r.dataset.requester.includes(text) || r.dataset.namespace.includes(text) || r.dataset.name.toLowerCase().includes(text)) &&
+               (!cluster || r.dataset.cluster === cluster) &&
+               (!ph      || r.dataset.phase === ph);
+      });
+      _allRows = _getAllRows();
+      // Close and reopen detail with updated phase
+      var openName = _openDetail;
+      closeDetail();
+      if (openName === name) {
+        var btn = document.getElementById('detail-btn-' + name);
+        if (btn) setTimeout(function() { toggleDetailBtn(btn); }, 50);
+      }
+    }
 
-      // Close detail panel so it re-opens fresh
-      if (_openDetail === name) closeDetail();
+    async function inlineRevoke(cluster, name, requester) {
+      if (!confirm('Revoke access for ' + requester + '?')) return;
+      var cell = document.getElementById('actions-' + name);
+      if (cell) _lockActionCell(cell, 'Revoking…');
+      try {
+        var resp = await fetch('/revoke/' + cluster + '/' + name, {
+          method: 'POST',
+          headers: {'Accept': 'application/json'},
+        });
+        var data = await _jsonOrErr(resp);
+        if (data.ok) {
+          _setRowPhase(name, 'Revoked');
+        } else {
+          _showBanner('Revoke failed: ' + (data.error || 'unknown error'), 'error');
+          closeDetail();
+        }
+      } catch(e) {
+        _showBanner('Revoke failed: ' + e, 'error');
+        closeDetail();
+      }
     }
 
     function _lockActionCell(cell, label) {
@@ -1216,12 +1251,16 @@
         var tbody = document.getElementById('requests-tbody');
         var tr = document.createElement('tr');
         tr.className = 'req-row';
-        tr.dataset.name      = r.name;
-        tr.dataset.requester = r.requester.toLowerCase();
-        tr.dataset.namespace = (r.namespaces || []).join(' ').toLowerCase();
-        tr.dataset.cluster   = r.cluster;
-        tr.dataset.phase     = r.phase;
-        tr.dataset.ts        = r.createdAt;
+        tr.dataset.name           = r.name;
+        tr.dataset.requester      = r.requester.toLowerCase();
+        tr.dataset.namespace      = (r.namespaces || []).join(' ').toLowerCase();
+        tr.dataset.cluster        = r.cluster;
+        tr.dataset.clusterDisplay = r.clusterDisplay;
+        tr.dataset.phase          = r.phase;
+        tr.dataset.ttl            = r.ttlSeconds;
+        tr.dataset.expires        = r.expiresAt || '';
+        tr.dataset.approvedBy     = r.approvedBy || '';
+        tr.dataset.ts             = r.createdAt;
         var ttlStr = _fmtSecs(r.ttlSeconds);
         var clust = '<code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);">'+r.clusterDisplay+'</code>';
         var badge = '<span class="badge badge-'+r.phase.toLowerCase()+'"><span class="badge-dot"></span>'+r.phase+'</span>';
@@ -1237,20 +1276,13 @@
           +'<td>'+badge+'</td>'
           +'<td style="white-space:nowrap;font-size:0.78rem;">'+r.createdAt+'</td>'
           +'<td></td>';
-        // Set data attributes on the last cell's button after DOM insertion (avoids quoting issues)
+        // Build detail button via DOM API to avoid any quoting issues with namespaces/reason
         var detailBtn = document.createElement('button');
         detailBtn.className = 'detail-btn';
         detailBtn.id = 'detail-btn-' + r.name;
-        detailBtn.dataset.name = r.name;
-        detailBtn.dataset.cluster = r.cluster;
-        detailBtn.dataset.clusterDisplay = r.clusterDisplay;
-        detailBtn.dataset.requester = r.requester;
+        // Store ns/reason directly on button dataset (toggleDetailBtn falls back to these)
         detailBtn.dataset.namespaces = JSON.stringify(nsArr);
-        detailBtn.dataset.phase = r.phase;
-        detailBtn.dataset.ttl = r.ttlSeconds;
-        detailBtn.dataset.expires = r.expiresAt || '';
         detailBtn.dataset.reason = r.reason || '';
-        detailBtn.dataset.approvedBy = r.approvedBy || '';
         detailBtn.setAttribute('onclick', 'toggleDetailBtn(this)');
         detailBtn.innerHTML = '<i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i> Details';
         tr.lastElementChild.appendChild(detailBtn);
@@ -1273,12 +1305,40 @@
           .then(function(r) { return r.json(); })
           .then(function(d) {
             if (!d.requests) return;
-            var existing = {};
+            var existingMap = {};
             document.querySelectorAll('#requests-tbody tr.req-row').forEach(function(tr) {
-              existing[tr.dataset.name] = true;
+              existingMap[tr.dataset.name] = tr;
             });
             d.requests.forEach(function(r) {
-              if (!existing[r.name]) _insertRow(r);
+              var tr = existingMap[r.name];
+              if (!tr) {
+                // New request — insert row
+                _insertRow(r);
+              } else if (tr.dataset.phase !== r.phase) {
+                // Phase changed — update badge and dataset without closing detail
+                tr.dataset.phase = r.phase;
+                var badge = tr.querySelector('.badge');
+                if (badge) {
+                  badge.className = 'badge badge-' + r.phase.toLowerCase();
+                  badge.innerHTML = '<span class="badge-dot"></span>' + r.phase;
+                }
+                // If detail panel is open for this row, refresh it
+                if (_openDetail === r.name) {
+                  var btn = document.getElementById('detail-btn-' + r.name);
+                  if (btn) { closeDetail(); setTimeout(function() { toggleDetailBtn(btn); }, 50); }
+                }
+                // Re-apply filters
+                _allRows = _getAllRows();
+                var text    = document.getElementById('filter-text').value.toLowerCase().trim();
+                var cluster = document.getElementById('filter-cluster').value;
+                var phase   = document.getElementById('filter-phase').value;
+                _filteredRows = _allRows.filter(function(row) {
+                  return (!text    || row.dataset.requester.includes(text) || row.dataset.namespace.includes(text) || row.dataset.name.toLowerCase().includes(text)) &&
+                         (!cluster || row.dataset.cluster === cluster) &&
+                         (!phase   || row.dataset.phase === phase);
+                });
+                renderPage();
+              }
             });
           })
           .catch(function() {})

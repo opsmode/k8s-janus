@@ -739,8 +739,17 @@
             {% set requester = spec.get("requester", "—") %}
             <tr class="my-req-row"
                 data-name="{{ ar.metadata.name }}"
+                data-cluster="{{ ar_cluster }}"
+                data-cluster-display="{{ ar_cluster_display }}"
+                data-requester="{{ requester | lower }}"
                 data-phase="{{ phase }}"
+                data-ttl="{{ ttl }}"
+                data-expires="{{ st.get('expiresAt','') }}"
+                data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
                 data-ts="{{ ar.metadata.creationTimestamp }}">
+              {# Store namespaces + reason in script tags to avoid HTML attribute quoting issues #}
+              <script type="application/json" id="my-ns-{{ ar.metadata.name }}">{{ nss | tojson }}</script>
+              <script type="application/json" id="my-reason-{{ ar.metadata.name }}">{{ (spec.get('reason','') or '') | tojson }}</script>
               <td style="max-width:0;overflow:hidden;">
                 <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
                   <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
@@ -765,16 +774,6 @@
               <td style="white-space:nowrap;font-size:0.78rem;">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
               <td>
                 <button class="detail-btn" id="my-detail-btn-{{ ar.metadata.name }}"
-                  data-name="{{ ar.metadata.name }}"
-                  data-cluster="{{ ar_cluster }}"
-                  data-cluster-display="{{ ar_cluster_display }}"
-                  data-requester="{{ requester }}"
-                  data-namespaces="{{ nss | tojson | e }}"
-                  data-phase="{{ phase }}"
-                  data-ttl="{{ ttl }}"
-                  data-expires="{{ st.get('expiresAt','') }}"
-                  data-reason="{{ (spec.get('reason','') or '') | e }}"
-                  data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
                   onclick="toggleMyDetailBtn(this)">
                   <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
                   Details
@@ -873,9 +872,13 @@
     function mySetPerPage(val) { _myPerPage = parseInt(val); _myPage = 1; myCloseDetail(); myRenderPage(); }
 
     function toggleMyDetailBtn(btn) {
-      var d = btn.dataset;
-      var nss = JSON.parse(d.namespaces || '[]');
-      toggleMyDetail(d.name, d.cluster, d.clusterDisplay, d.requester, nss, d.phase, d.ttl, d.expires, d.reason, d.approvedBy, btn);
+      var row = btn.closest('tr.my-req-row');
+      var d = row.dataset;
+      var nssEl = document.getElementById('my-ns-' + d.name);
+      var reasonEl = document.getElementById('my-reason-' + d.name);
+      var nss = JSON.parse((nssEl && nssEl.textContent) || '[]');
+      var reason = JSON.parse((reasonEl && reasonEl.textContent) || '""');
+      toggleMyDetail(d.name, d.cluster, d.clusterDisplay, d.requester, nss, d.phase, d.ttl, d.expires, reason, d.approvedBy, btn);
     }
 
     function myCloseDetail() {
@@ -903,15 +906,17 @@
         : (h && m ? h+'h '+m+'m' : h ? h+'h' : m+'m');
 
       var actionsHtml = '';
-      if (phase === 'Pending' || phase === 'Active') {
-        actionsHtml = '<button class="cancel-btn" onclick="cancelRequest(\''+cluster+'\',\''+name+'\',\''+phase+'\',this)">'
-          +'<i data-lucide="x-circle" style="width:12px;height:12px;"></i> Cancel</button>';
+      if (phase === 'Pending') {
+        actionsHtml = '<button class="cancel-btn" data-cluster="'+cluster+'" data-name="'+name+'" onclick="withdrawRequest(this.dataset.cluster,this.dataset.name,this)">'
+          +'<i data-lucide="undo-2" style="width:12px;height:12px;"></i> Withdraw</button>';
+      } else if (phase === 'Active') {
+        actionsHtml = '<button class="cancel-btn" data-cluster="'+cluster+'" data-name="'+name+'" onclick="cancelRequest(this.dataset.cluster,this.dataset.name,\'Active\',this)">'
+          +'<i data-lucide="x-circle" style="width:12px;height:12px;"></i> Cancel session</button>';
       }
       {% if is_admin %}
       if (phase === 'Active' || phase === 'Approved') {
-        actionsHtml += '<form method="POST" action="/revoke/'+cluster+'/'+name+'" style="display:inline"'
-          +' onsubmit="return confirm(\'Revoke access for '+requester+'?\')">'
-          +'<button type="submit" class="revoke-btn"><i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button></form>';
+        actionsHtml += ' <button class="revoke-btn" data-cluster="'+cluster+'" data-name="'+name+'" data-requester="'+requester+'" onclick="inlineRevokeUser(this.dataset.cluster,this.dataset.name,this.dataset.requester)">'
+          +'<i data-lucide="shield-off" style="width:12px;height:12px;"></i> Revoke</button>';
       }
       {% endif %}
 
@@ -962,34 +967,69 @@
     _myFilteredRows = _myAllRows.slice();
     myRenderPage();
 
-    async function cancelRequest(cluster, name, phase, btn) {
-      var label = phase === 'Active' ? 'Cancel your active session?' : 'Cancel this pending request?';
-      if (!confirm(label)) return;
-      btn.disabled = true;
-      btn.textContent = 'Cancelling…';
+    async function withdrawRequest(cluster, name, btn) {
+      if (!confirm('Withdraw this pending request?')) return;
+      btn.disabled = true; btn.textContent = 'Withdrawing…';
       try {
-        var resp = await fetch('/cancel/' + cluster + '/' + name, { method: 'POST' });
+        var resp = await fetch('/cancel/' + cluster + '/' + name, { method: 'POST', headers: {'Accept': 'application/json'} });
         var data = await resp.json();
         if (data.ok) {
-          // Update badge on the summary row
-          var row = document.querySelector('tr.my-req-row[data-name="'+name+'"]');
-          if (row) {
-            var badge = row.querySelector('.badge');
-            if (badge) { badge.className = 'badge badge-cancelled'; badge.innerHTML = '<span class="badge-dot"></span>Cancelled'; }
-            row.dataset.phase = 'Cancelled';
-          }
+          _mySetRowPhase(name, 'Cancelled');
           myCloseDetail();
-          lucide.createIcons();
+        } else {
+          alert('Withdraw failed: ' + (data.error || 'unknown error'));
+          btn.disabled = false; btn.textContent = 'Withdraw';
+        }
+      } catch(e) {
+        alert('Withdraw failed: ' + e);
+        btn.disabled = false; btn.textContent = 'Withdraw';
+      }
+    }
+
+    async function cancelRequest(cluster, name, phase, btn) {
+      var label = 'Cancel your active session?';
+      if (!confirm(label)) return;
+      btn.disabled = true; btn.textContent = 'Cancelling…';
+      try {
+        var resp = await fetch('/cancel/' + cluster + '/' + name, { method: 'POST', headers: {'Accept': 'application/json'} });
+        var data = await resp.json();
+        if (data.ok) {
+          _mySetRowPhase(name, 'Cancelled');
+          myCloseDetail();
         } else {
           alert('Cancel failed: ' + (data.error || 'unknown error'));
-          btn.disabled = false;
-          btn.textContent = 'Cancel';
+          btn.disabled = false; btn.textContent = 'Cancel session';
         }
       } catch(e) {
         alert('Cancel failed: ' + e);
-        btn.disabled = false;
-        btn.textContent = 'Cancel';
+        btn.disabled = false; btn.textContent = 'Cancel session';
       }
+    }
+
+    {% if is_admin %}
+    async function inlineRevokeUser(cluster, name, requester) {
+      if (!confirm('Revoke access for ' + requester + '?')) return;
+      try {
+        var resp = await fetch('/revoke/' + cluster + '/' + name, { method: 'POST', headers: {'Accept': 'application/json'} });
+        var data = await resp.json();
+        if (data.ok) { _mySetRowPhase(name, 'Revoked'); myCloseDetail(); }
+        else alert('Revoke failed: ' + (data.error || 'unknown'));
+      } catch(e) { alert('Revoke failed: ' + e); }
+    }
+    {% endif %}
+
+    function _mySetRowPhase(name, phase) {
+      var row = document.querySelector('tr.my-req-row[data-name="'+name+'"]');
+      if (!row) return;
+      var badge = row.querySelector('.badge');
+      if (badge) {
+        badge.className = 'badge badge-' + phase.toLowerCase();
+        badge.innerHTML = '<span class="badge-dot"></span>' + phase;
+      }
+      row.dataset.phase = phase;
+      _myAllRows = _myGetAllRows();
+      _myFilteredRows = _myAllRows.slice();
+      myRenderPage();
     }
 
     // ── Single cluster, multi-NS selector ──

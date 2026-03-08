@@ -508,6 +508,7 @@ def _patch_status(name: str, body: dict) -> None:
     custom_api.patch_cluster_custom_object_status(
         group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=name,
         body={"status": body},
+        _content_type="application/merge-patch+json",
     )
 
 
@@ -1307,7 +1308,13 @@ async def revoke(request: Request, cluster: str, name: str):
         await notify_revoked(name, revoked_by=caller)
     except ApiException as e:
         logger.error(f"💥 Failed to revoke AccessRequest {name}: {e}")
+        wants_json = "application/json" in (request.headers.get("accept") or "")
+        if wants_json:
+            return JSONResponse({"ok": False, "error": "Failed to revoke request"}, status_code=500)
         return templates.TemplateResponse("500.html", {"request": request, "detail": "Error revoking request."}, status_code=500)
+    wants_json = "application/json" in (request.headers.get("accept") or "")
+    if wants_json:
+        return JSONResponse({"ok": True, "phase": Phase.REVOKED})
     return RedirectResponse(url="/admin", status_code=303)
 
 
