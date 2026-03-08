@@ -1,5 +1,8 @@
 FROM python:3.12-alpine
 
+ARG BUILD_DATE=unknown
+ENV BUILD_DATE=${BUILD_DATE}
+
 WORKDIR /app
 
 # Upgrade all Alpine packages to pick up latest security patches
