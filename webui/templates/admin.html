@@ -372,10 +372,12 @@
     .badge-denied .badge-dot   { background: #f87171; }
     .badge-expired  { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
     .badge-expired .badge-dot  { background: #64748b; }
-    .badge-revoked  { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
-    .badge-revoked .badge-dot  { background: #f87171; }
-    .badge-failed   { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
-    .badge-failed .badge-dot   { background: #ef4444; }
+    .badge-revoked    { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-revoked .badge-dot    { background: #f87171; }
+    .badge-cancelled  { background: rgba(161,140,209,0.1); color: #c4b5fd; border: 1px solid rgba(161,140,209,0.25); }
+    .badge-cancelled .badge-dot  { background: #a78bfa; }
+    .badge-failed     { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
+    .badge-failed .badge-dot     { background: #ef4444; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)} }
 
     /* ── ACTION BUTTONS ── */
@@ -543,6 +545,7 @@
             <option value="Denied">Denied</option>
             <option value="Expired">Expired</option>
             <option value="Revoked">Revoked</option>
+            <option value="Cancelled">Cancelled</option>
             <option value="Failed">Failed</option>
           </select>
         </div>
@@ -632,10 +635,10 @@
                         style="font-size:0.72rem;background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);border-radius:4px;padding:2px 4px;cursor:pointer;"
                         title="TTL override (optional)">
                         <option value="">keep TTL</option>
-                        <option value="3600">1h</option>
-                        <option value="7200">2h</option>
-                        <option value="14400">4h</option>
-                        <option value="28800">8h</option>
+                        {% for secs in approval_ttl_options %}
+                        {% set h = secs // 3600 %}{% set m = (secs % 3600) // 60 %}
+                        <option value="{{ secs }}">{% if h and m %}{{ h }}h{{ m }}m{% elif h %}{{ h }}h{% else %}{{ m }}m{% endif %}</option>
+                        {% endfor %}
                       </select>
                     </div>
                     <button class="action-btn deny-btn"
@@ -1105,12 +1108,19 @@
     // ── Auto-refresh when new requests arrive ──
     (function() {
       var _knownCount = {{ access_requests | length }};
+      var _notified = false;
       function checkNewRequests() {
         fetch('/api/requests/count')
           .then(function(r) { return r.json(); })
           .then(function(d) {
-            if (d.count !== undefined && d.count !== _knownCount) {
-              location.reload();
+            if (d.count !== undefined && d.count !== _knownCount && !_notified) {
+              _notified = true;
+              var bar = document.createElement('div');
+              bar.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:9000;background:#1e40af;color:#bfdbfe;border:1px solid #3b82f6;border-radius:8px;padding:8px 18px;font-size:0.82rem;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,0.4);cursor:pointer;';
+              bar.innerHTML = '<i data-lucide="bell" style="width:14px;height:14px;flex-shrink:0;"></i> New requests — <u>click to refresh</u>';
+              bar.onclick = function() { location.reload(); };
+              document.body.appendChild(bar);
+              lucide.createIcons({ nodes: [bar] });
             }
           })
           .catch(function() {})

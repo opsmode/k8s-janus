@@ -237,6 +237,14 @@ async def on_phase_change(name, spec, status, old, new, patch, **kwargs):
     if new in (None, "Pending", "Active", "Expired", "Failed"):
         return  # no action needed for these transitions
 
+    if new == "Cancelled":
+        actor = status.get("approvedBy", requester)
+        logger.info(f"🚫 [{name}] cancelled by {actor} — cleaning up cluster={cluster} ns={namespace}")
+        log_audit(name, "request.cancelled", actor=actor, detail=f"cluster={cluster} ns={namespace}")
+        for ns in namespaces:
+            await cleanup_access(name, ns, revoked=True, target_cluster=cluster)
+        return
+
     if new == "Approved":
         # Guard against duplicate grant on kopf retry — check if already Active
         if status.get("tokenSecret"):

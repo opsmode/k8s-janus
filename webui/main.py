@@ -41,6 +41,8 @@ _setup_queues: dict[str, asyncio.Queue] = {}  # session_id → progress queue
 # ---------------------------------------------------------------------------
 DEFAULT_TTL_SECONDS = int(os.environ.get("DEFAULT_TTL_SECONDS", "3600"))
 MAX_TTL_SECONDS     = int(os.environ.get("MAX_TTL_SECONDS", "28800"))
+_raw_ttl_opts = os.environ.get("APPROVAL_TTL_OPTIONS", "3600,7200,14400,28800")
+APPROVAL_TTL_OPTIONS = [int(x) for x in _raw_ttl_opts.split(",") if x.strip().isdigit()]
 _raw_admins  = os.environ.get("ADMIN_EMAILS", "")
 # Support both comma and semicolon delimiters; strip whitespace
 ADMIN_EMAILS = set(
@@ -177,13 +179,14 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
 class Phase(str, Enum):
-    PENDING  = "Pending"
-    APPROVED = "Approved"
-    ACTIVE   = "Active"
-    DENIED   = "Denied"
-    EXPIRED  = "Expired"
-    REVOKED  = "Revoked"
-    FAILED   = "Failed"
+    PENDING   = "Pending"
+    APPROVED  = "Approved"
+    ACTIVE    = "Active"
+    DENIED    = "Denied"
+    EXPIRED   = "Expired"
+    REVOKED   = "Revoked"
+    CANCELLED = "Cancelled"
+    FAILED    = "Failed"
 
 # ---------------------------------------------------------------------------
 # Path parameter validation
@@ -483,6 +486,7 @@ def _base_context(request: Request) -> dict:
         "oidc_enabled": OIDC_ENABLED,
         "default_ttl": DEFAULT_TTL_SECONDS // 3600,
         "max_ttl": MAX_TTL_SECONDS // 3600,
+        "approval_ttl_options": APPROVAL_TTL_OPTIONS,
     }
 
 
@@ -1306,6 +1310,42 @@ async def revoke(request: Request, cluster: str, name: str):
         logger.error(f"💥 Failed to revoke AccessRequest {name}: {e}")
         return templates.TemplateResponse("500.html", {"request": request, "detail": "Error revoking request."}, status_code=500)
     return RedirectResponse(url="/admin", status_code=303)
+
+
+@app.post("/cancel/{cluster}/{name}")
+async def cancel_request(request: Request, cluster: str, name: str):
+    """Requester cancels their own Pending or Active request."""
+    caller, _ = _get_user(request)
+    if not caller:
+        return JSONResponse({"ok": False, "error": "Unauthenticated"}, status_code=401)
+    if not _valid_cluster(cluster) or not _valid_name(name):
+        return JSONResponse({"ok": False, "error": "Invalid parameters"}, status_code=400)
+    ar = get_access_request(name, cluster)
+    if not ar:
+        return JSONResponse({"ok": False, "error": "Request not found"}, status_code=404)
+    requester = ar.get("spec", {}).get("requester", "")
+    if requester.lower() != caller.lower() and not _is_admin(caller):
+        return JSONResponse({"ok": False, "error": "Forbidden"}, status_code=403)
+    current_phase = ar.get("status", {}).get("phase", "")
+    if current_phase not in (Phase.PENDING, Phase.ACTIVE, Phase.APPROVED):
+        return JSONResponse({"ok": False, "error": f"Cannot cancel a {current_phase} request"}, status_code=409)
+    try:
+        _patch_status(name, {
+            "phase": Phase.CANCELLED,
+            "message": f"Cancelled by requester {caller}",
+            "revokedAt": datetime.now(timezone.utc).isoformat(),
+        })
+        logger.info(f"🚫 AccessRequest {name} on {cluster} cancelled by requester {caller} (was {current_phase})")
+        upsert_request(name, phase=Phase.CANCELLED, approved_by=caller, revoked_at=_now(),
+                       cluster=cluster, namespace=ar.get("spec", {}).get("namespace", ""),
+                       requester=requester,
+                       ttl_seconds=ar.get("spec", {}).get("ttlSeconds", 3600), created_at=_now())
+        log_audit(name, "request.cancelled", actor=caller, detail=f"cluster={cluster} was {current_phase}")
+        await notify_revoked(name, revoked_by=caller)
+    except ApiException as e:
+        logger.error(f"💥 Failed to cancel AccessRequest {name}: {e}")
+        return JSONResponse({"ok": False, "error": "Failed to cancel request"}, status_code=500)
+    return JSONResponse({"ok": True, "phase": Phase.CANCELLED})
 
 
 @app.get("/terminal/{cluster}/{name}", response_class=HTMLResponse)

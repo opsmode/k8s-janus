@@ -525,10 +525,28 @@
     .badge-expired  { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
     .badge-expired .badge-dot  { background: #64748b; }
 
-    .badge-revoked  { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
-    .badge-revoked .badge-dot  { background: #f87171; }
-    .badge-failed   { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
-    .badge-failed .badge-dot   { background: #ef4444; }
+    .badge-revoked    { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-revoked .badge-dot    { background: #f87171; }
+    .badge-cancelled  { background: rgba(161,140,209,0.1); color: #c4b5fd; border: 1px solid rgba(161,140,209,0.25); }
+    .badge-cancelled .badge-dot  { background: #a78bfa; }
+    .badge-failed     { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
+    .badge-failed .badge-dot     { background: #ef4444; }
+
+    /* ── CANCEL BUTTON ── */
+    .cancel-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: 1px solid rgba(167,139,250,0.3);
+      color: #c4b5fd;
+      border-radius: 5px;
+      padding: 3px 9px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cancel-btn:hover { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.6); }
 
     /* ── REVOKE BUTTON ── */
     .revoke-btn {
@@ -727,15 +745,25 @@
               </td>
               <td>{{ ar.metadata.creationTimestamp | to_berlin }}</td>
               <td>
-                {% if phase in ("Active", "Approved", "Pending") and is_admin %}
                 {% set requester = spec.get("requester", "") %}
-                <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
-                  onsubmit="return confirm('Revoke access for {{ requester }}?')">
-                  <button type="submit" class="revoke-btn">
-                    <i data-lucide="shield-off" style="width:12px;height:12px;"></i>
-                    Revoke
+                {% if phase in ("Active", "Approved", "Pending") %}
+                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                  {% if phase in ("Pending", "Active") %}
+                  <button class="cancel-btn" onclick="cancelRequest('{{ ar_cluster }}', '{{ ar.metadata.name }}', '{{ phase }}', this)">
+                    <i data-lucide="x-circle" style="width:12px;height:12px;"></i>
+                    Cancel
                   </button>
-                </form>
+                  {% endif %}
+                  {% if is_admin %}
+                  <form method="POST" action="/revoke/{{ ar_cluster }}/{{ ar.metadata.name }}" style="display:inline"
+                    onsubmit="return confirm('Revoke access for {{ requester }}?')">
+                    <button type="submit" class="revoke-btn">
+                      <i data-lucide="shield-off" style="width:12px;height:12px;"></i>
+                      Revoke
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
                 {% else %}
                 <span style="color:var(--text-dim);">—</span>
                 {% endif %}
@@ -778,6 +806,32 @@
 
   <script>
     lucide.createIcons();
+
+    async function cancelRequest(cluster, name, phase, btn) {
+      var label = phase === 'Active' ? 'Cancel your active session?' : 'Cancel this pending request?';
+      if (!confirm(label)) return;
+      btn.disabled = true;
+      btn.textContent = 'Cancelling…';
+      try {
+        var resp = await fetch('/cancel/' + cluster + '/' + name, { method: 'POST' });
+        var data = await resp.json();
+        if (data.ok) {
+          var row = btn.closest('tr');
+          var badge = row ? row.querySelector('.badge') : null;
+          if (badge) { badge.className = 'badge badge-cancelled'; badge.innerHTML = '<span class="badge-dot"></span>Cancelled'; }
+          btn.closest('td').innerHTML = '<span style="color:var(--text-dim);">—</span>';
+          lucide.createIcons();
+        } else {
+          alert('Cancel failed: ' + (data.error || 'unknown error'));
+          btn.disabled = false;
+          btn.textContent = 'Cancel';
+        }
+      } catch(e) {
+        alert('Cancel failed: ' + e);
+        btn.disabled = false;
+        btn.textContent = 'Cancel';
+      }
+    }
 
     // TTL remaining countdown for Active requests
     var _ttlInterval = null;

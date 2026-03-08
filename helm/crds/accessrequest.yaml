@@ -47,7 +47,7 @@ spec:
               properties:
                 phase:
                   type: string
-                  enum: ["Pending", "Approved", "Denied", "Expired", "Active", "Revoked", "Failed"]
+                  enum: ["Pending", "Approved", "Denied", "Expired", "Active", "Revoked", "Cancelled", "Failed"]
                 approvedBy:
                   type: string
                 approvedAt:

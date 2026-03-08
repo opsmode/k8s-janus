@@ -497,23 +497,25 @@
       opacity: 0.6;
     }
     .sidebar-section.collapsed .section-chevron { transform: rotate(-90deg); }
-    .sidebar-section.collapsed .quick-cmd-body { display: none; }
+    .sidebar-section.collapsed .pod-list-body { display: none; }
     .quick-cmd-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      width: 100%;
-      padding: 7px 10px;
+      gap: 5px;
+      padding: 5px 10px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text-muted);
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-family: 'JetBrains Mono', monospace;
       cursor: pointer;
-      text-align: left;
+      white-space: nowrap;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       transition: background 0.15s, border-color 0.15s, color 0.15s;
-      margin-bottom: 5px;
+      flex-shrink: 0;
     }
     .quick-cmd-btn:hover {
       background: var(--surface-3);
@@ -525,6 +527,15 @@
       cursor: not-allowed;
     }
     .quick-cmd-btn i { flex-shrink: 0; }
+    #quick-cmd-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      flex: 1;
+      scrollbar-width: none;
+    }
+    #quick-cmd-toolbar::-webkit-scrollbar { display: none; }
 
     /* ── BANNER TOASTS ── */
     #banners {
@@ -629,24 +640,6 @@
         </div>
       </div>
 
-      <!-- Quick Commands -->
-      <div class="sidebar-section" id="quick-cmd-section">
-        <div class="sidebar-section-title" onclick="toggleQuickCmds()">
-          <span>⚡ Quick Commands</span>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="event.stopPropagation();openQcmdManage()" title="Manage commands"
-              style="background:none;border:none;padding:2px 4px;border-radius:4px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;transition:color 0.15s,background 0.15s;"
-              onmouseover="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'"
-              onmouseout="this.style.color='var(--text-dim)';this.style.background='none'">
-              <i data-lucide="settings-2" style="width:13px;height:13px;"></i>
-            </button>
-            <i data-lucide="chevron-down" class="section-chevron" style="width:12px;height:12px;"></i>
-          </div>
-        </div>
-        <div class="quick-cmd-body" id="quick-cmd-body">
-          <!-- populated by renderQuickCmds() -->
-        </div>
-      </div>
     </div>
 
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
@@ -656,8 +649,15 @@
           <i data-lucide="columns-2" style="width:13px;height:13px;"></i>
           Split
         </button>
-        <span style="flex:1;"></span>
-        <span id="active-pane-label" style="font-size:0.75rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;"></span>
+        <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
+        <div id="quick-cmd-toolbar"><!-- populated by renderQuickCmds() --></div>
+        <button onclick="openQcmdManage()" title="Manage quick commands"
+          style="background:none;border:none;padding:4px 5px;border-radius:4px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;flex-shrink:0;transition:color 0.15s,background 0.15s;"
+          onmouseover="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'"
+          onmouseout="this.style.color='var(--text-dim)';this.style.background='none'">
+          <i data-lucide="settings-2" style="width:13px;height:13px;"></i>
+        </button>
+        <span id="active-pane-label" style="font-size:0.75rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-left:4px;"></span>
       </div>
 
       <!-- Quick commands manage modal -->
@@ -860,6 +860,7 @@
         this._reconnectTimer = null;
         this._activityTimer  = null;
         this._opening = false;
+        this._destroyed = false;
 
         // DOM refs
         this.el         = document.getElementById(`pane-${id}`);
@@ -887,6 +888,7 @@
         this.ws.onclose = () => {
           this._opening = false;
           this.shellActive = false;
+          if (this._destroyed) return;  // intentional close — no reconnect
           if (this.id === activePaneId) setQuickCmdsEnabled(false);
           this._setStatus(false, 'Disconnected');
           if (this.term) this.term.write('\r\n\x1b[31mSession closed\x1b[0m\r\n');
@@ -1101,6 +1103,7 @@
       }
 
       destroy() {
+        this._destroyed = true;
         clearInterval(this._activityTimer);
         clearTimeout(this._reconnectTimer);
         if (this.ws) { try { this.ws.close(); } catch(_){} this.ws = null; }
@@ -1235,18 +1238,18 @@
     }
 
     function renderQuickCmds() {
-      const body = document.getElementById('quick-cmd-body');
-      body.innerHTML = '';
+      const toolbar = document.getElementById('quick-cmd-toolbar');
+      toolbar.innerHTML = '';
       _userCmds.forEach(c => {
         const btn = document.createElement('button');
         btn.className = 'quick-cmd-btn';
         btn.disabled = !_cmdsEnabled;
         btn.title = c.command.trim();
-        btn.innerHTML = `<i data-lucide="terminal" style="width:13px;height:13px;"></i>${_esc(c.label)}`;
+        btn.innerHTML = `<i data-lucide="terminal" style="width:11px;height:11px;flex-shrink:0;"></i><span style="overflow:hidden;text-overflow:ellipsis;">${_esc(c.label)}</span>`;
         btn.onclick = () => sendQuickCmd(c.command.endsWith('\r') ? c.command : c.command + '\r');
-        body.appendChild(btn);
+        toolbar.appendChild(btn);
       });
-      lucide.createIcons({ el: body });
+      lucide.createIcons({ nodes: [toolbar] });
     }
 
     // ── Quick commands manage modal ──
@@ -1410,21 +1413,10 @@
       document.querySelectorAll('.quick-cmd-btn').forEach(b => b.disabled = !enabled);
     }
 
-    function toggleQuickCmds() {
-      const section = document.getElementById('quick-cmd-section');
-      const collapsed = section.classList.toggle('collapsed');
-      sessionStorage.setItem('k8s_janus_qcmd_collapsed', collapsed ? '1' : '');
-      lucide.createIcons();
-    }
-
     function _esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    // Restore collapsed state + initial render
-    if (sessionStorage.getItem('k8s_janus_qcmd_collapsed')) {
-      document.getElementById('quick-cmd-section').classList.add('collapsed');
-    }
     loadUserCmds().then(renderQuickCmds);
 
     // ========================================================================
