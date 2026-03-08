@@ -24,7 +24,6 @@
 >
 > **⛩ The gate opens. Then it closes.**
 
-<video src="https://github.com/user-attachments/assets/005e0efc-4dc1-4141-a76c-eba342807d86" controls width="100%"></video>
 
 </div>
 
@@ -172,18 +171,6 @@ Choose **CLI mode** (terminal only) or **Browser mode** (opens the web wizard). 
 5. Restarts the controller and web UI so they pick up the new clusters immediately
 
 No cloud-specific setup, no IAM bindings, no repo clone needed.
-
-**Select central and remote clusters:**
-
-![Select clusters](https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/setup-onboarding.jpeg)
-
-**Live configuration progress — RBAC, tokens, secrets, pod restart:**
-
-![Configuring clusters](https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/setup-configuring.jpeg)
-
-**Rename or remove clusters at any time from the Edit Clusters panel:**
-
-![Remove clusters](https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/setup-offboarding.jpeg)
 
 ---
 
