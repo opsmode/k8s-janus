@@ -912,7 +912,7 @@
       var nsHtml = namespaces.map(function(n) { return '<span class="ns-chip">'+n+'</span>'; }).join('');
       var ttlNum = parseInt(ttl) || 3600;
       var h = Math.floor(ttlNum/3600), m = Math.floor((ttlNum%3600)/60);
-      var ttlStr = expiresAt
+      var ttlStr = (phase === 'Active' && expiresAt)
         ? '<span class="ttl-remaining" data-expires="'+expiresAt+'">…</span>'
         : (h && m ? h+'h '+m+'m' : h ? h+'h' : m+'m');
 
@@ -1038,6 +1038,21 @@
         badge.innerHTML = '<span class="badge-dot"></span>' + phase;
       }
       row.dataset.phase = phase;
+      // Remove terminal links and replace name link with plain span for non-active phases
+      var inactive = !['Active', 'Approved'].includes(phase);
+      if (inactive) {
+        // Name cell: replace <a> with <span>
+        var nameLink = row.querySelector('td a[href*="/terminal/"]');
+        if (nameLink) {
+          var span = document.createElement('span');
+          span.style.cssText = nameLink.style.cssText;
+          span.title = nameLink.title;
+          span.textContent = nameLink.textContent;
+          nameLink.replaceWith(span);
+        }
+        // Actions cell: remove Terminal button
+        row.querySelectorAll('a[href*="/terminal/"]').forEach(function(el) { el.remove(); });
+      }
       _myAllRows = _myGetAllRows();
       _myFilteredRows = _myAllRows.slice();
       myRenderPage();

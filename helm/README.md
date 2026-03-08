@@ -64,11 +64,41 @@ open http://localhost:8080/setup
 ## Key features
 
 - **Web terminal** — browser-based `kubectl exec` shell, no local kubeconfig needed
+- **Split-pane terminal** — two pods side-by-side in one browser tab
+- **Pod logs & events** — view real-time logs and K8s events from the terminal sidebar
+- **Quick commands** — personal per-cluster command palette, saved and replayed with one click
 - **Multi-cluster** — manage access to any number of remote clusters from one central install
+- **Multi-namespace** — single request covers multiple namespaces, namespace tab strip in terminal
+- **Instant revoke** — terminate any active session immediately from the admin dashboard
+- **Pending auto-expiry** — auto-deny requests that go unapproved past a configurable limit
 - **Native OIDC/SSO** — Google, GitHub, Entra ID, Okta, GitLab, or any OIDC provider. No oauth2-proxy required.
-- **Audit trail** — every session open, close, command, idle timeout, and revocation is logged
+- **Audit trail** — every request lifecycle event, session open/close, command, idle timeout, and revocation logged
+- **PostgreSQL backend** — optional persistent request history that survives pod restarts
 - **GitOps-ready** — pure Helm, no CRD pre-install steps, ArgoCD compatible
 - **Least-privilege RBAC** — scoped to `pods/exec` only, no wildcard grants, no cluster-admin
+
+---
+
+## Configuration reference
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `janus.defaultTtlSeconds` | `3600` | Default access duration in the request form |
+| `janus.maxTtlSeconds` | `28800` | Hard cap engineers cannot exceed (8h) |
+| `janus.approvalTtlOptions` | `[3600,7200,14400,28800]` | TTL override choices in the admin approval dropdown |
+| `janus.crdRetentionSeconds` | `86400` | Delete Expired/Denied/Revoked CRDs after N seconds |
+| `janus.pendingExpirySeconds` | `0` | Auto-deny Pending requests after N seconds (0 = disabled) |
+| `janus.idleTimeoutSeconds` | `900` | Terminate idle terminal sessions after N seconds |
+| `janus.displayTimezone` | `UTC` | IANA timezone for UI timestamps |
+| `janus.adminEmails` | `[]` | Emails with approve/deny/revoke privileges |
+| `janus.excludedNamespaces` | system namespaces | Namespaces hidden from the request form |
+| `postgresql.enabled` | `false` | Persistent DB for request history |
+| `networkPolicy.enabled` | `true` | Restrict egress to K8s API + DNS only |
+| `remote.enabled` | `false` | Deploy only RBAC on a target cluster (no controller/webui) |
+| `oidc.enabled` | `false` | Enable native OIDC/OAuth2 SSO |
+| `oidc.provider` | `""` | `google` \| `github` \| `entra` \| `okta` \| `gitlab` \| `custom` |
+| `webui.authEnabled` | `false` | Trust `X-Forwarded-Email` header from upstream proxy |
+| `replicaCount` | `1` | >1 also creates a PodDisruptionBudget |
 
 ---
 
@@ -82,6 +112,6 @@ open http://localhost:8080/setup
 
 ## Documentation
 
-Full configuration reference, multi-cluster setup guide, OIDC setup, and screenshots:
+Full setup guide, OIDC configuration, multi-cluster walkthrough, and screenshots:
 
 **→ [github.com/infroware/k8s-janus](https://github.com/infroware/k8s-janus)**

@@ -908,6 +908,9 @@
           if (this._pendingPodMsg) {
             this.ws.send(this._pendingPodMsg);
             this._pendingPodMsg = null;
+          } else if (this.currentPod) {
+            // Reconnect after disconnect — re-select the previously active pod
+            this.ws.send(JSON.stringify({type: 'select_pod', pod: this.currentPod, namespace: activeNs}));
           }
         };
         this.ws.onclose = () => {
@@ -1478,6 +1481,9 @@
 
           const activeA = paneA.currentPod;
           const activeB = paneB ? paneB.currentPod : null;
+
+          // Remove placeholder (Loading pods... / error) on first successful load
+          podList.querySelectorAll('.loading-pods').forEach(el => el.remove());
 
           // Build a map of existing DOM items so we can update in-place
           // instead of nuking the whole list on every 5s poll.

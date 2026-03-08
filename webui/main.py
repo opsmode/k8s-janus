@@ -1099,6 +1099,10 @@ async def status(request: Request, cluster: str, name: str):
         "token": token,
         "server": server,
         "ca": ca,
+        "can_withdraw": (
+            ar_status.get("phase") in (Phase.PENDING, Phase.ACTIVE)
+            and ar.get("spec", {}).get("requester", "").lower() == ctx.get("user_email", "").lower()
+        ),
     })
     return templates.TemplateResponse(request, "status.html", ctx)
 
@@ -1238,7 +1242,7 @@ async def approve(request: Request, cluster: str, name: str):
     except ApiException as e:
         logger.error(f"💥 Failed to approve AccessRequest {name}: {e}")
         return JSONResponse({"ok": False, "error": "Failed to approve request"}, status_code=500)
-    return JSONResponse({"ok": True, "phase": Phase.APPROVED})
+    return JSONResponse({"ok": True, "phase": Phase.APPROVED, "ttlSeconds": effective_ttl, "expiresAt": expires_at})
 
 
 @app.post("/deny/{cluster}/{name}")
@@ -1360,6 +1364,10 @@ async def terminal(request: Request, cluster: str, name: str):
     phase = ar.get("status", {}).get("phase", "")
     if phase != Phase.ACTIVE:
         return templates.TemplateResponse(request, "403.html", {"reason": f"Access is not active. Current phase: {phase}"}, status_code=403)
+    caller, _ = _get_user(request)
+    requester = ar.get("spec", {}).get("requester", "")
+    if caller.lower() != requester.lower():
+        return templates.TemplateResponse(request, "403.html", {"reason": "You can only access your own terminal."}, status_code=403)
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster
     _, user_name    = _get_user(request)

@@ -655,7 +655,7 @@
                 </td>
                 <td style="white-space:nowrap;">
                   {% if phase == "Active" and st.get("expiresAt") %}
-                    <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}">…</span>
+                    <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}" data-phase="Active">…</span>
                   {% else %}
                     {{ (ttl // 3600) }}h{% if (ttl % 3600) // 60 %} {{ (ttl % 3600) // 60 }}m{% endif %}
                   {% endif %}
@@ -941,9 +941,9 @@
       // Namespaces chips
       var nsHtml = namespaces.map(function(n) { return '<span class="ns-chip">'+n+'</span>'; }).join('');
 
-      // TTL display
-      var ttlStr = expiresAt
-        ? '<span class="ttl-remaining" data-expires="'+expiresAt+'">…</span>'
+      // TTL display — only show live countdown for Active phase
+      var ttlStr = (phase === 'Active' && expiresAt)
+        ? '<span class="ttl-remaining" data-expires="'+expiresAt+'" data-phase="Active">…</span>'
         : _fmtSecs(ttl);
 
       var panelHtml =
@@ -1060,6 +1060,10 @@
         });
         var data = await _jsonOrErr(resp);
         if (data.ok) {
+          // Update row data attributes so detail re-open shows correct TTL
+          var row = document.querySelector('tr.req-row[data-name="'+name+'"]');
+          if (row && data.ttlSeconds) row.dataset.ttl = data.ttlSeconds;
+          if (row && data.expiresAt)  row.dataset.expires = data.expiresAt;
           _setRowPhase(name, 'Approved');
         } else {
           _showBanner('Approve failed: ' + (data.error || 'unknown error'), 'error');
