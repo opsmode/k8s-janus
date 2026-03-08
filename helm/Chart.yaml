@@ -2,30 +2,18 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 1.0.3
-appVersion: "1.0.3"
+version: 1.0.4
+appVersion: "1.0.4"
 annotations:
   artifacthub.io/changes: |
     - kind: added
-      description: "Requester profile pic and display name in admin requests list and detail panel Approved by"
+      description: "Colored PS1 prompt injected on every shell connect — cyan user@host, blue working directory"
+    - kind: added
+      description: "Copy terminal output button — copies full scrollback buffer to clipboard with one click"
     - kind: fixed
-      description: "BUILD_DATE now correctly baked into root Dockerfile (was only in component Dockerfiles)"
-    - kind: added
-      description: "Namespace filter input on request form — instant client-side search, shown when cluster has >6 namespaces"
-    - kind: added
-      description: "GET /version endpoint — returns {version, build_date} for health checks and tooling"
-    - kind: added
-      description: "Rate limiting on request creation — 10 req/hr per user by default (MAX_REQUESTS_PER_WINDOW env)"
-    - kind: added
-      description: "Max concurrent live requests per user — 5 by default (MAX_ACTIVE_REQUESTS env)"
-    - kind: added
-      description: "BUILD_DATE baked into Docker images at release time — shown in startup log"
+      description: "Avatar initials rendered immediately on page load — no blank circles while waiting for API"
     - kind: fixed
-      description: "APP_VERSION now sourced from Chart.appVersion instead of image.tag — no longer shows commit SHA"
-    - kind: fixed
-      description: "Pod health badge backgrounds now render correctly (--warning-rgb/--danger-rgb CSS vars added)"
-    - kind: fixed
-      description: "Controller logs cluster registration count on startup"
+      description: "Own-email avatars now populate correctly in admin peer rows and detail panel"
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/infroware/k8s-janus

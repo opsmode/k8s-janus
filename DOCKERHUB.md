@@ -11,6 +11,8 @@ Engineers request temporary `kubectl exec` access through a web UI. Admins appro
 - **Web terminal** — browser-based `kubectl exec` shell, no local kubeconfig needed
 - **Split-pane terminal** — two pods side-by-side in one browser tab
 - **Pod logs & events** — view real-time logs and K8s events from the terminal sidebar
+- **Colored prompt** — PS1 auto-injected on connect (cyan user@host, blue path)
+- **Copy output** — one-click copy of full terminal buffer to clipboard
 - **Quick commands** — personal per-cluster command palette, saved and replayed with one click
 - **Multi-cluster** — manage access to any number of remote clusters from one central install
 - **Multi-namespace** — single request covers multiple namespaces, namespace tab strip in terminal

@@ -30,18 +30,13 @@
 
 ---
 
-## 🎉 v1.0.0 — First Stable Release
-
-K8s-Janus is production-ready. All core workflows are stable, tested, and hardened.
+## 🎉 v1.0.4 — Terminal Polish
 
 | | |
 |-|-|
-| 🔌 | **Terminal reconnect stability** — pod re-attaches automatically after WebSocket disconnect; transient API server errors retried with backoff |
-| 🚪 | **Self-service withdraw** — engineers cancel Pending or Active requests from the dashboard or Request Status page |
-| 🛡️ | **Terminal session isolation** — users can only open exec sessions for their own approved requests |
-| ⏱️ | **TTL display fixes** — countdown only shown for Active phase; TTL override reflected immediately |
-| 🔒 | **CVE patches** — Alpine base images updated (CVE-2025-60876, CVE-2026-22184, CVE-2026-27171) |
-| 🧪 | **Test suite** — 73 automated tests covering routes, auth middleware, DB layer, and input validation |
+| 🎨 | **Colored terminal prompt** — `user@host` in cyan, working directory in blue, injected automatically on every shell connect |
+| 📋 | **Copy terminal output** — copy the full terminal buffer to clipboard with one click from the toolbar |
+| 👤 | **Avatar improvements** — initials rendered immediately (no blank circles); own-email avatars now appear correctly in admin peer rows |
 
 ---
 
@@ -67,6 +62,8 @@ In most Kubernetes environments, granting pod access means either:
 | 🖥️ | **Split-Pane Terminal** | Open two pods side-by-side in a single browser tab with independent A/B pane |
 | 📋 | **Pod Logs & Events** | View real-time pod logs and Kubernetes events directly in the terminal sidebar |
 | ⚡ | **Quick Commands** | Save and replay one-click shell commands per cluster — personal command palette in the terminal |
+| 🎨 | **Colored Prompt** | PS1 auto-injected on connect — cyan `user@host`, blue working directory, works with bash/sh/ash |
+| 📋 | **Copy Output** | One-click copy of full terminal buffer (all scrollback) to clipboard |
 | 🏢 | **Multi-Cluster** | One instance manages multiple clusters — any distribution (GKE, EKS, AKS, on-prem, vCluster) |
 | 📦 | **Multi-Namespace** | Request access to multiple namespaces in a single CRD — one approval, namespace tab strip in terminal |
 | ✅ | **One-Click Approval** | Admins see all pending requests in the dashboard — approve, deny, or override TTL without leaving the browser |
@@ -205,6 +202,12 @@ Click the **Logs** or **Events** tab in the pod sidebar to view the last 500 log
 
 ### Quick Commands
 Save and replay shell commands per cluster from the terminal sidebar. Commands are personal to your user account and stored persistently. Click a saved command to send it instantly to the active pane — useful for recurring debug commands, health checks, or log tails.
+
+### Colored Prompt
+Every shell session automatically gets a colored PS1 — username and hostname in cyan, working directory in blue. Works with bash, sh, and ash.
+
+### Copy Output
+Click **Copy** in the terminal toolbar to copy the full terminal buffer (all scrollback) to your clipboard as plain text.
 
 ### Idle Timeout
 Sessions idle longer than the configured threshold (`idleTimeoutSeconds`, default 15m) are automatically closed and logged in the audit trail.
