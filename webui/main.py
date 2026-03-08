@@ -1224,7 +1224,6 @@ async def approve(request: Request, cluster: str, name: str):
             central_api.patch_cluster_custom_object(
                 group=CRD_GROUP, version=CRD_VERSION, plural="accessrequests", name=name,
                 body={"spec": {"ttlSeconds": ttl_override}},
-                _content_type="application/merge-patch+json",
             )
             status_patch["ttlOverride"] = ttl_override
         _patch_status(name, status_patch)
