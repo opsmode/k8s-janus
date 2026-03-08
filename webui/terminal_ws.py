@@ -18,6 +18,7 @@ import threading
 import queue as _queue
 
 from fastapi import WebSocket, WebSocketDisconnect
+from kubernetes.client.exceptions import ApiException
 from kubernetes.stream import stream
 
 from k8s import get_client_with_token, read_token_secret
@@ -94,13 +95,16 @@ async def notify_revoked(name: str, revoked_by: str) -> int:
 # ---------------------------------------------------------------------------
 
 def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
-    """Probe then open an interactive TTY shell. Returns (stream, shell_path) or (None, None).
+    """Probe then open an interactive TTY shell.
 
-    Retries up to 2 times (3 total attempts) with a short back-off so transient
-    cluster pressure (e.g. API server throttling) doesn't immediately fall through
-    to the no_shell path.
+    Returns (stream, shell_path) on success.
+    Returns (None, None) when the pod has no interactive shell (distroless).
+    Returns (None, "pod_error:<status>") for hard API errors (404 pod gone, 401/403 auth).
+
+    Only retries on transient errors (429, 500, 503) — not on 404/401/403.
     """
     _MAX_ATTEMPTS = 3
+    _TRANSIENT = {429, 500, 502, 503, 504}
     for shell in ('/bin/bash', '/bin/sh', '/bin/ash'):
         try:
             probe = stream(
@@ -125,16 +129,26 @@ def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
                 logger.info(f"🖥️  Terminal: opened {shell} on {pod}")
                 return s, shell
             s.close()
-        except Exception as e:
-            logger.info(f"⚠️  Terminal: {shell} on {pod} failed: {e}")
-            # Transient API error — retry the whole function rather than trying
-            # the next shell (a 429 / 503 affects all shells equally).
+        except ApiException as e:
+            logger.info(f"⚠️  Terminal: {shell} on {pod} failed: ({e.status})")
+            if e.status not in _TRANSIENT:
+                # Hard error — 404 pod gone, 401/403 auth — don't retry
+                return None, f"pod_error:{e.status}"
+            # Transient — retry the whole function (429/5xx affects all shells equally)
             if _attempt + 1 < _MAX_ATTEMPTS:
                 backoff = 1.5 ** _attempt  # 1s, 1.5s
                 logger.info(f"🔄 Terminal: retrying {pod} in {backoff:.1f}s (attempt {_attempt+2}/{_MAX_ATTEMPTS})")
                 time.sleep(backoff)
                 return _open_shell(core_v1, pod, namespace, _attempt + 1)
-            break  # all retries exhausted
+            break
+        except Exception as e:
+            logger.info(f"⚠️  Terminal: {shell} on {pod} failed: {e}")
+            if _attempt + 1 < _MAX_ATTEMPTS:
+                backoff = 1.5 ** _attempt
+                logger.info(f"🔄 Terminal: retrying {pod} in {backoff:.1f}s (attempt {_attempt+2}/{_MAX_ATTEMPTS})")
+                time.sleep(backoff)
+                return _open_shell(core_v1, pod, namespace, _attempt + 1)
+            break
     return None, None
 
 
@@ -371,12 +385,25 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                 )
 
                 if new_resp is None:
-                    await websocket.send_text(
-                        f"\r\n\x1b[31m✗ No shell found in {pod}.\x1b[0m\r\n"
-                        "Tried: /bin/bash, /bin/sh, /bin/ash\r\n"
-                        "Pod may be distroless — use Logs tab instead.\r\n"
-                    )
-                    await websocket.send_text(json.dumps({"type": "no_shell", "pod": pod}))
+                    if used_shell and used_shell.startswith("pod_error:"):
+                        status = used_shell.split(":", 1)[1]
+                        if status in ("404",):
+                            msg = f"Pod {pod} no longer exists."
+                        elif status in ("401", "403"):
+                            msg = f"Access denied to {pod} (HTTP {status}) — your session may have expired."
+                        else:
+                            msg = f"API error {status} connecting to {pod}."
+                        await websocket.send_text(
+                            f"\r\n\x1b[31m✗ {msg}\x1b[0m\r\n"
+                        )
+                        await websocket.send_text(json.dumps({"type": "pod_error", "pod": pod, "status": status, "message": msg}))
+                    else:
+                        await websocket.send_text(
+                            f"\r\n\x1b[31m✗ No shell found in {pod}.\x1b[0m\r\n"
+                            "Tried: /bin/bash, /bin/sh, /bin/ash\r\n"
+                            "Pod may be distroless — use Logs tab instead.\r\n"
+                        )
+                        await websocket.send_text(json.dumps({"type": "no_shell", "pod": pod}))
                     continue
 
                 resp = new_resp

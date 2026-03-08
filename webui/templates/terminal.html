@@ -959,6 +959,18 @@
             this.loadLogs(msg.pod);
             return;
           }
+          if (msg.type === 'pod_error') {
+            this.shellActive = false;
+            this._setStatus(false, msg.status === '404' ? 'Not found' : 'Access denied');
+            this.podLabel.textContent = msg.status === '404'
+              ? `${msg.pod} — no longer exists`
+              : `${msg.pod} — access denied`;
+            if (this.id === activePaneId) setQuickCmdsEnabled(false);
+            // Show error in the terminal pane rather than switching to logs (which also fails)
+            this.switchTab('terminal');
+            if (this.term) this.term.write(`\r\n\x1b[31m${msg.message}\x1b[0m\r\n`);
+            return;
+          }
           if (msg.type === 'idle_warning') {
             const m = Math.ceil(msg.seconds_left / 60);
             showBanner('warning', `<strong>⏰ Idle warning:</strong> Session closes in ~${m}min due to inactivity.`, 30000);
