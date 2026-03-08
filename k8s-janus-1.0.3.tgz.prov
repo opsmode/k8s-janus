@@ -3,6 +3,10 @@ Hash: SHA512
 
 annotations:
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "disable build cache on release to ensure BUILD_DATE is baked correctly"
+    - kind: changed
+      description: "skip CI build on version tag pushes (release.yaml handles those)"
     - kind: added
       description: "requester/approver avatars in admin list; fix BUILD_DATE in root Dockerfile"
 apiVersion: v2
@@ -38,20 +42,20 @@ version: 1.0.3
 
 ...
 files:
-  k8s-janus-1.0.3.tgz: sha256:5fe2f3cdc7dbf705b852c1401f9fc6a430053d27fa7945f84f2052f275d1c5c1
+  k8s-janus-1.0.3.tgz: sha256:b08e4ad869901c2877b3343b504cb974bc95e1399cbdf599ba8f21efd0b2186c
 -----BEGIN PGP SIGNATURE-----
 
-wsFcBAEBCgAQBQJprZi+CRBDCheZqELC2gAAZaYQAKIvJbIFAHoFyEbsbPkgt1Ed
-t2mxjpEu6Wwf12CjNYfNYiV66gL+jv1mYdR03zzhhmDMPceHkhPUc8guBdLIOVZM
-bV3c/n+HMCH89Ql6eQsso1T9jtt0E3JIzg4GL8NzTsv8BWOmZ9eN+eywRo3qt16D
-dRzvCOAIBJAVHI2ZSUNpodL/w1f5BvJ0Wzev65qjHtDLrmtY+GzaFQYe6pmDmrVm
-7TkN1ZWQb4hNpxiAyYwo+Q+qgpeFrG9u1J6vqEgUCjtxlE3b81EsvVJzIP3mqqel
-g87mfnINfQx6m/DnjjpGPMe/FfFQ41HxTBk6e6kFktsdcRG3y/hO6CTgQg6tCbR+
-206czvd9rLjiUilc0TfdtLZNjFaOjeKAHqBDsMdNflgCGfSvM13mTycp4Ynu1JsY
-2fnIOigAxzOPYN4wQPXaA5I1WaIyHMb/dmz/8AL3+rittimfI8RWSdwNHvsyaAN6
-sksItDj70en2yvHLKTDhKp6YZEh2YeH+PqLKtj1J5kOplo7OTL5WQNe4JgwUhQ9v
-PybnwfebNGxorVh2NiUGFf9C49Fn1lZ2bWR9OksONQNbwk378rWkRJVhXysBdJCK
-U2Yo1Vq+W/1wsKNnXbym/snfANz2EgxE/sozDupxi+iDPCZNmKRNFQcQX0YeZ4YU
-9gWrPUriwcJKgycJ3lsb
-=KXdX
+wsFcBAEBCgAQBQJprZqxCRBDCheZqELC2gAA3MwQAHbKHVHbJmtkQBPXeDYQv1Fe
+hG5YGgGmhGyE5B5gzWBKq/uE2lP1dW9NQEWGMrteeWdG6bGFPrSv2/PlF9LvPSMU
+GUF0K/ZjNKrXnmtBYlAKbSbwC2H5s0l3FJdaTIXC93hhtuLnXJljH+rVBYq/ViN0
+hKtYWWoTUxeQxCyisSeRj3iChzsm+9iA2wxC97dRRnUv74Lv0jNZIgi8NEqefpBB
+4Ho8qV66WGhcvlWO3gt2WWOmph1QNCKvz9KOyXJhYsjxHjAwif7T8YaLvpMxqT4K
+oq/y3vRkAYDn4cLezmQsTlVPRUTR2YVE/3NkkAZrVF1jxcL0fCAH1ufg47iffSCV
+0swQJybhUGmvTBZHM1obDoBG32HijigjXgw0XSzReuckjEuaHKkRVhI8k2JFzIB9
+qj1JrPc89ICMwXmjYg7RTembEgeIA3rAMj63VPyL2EIgHr6jhDpNqQmetFckHIOT
+u1tYBfMh54wkq+Jfc3eTI2oBQxQhhS4Nn1EJbLg5uPbXUyqRBM99mSU6Mjo2ZIxW
+YmbHOLd4cCcvd6UCvfn6TK+FiRZanywXUaH8wZZ6xhRVtc3zAbrETWxlK8stPVoP
+pLDT0MVa/GJWCn7az9mVhI2K1DM4MVkqkKCxnSMTOJhB+mzryAah1/Dk7M6jlL2m
+u9jhXaBbTr0mjtIrsAjk
+=6fQW
 -----END PGP SIGNATURE-----

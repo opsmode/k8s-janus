@@ -3,14 +3,18 @@ entries:
   k8s-janus:
   - annotations:
       artifacthub.io/changes: |
+        - kind: fixed
+          description: "disable build cache on release to ensure BUILD_DATE is baked correctly"
+        - kind: changed
+          description: "skip CI build on version tag pushes (release.yaml handles those)"
         - kind: added
           description: "requester/approver avatars in admin list; fix BUILD_DATE in root Dockerfile"
     apiVersion: v2
     appVersion: 1.0.3
-    created: "2026-03-08T15:41:51.019722156Z"
+    created: "2026-03-08T15:50:09.584683735Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
-    digest: 5fe2f3cdc7dbf705b852c1401f9fc6a430053d27fa7945f84f2052f275d1c5c1
+    digest: b08e4ad869901c2877b3343b504cb974bc95e1399cbdf599ba8f21efd0b2186c
     home: https://infroware.github.io/k8s-janus
     icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
     keywords:
@@ -51,7 +55,7 @@ entries:
           description: "log version on startup in controller and webui"
     apiVersion: v2
     appVersion: 1.0.2
-    created: "2026-03-08T15:41:51.018267687Z"
+    created: "2026-03-08T15:50:09.583805525Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ef7ddc73d7c3c5a1f4ca188dd7327135902c782601952652d03abacaa93ddb77
@@ -95,7 +99,7 @@ entries:
           description: "hide DB detail from health dot tooltip for non-admin users"
     apiVersion: v2
     appVersion: 1.0.1
-    created: "2026-03-08T15:41:51.017230236Z"
+    created: "2026-03-08T15:50:09.582733963Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: 3d3fc4aa418cfe513a0d498f057835ce0cb135bb66cd1901abd0792ecfedd627
@@ -127,4 +131,4 @@ entries:
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-1.0.1.tgz
     version: 1.0.1
-generated: "2026-03-08T15:41:51.016187545Z"
+generated: "2026-03-08T15:50:09.581189016Z"
