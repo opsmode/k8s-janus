@@ -12,7 +12,6 @@
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
   <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <style>
     :root {
       --bg:          #080c14;
@@ -911,36 +910,40 @@
     }
 
     // Screenshot the active terminal canvas and download as PNG
-    async function screenshotTerminal() {
+    function screenshotTerminal() {
       const pane = _activePane();
       if (!pane || !pane.term) {
         if (typeof showToast === 'function') showToast('No terminal active', 'warning');
         return;
       }
-      if (typeof html2canvas === 'undefined') {
-        if (typeof showToast === 'function') showToast('Screenshot library not loaded yet', 'warning');
+      // xterm.js renders into one or more <canvas> elements inside termEl.
+      // Composite them onto an off-screen canvas, then download.
+      const canvases = Array.from(pane.termEl.querySelectorAll('canvas'));
+      if (!canvases.length) {
+        if (typeof showToast === 'function') showToast('Terminal canvas not ready', 'warning');
         return;
       }
-      const btn = document.getElementById('screenshot-btn');
-      if (btn) btn.disabled = true;
       try {
-        const canvas = await html2canvas(pane.termEl, {
-          backgroundColor: '#0a0e1a',
-          scale: window.devicePixelRatio || 1,
-          useCORS: true,
-          logging: false,
-        });
-        const pod = pane.currentPod || 'terminal';
-        const ts  = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        // Use the largest canvas as the reference size (usually the text layer)
+        const w = Math.max(...canvases.map(c => c.width));
+        const h = Math.max(...canvases.map(c => c.height));
+        const out = document.createElement('canvas');
+        out.width  = w;
+        out.height = h;
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#0a0e1a';
+        ctx.fillRect(0, 0, w, h);
+        // Draw each layer in DOM order (background → text → cursor)
+        canvases.forEach(c => { if (c.width && c.height) ctx.drawImage(c, 0, 0); });
+        const pod  = pane.currentPod || 'terminal';
+        const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const link = document.createElement('a');
         link.download = `${pod}-${ts}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.href = out.toDataURL('image/png');
         link.click();
         if (typeof showToast === 'function') showToast('Screenshot saved', 'success', 2500);
       } catch (e) {
-        if (typeof showToast === 'function') showToast('Screenshot failed', 'error');
-      } finally {
-        if (btn) btn.disabled = false;
+        if (typeof showToast === 'function') showToast('Screenshot failed: ' + e.message, 'error');
       }
     }
 
