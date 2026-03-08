@@ -93,8 +93,14 @@ async def notify_revoked(name: str, revoked_by: str) -> int:
 # Shell helpers
 # ---------------------------------------------------------------------------
 
-def _open_shell(core_v1, pod: str, namespace: str):
-    """Probe then open an interactive TTY shell. Returns (stream, shell_path) or (None, None)."""
+def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
+    """Probe then open an interactive TTY shell. Returns (stream, shell_path) or (None, None).
+
+    Retries up to 2 times (3 total attempts) with a short back-off so transient
+    cluster pressure (e.g. API server throttling) doesn't immediately fall through
+    to the no_shell path.
+    """
+    _MAX_ATTEMPTS = 3
     for shell in ('/bin/bash', '/bin/sh', '/bin/ash'):
         try:
             probe = stream(
@@ -121,6 +127,14 @@ def _open_shell(core_v1, pod: str, namespace: str):
             s.close()
         except Exception as e:
             logger.info(f"⚠️  Terminal: {shell} on {pod} failed: {e}")
+            # Transient API error — retry the whole function rather than trying
+            # the next shell (a 429 / 503 affects all shells equally).
+            if _attempt + 1 < _MAX_ATTEMPTS:
+                backoff = 1.5 ** _attempt  # 1s, 1.5s
+                logger.info(f"🔄 Terminal: retrying {pod} in {backoff:.1f}s (attempt {_attempt+2}/{_MAX_ATTEMPTS})")
+                time.sleep(backoff)
+                return _open_shell(core_v1, pod, namespace, _attempt + 1)
+            break  # all retries exhausted
     return None, None
 
 

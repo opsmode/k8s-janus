@@ -909,7 +909,9 @@
             this.ws.send(this._pendingPodMsg);
             this._pendingPodMsg = null;
           } else if (this.currentPod) {
-            // Reconnect after disconnect — re-select the previously active pod
+            // Reconnect after disconnect — clear stale no-shell cache so the pod
+            // gets a fresh probe (previous failure may have been transient pressure)
+            this.noShellPods.delete(this.currentPod);
             this.ws.send(JSON.stringify({type: 'select_pod', pod: this.currentPod, namespace: activeNs}));
           }
         };
