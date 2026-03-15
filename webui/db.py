@@ -17,9 +17,10 @@ from datetime import datetime, timezone
 from contextlib import contextmanager
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime, Text,
+    create_engine, Column, Integer, String, DateTime, Text, Boolean,
 )
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
+from cryptography.fernet import Fernet
 
 logger = logging.getLogger("k8s-janus.db")
 
@@ -153,6 +154,28 @@ class UserQuickCommand(Base):
     label      = Column(String(100), nullable=False)
     command    = Column(Text, nullable=False)
     position   = Column(Integer, nullable=False, default=0)
+
+
+class UserMFA(Base):
+    __tablename__ = "user_mfa"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    user_email   = Column(String(255), unique=True, nullable=False, index=True)
+    enabled      = Column(Boolean, nullable=False, default=False)
+    totp_secret  = Column(Text, nullable=True)  # Encrypted with Fernet
+    backup_codes = Column(Text, nullable=True)  # Encrypted JSON array
+    created_at   = Column(DateTime(timezone=True), nullable=False)
+    last_used_at = Column(DateTime(timezone=True))
+
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_email = Column(String(255), unique=True, nullable=False, index=True)
+    name       = Column(String(100))
+    photo      = Column(Text)  # Base64 data URL
+    updated_at = Column(DateTime(timezone=True), nullable=False)
 
 
 # ---------------------------------------------------------------------------
@@ -406,4 +429,162 @@ def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
             return deleted > 0
     except Exception as e:
         logger.error(f"delete_user_quick_command({user_email}, {cmd_id}) failed: {e}")
+        return False
+
+
+# ---------------------------------------------------------------------------
+# MFA (Multi-Factor Authentication)
+# ---------------------------------------------------------------------------
+
+# Encryption key for TOTP secrets — read from env or generate (ephemeral)
+_MFA_ENCRYPTION_KEY = os.environ.get("MFA_ENCRYPTION_KEY", "")
+if not _MFA_ENCRYPTION_KEY:
+    # Generate ephemeral key — secrets lost on pod restart (acceptable for dev/demo)
+    _MFA_ENCRYPTION_KEY = Fernet.generate_key().decode()
+    logger.warning("⚠️  MFA_ENCRYPTION_KEY not set — using ephemeral key (secrets lost on restart)")
+
+_fernet = Fernet(_MFA_ENCRYPTION_KEY.encode())
+
+
+def _encrypt(plaintext: str) -> str:
+    """Encrypt a string using Fernet."""
+    return _fernet.encrypt(plaintext.encode()).decode()
+
+
+def _decrypt(ciphertext: str) -> str:
+    """Decrypt a Fernet-encrypted string."""
+    return _fernet.decrypt(ciphertext.encode()).decode()
+
+
+def get_user_mfa(user_email: str) -> dict | None:
+    """Returns {enabled, totp_secret, backup_codes, created_at, last_used_at} or None."""
+    if not db_enabled:
+        return None
+    try:
+        with get_session() as session:
+            if session is None:
+                return None
+            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
+            if rec is None:
+                return None
+            import json
+            totp_secret = _decrypt(rec.totp_secret) if rec.totp_secret else None
+            backup_codes = json.loads(_decrypt(rec.backup_codes)) if rec.backup_codes else []
+            return {
+                "enabled": rec.enabled,
+                "totp_secret": totp_secret,
+                "backup_codes": backup_codes,
+                "created_at": rec.created_at.isoformat() if rec.created_at else "",
+                "last_used_at": rec.last_used_at.isoformat() if rec.last_used_at else "",
+            }
+    except Exception as e:
+        logger.error(f"get_user_mfa({user_email}) failed: {e}")
+        return None
+
+
+def enable_user_mfa(user_email: str, totp_secret: str, backup_codes: list[str]) -> bool:
+    """Enable MFA for user with TOTP secret and backup codes."""
+    if not db_enabled:
+        return False
+    try:
+        with get_session() as session:
+            if session is None:
+                return False
+            import json
+            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
+            if rec is None:
+                rec = UserMFA(
+                    user_email=user_email,
+                    enabled=True,
+                    totp_secret=_encrypt(totp_secret),
+                    backup_codes=_encrypt(json.dumps(backup_codes)),
+                    created_at=_now(),
+                )
+                session.add(rec)
+            else:
+                rec.enabled = True
+                rec.totp_secret = _encrypt(totp_secret)
+                rec.backup_codes = _encrypt(json.dumps(backup_codes))
+                rec.created_at = _now()
+            return True
+    except Exception as e:
+        logger.error(f"enable_user_mfa({user_email}) failed: {e}")
+        return False
+
+
+def disable_user_mfa(user_email: str) -> bool:
+    """Disable MFA for user (clears secrets)."""
+    if not db_enabled:
+        return False
+    try:
+        with get_session() as session:
+            if session is None:
+                return False
+            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
+            if rec is None:
+                return True  # Already disabled
+            rec.enabled = False
+            rec.totp_secret = None
+            rec.backup_codes = None
+            return True
+    except Exception as e:
+        logger.error(f"disable_user_mfa({user_email}) failed: {e}")
+        return False
+
+
+def update_mfa_last_used(user_email: str) -> None:
+    """Update last_used_at timestamp for MFA."""
+    if not db_enabled:
+        return
+    try:
+        with get_session() as session:
+            if session is None:
+                return
+            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
+            if rec:
+                rec.last_used_at = _now()
+    except Exception as e:
+        logger.error(f"update_mfa_last_used({user_email}) failed: {e}")
+
+
+# ---------------------------------------------------------------------------
+# User Profiles (for HA multi-replica deployments)
+# ---------------------------------------------------------------------------
+
+def get_user_profile(user_email: str) -> dict:
+    """Get profile for user. Returns {"name": "", "photo": ""} if not found."""
+    if not db_enabled:
+        return {}
+    try:
+        with get_session() as session:
+            if session is None:
+                return {}
+            rec = session.query(UserProfile).filter_by(user_email=user_email).first()
+            if rec is None:
+                return {}
+            return {"name": rec.name or "", "photo": rec.photo or ""}
+    except Exception as e:
+        logger.error(f"get_user_profile({user_email}) failed: {e}")
+        return {}
+
+
+def save_user_profile(user_email: str, name: str, photo: str) -> bool:
+    """Save profile for user."""
+    if not db_enabled:
+        return False
+    try:
+        with get_session() as session:
+            if session is None:
+                return False
+            rec = session.query(UserProfile).filter_by(user_email=user_email).first()
+            if rec is None:
+                rec = UserProfile(user_email=user_email, name=name, photo=photo, updated_at=_now())
+                session.add(rec)
+            else:
+                rec.name = name
+                rec.photo = photo
+                rec.updated_at = _now()
+            return True
+    except Exception as e:
+        logger.error(f"save_user_profile({user_email}) failed: {e}")
         return False

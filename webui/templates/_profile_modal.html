@@ -16,10 +16,130 @@
     </div>
     <label class="modal-label" for="profile-name-input">Display name</label>
     <input class="modal-input" id="profile-name-input" type="text" placeholder="Your name" maxlength="60">
-    <div class="modal-actions">
+
+    <!-- MFA Section -->
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border,#2a3448);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:0.72rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted,#94a3b8);margin-bottom:4px;">Two-Factor Authentication</div>
+          <div style="font-size:0.72rem;color:var(--text-dim,#64748b);">Extra security for terminal access</div>
+        </div>
+        <div id="mfa-status-badge" style="padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;display:none;"></div>
+      </div>
+
+      <!-- MFA Not Enabled State -->
+      <div id="mfa-disabled-state" style="display:none;">
+        <p style="font-size:0.8rem;color:var(--text-dim,#64748b);margin-bottom:12px;">Protect your terminal sessions with time-based one-time passwords (TOTP).</p>
+        <button class="modal-btn primary" onclick="startMfaSetup()" style="width:100%;">
+          <i data-lucide="shield-plus" style="width:14px;height:14px;margin-right:6px;"></i>
+          Enable MFA
+        </button>
+      </div>
+
+      <!-- MFA Enabled State -->
+      <div id="mfa-enabled-state" style="display:none;">
+        <p style="font-size:0.8rem;color:var(--success,#10b981);margin-bottom:12px;">
+          <i data-lucide="shield-check" style="width:14px;height:14px;"></i>
+          MFA is active on your account
+        </p>
+        <div style="display:flex;gap:8px;">
+          <button class="modal-btn" onclick="showBackupCodes()" style="flex:1;">View Codes</button>
+          <button class="modal-btn" onclick="disableMfa()" style="flex:1;color:var(--danger,#ef4444);">Disable</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;">
       <button class="modal-btn" onclick="resetProfile()">Reset</button>
       <button class="modal-btn primary" onclick="saveProfile()">Save</button>
     </div>
+  </div>
+</div>
+
+<!-- MFA Setup Modal -->
+<div class="modal-backdrop" id="mfa-setup-modal" style="display:none;" onclick="if(event.target===this)closeMfaSetup()">
+  <div class="modal" style="width:480px;max-width:94vw;">
+    <button class="modal-close" onclick="closeMfaSetup()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    <h3>Enable Two-Factor Authentication</h3>
+
+    <div id="mfa-setup-step1" style="display:none;">
+      <p style="font-size:0.85rem;color:var(--text-muted,#94a3b8);margin-bottom:16px;">Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.)</p>
+
+      <div style="text-align:center;margin-bottom:20px;">
+        <img id="mfa-qr-code" src="" alt="QR Code" style="max-width:200px;width:100%;height:auto;border-radius:8px;background:#fff;padding:12px;">
+      </div>
+
+      <div style="background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:8px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-dim,#64748b);margin-bottom:6px;">Manual Entry Code</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text,#e2e8f0);word-break:break-all;" id="mfa-secret-text"></div>
+      </div>
+
+      <label class="modal-label" for="mfa-verify-code">Enter 6-digit code to verify</label>
+      <input class="modal-input" id="mfa-verify-code" type="text" pattern="[0-9]{6}" maxlength="6" placeholder="000000" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.3em;text-align:center;font-size:1.1rem;">
+
+      <div id="mfa-setup-error" style="color:var(--danger,#ef4444);font-size:0.8rem;margin-top:8px;display:none;"></div>
+
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <button class="modal-btn" onclick="closeMfaSetup()">Cancel</button>
+        <button class="modal-btn primary" onclick="verifyAndEnableMfa()" style="flex:1;">Verify & Enable</button>
+      </div>
+    </div>
+
+    <div id="mfa-setup-step2" style="display:none;">
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:16px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <i data-lucide="shield-check" style="width:24px;height:24px;color:var(--success,#10b981);"></i>
+          <div style="font-weight:600;color:var(--success,#10b981);">MFA Enabled Successfully!</div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-muted,#94a3b8);">Save these backup codes in a safe place. You can use them to access your account if you lose your device.</p>
+      </div>
+
+      <div style="background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:8px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--text-dim,#64748b);margin-bottom:12px;">Backup Recovery Codes</div>
+        <div id="mfa-backup-codes" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;"></div>
+      </div>
+
+      <button class="modal-btn primary" onclick="finishMfaSetup()" style="width:100%;">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- MFA Disable Modal -->
+<div class="modal-backdrop" id="mfa-disable-modal" style="display:none;" onclick="if(event.target===this)closeMfaDisable()">
+  <div class="modal" style="width:400px;max-width:94vw;">
+    <button class="modal-close" onclick="closeMfaDisable()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    <h3>Disable Two-Factor Authentication</h3>
+
+    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;margin-bottom:16px;">
+      <p style="font-size:0.85rem;color:var(--danger,#ef4444);">⚠️ This will remove MFA protection from your account.</p>
+    </div>
+
+    <p style="font-size:0.85rem;color:var(--text-muted,#94a3b8);margin-bottom:16px;">Enter your current authentication code to confirm:</p>
+
+    <input class="modal-input" id="mfa-disable-code" type="text" pattern="[0-9]{6}" maxlength="6" placeholder="000000" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.3em;text-align:center;font-size:1.1rem;">
+
+    <div id="mfa-disable-error" style="color:var(--danger,#ef4444);font-size:0.8rem;margin-top:8px;display:none;"></div>
+
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="modal-btn" onclick="closeMfaDisable()">Cancel</button>
+      <button class="modal-btn" onclick="confirmDisableMfa()" style="flex:1;background:var(--danger,#ef4444);color:#fff;">Disable MFA</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup Codes Modal -->
+<div class="modal-backdrop" id="backup-codes-modal" style="display:none;" onclick="if(event.target===this)closeBackupCodes()">
+  <div class="modal" style="width:420px;max-width:94vw;">
+    <button class="modal-close" onclick="closeBackupCodes()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+    <h3>Backup Recovery Codes</h3>
+
+    <p style="font-size:0.85rem;color:var(--text-muted,#94a3b8);margin-bottom:16px;">Use these codes if you lose access to your authenticator app. Each code can only be used once.</p>
+
+    <div id="backup-codes-display" style="background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:8px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:0.75rem;color:var(--text-dim,#64748b);margin-bottom:8px;">Loading...</div>
+    </div>
+
+    <button class="modal-btn primary" onclick="closeBackupCodes()" style="width:100%;">Close</button>
   </div>
 </div>
 
@@ -186,4 +306,246 @@
       el.addEventListener('click', openProfileModal);
     });
   });
+
+  // ── MFA Management ──
+
+  async function loadMfaStatus() {
+    try {
+      const r = await fetch('/api/mfa/status');
+      if (!r.ok) return;
+      const data = await r.json();
+
+      const badge = document.getElementById('mfa-status-badge');
+      const disabledState = document.getElementById('mfa-disabled-state');
+      const enabledState = document.getElementById('mfa-enabled-state');
+
+      if (data.enabled) {
+        badge.style.display = 'block';
+        badge.style.background = 'rgba(16,185,129,0.15)';
+        badge.style.color = '#10b981';
+        badge.textContent = 'Enabled';
+        disabledState.style.display = 'none';
+        enabledState.style.display = 'block';
+      } else {
+        badge.style.display = 'block';
+        badge.style.background = 'rgba(100,116,139,0.15)';
+        badge.style.color = '#64748b';
+        badge.textContent = 'Disabled';
+        disabledState.style.display = 'block';
+        enabledState.style.display = 'none';
+      }
+    } catch (e) {
+      console.error('Failed to load MFA status:', e);
+    }
+  }
+
+  async function startMfaSetup() {
+    try {
+      const r = await fetch('/api/mfa/setup', { method: 'POST' });
+      if (!r.ok) {
+        if (typeof showToast === 'function') showToast('Failed to start MFA setup', 'error');
+        return;
+      }
+      const data = await r.json();
+
+      document.getElementById('mfa-qr-code').src = data.qr_code;
+      document.getElementById('mfa-secret-text').textContent = data.secret;
+      document.getElementById('mfa-verify-code').value = '';
+      document.getElementById('mfa-setup-error').style.display = 'none';
+
+      // Store backup codes for display after verification
+      window._mfaBackupCodes = data.backup_codes;
+
+      document.getElementById('mfa-setup-step1').style.display = 'block';
+      document.getElementById('mfa-setup-step2').style.display = 'none';
+      document.getElementById('mfa-setup-modal').style.display = 'flex';
+
+      lucide.createIcons();
+    } catch (e) {
+      if (typeof showToast === 'function') showToast('MFA setup failed', 'error');
+    }
+  }
+
+  async function verifyAndEnableMfa() {
+    const code = document.getElementById('mfa-verify-code').value.trim();
+    const errorEl = document.getElementById('mfa-setup-error');
+
+    if (!code || code.length !== 6) {
+      errorEl.textContent = 'Please enter a 6-digit code';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    errorEl.style.display = 'none';
+
+    try {
+      const r = await fetch('/api/mfa/enable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      if (!r.ok) {
+        const data = await r.json();
+        errorEl.textContent = data.error || 'Invalid code';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      // Show backup codes
+      const codesContainer = document.getElementById('mfa-backup-codes');
+      codesContainer.innerHTML = '';
+      (window._mfaBackupCodes || []).forEach(code => {
+        const el = document.createElement('div');
+        el.textContent = code;
+        el.style.padding = '6px 10px';
+        el.style.background = 'var(--surface-3,#1e2535)';
+        el.style.borderRadius = '4px';
+        el.style.textAlign = 'center';
+        codesContainer.appendChild(el);
+      });
+
+      document.getElementById('mfa-setup-step1').style.display = 'none';
+      document.getElementById('mfa-setup-step2').style.display = 'block';
+      lucide.createIcons();
+    } catch (e) {
+      errorEl.textContent = 'Failed to enable MFA';
+      errorEl.style.display = 'block';
+    }
+  }
+
+  function finishMfaSetup() {
+    closeMfaSetup();
+    loadMfaStatus();
+    if (typeof showToast === 'function') showToast('MFA enabled successfully', 'success', 3000);
+  }
+
+  function closeMfaSetup() {
+    document.getElementById('mfa-setup-modal').style.display = 'none';
+    window._mfaBackupCodes = null;
+  }
+
+  function disableMfa() {
+    document.getElementById('mfa-disable-code').value = '';
+    document.getElementById('mfa-disable-error').style.display = 'none';
+    document.getElementById('mfa-disable-modal').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  async function confirmDisableMfa() {
+    const code = document.getElementById('mfa-disable-code').value.trim();
+    const errorEl = document.getElementById('mfa-disable-error');
+
+    if (!code || code.length !== 6) {
+      errorEl.textContent = 'Please enter a 6-digit code';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    errorEl.style.display = 'none';
+
+    try {
+      const r = await fetch('/api/mfa/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      if (!r.ok) {
+        const data = await r.json();
+        errorEl.textContent = data.error || 'Invalid code';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      closeMfaDisable();
+      loadMfaStatus();
+      if (typeof showToast === 'function') showToast('MFA disabled', 'success', 3000);
+    } catch (e) {
+      errorEl.textContent = 'Failed to disable MFA';
+      errorEl.style.display = 'block';
+    }
+  }
+
+  function closeMfaDisable() {
+    document.getElementById('mfa-disable-modal').style.display = 'none';
+  }
+
+  async function showBackupCodes() {
+    const displayEl = document.getElementById('backup-codes-display');
+
+    // Prompt for verification code
+    displayEl.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-dim,#64748b);margin-bottom:8px;">Enter authentication code</label>
+        <input type="text" id="backup-verify-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000"
+               style="width:100%;padding:10px;background:var(--surface-3,#1e2535);border:1px solid var(--border,#2a3448);border-radius:6px;color:var(--text,#e2e8f0);font-family:'JetBrains Mono',monospace;letter-spacing:0.2em;text-align:center;font-size:1rem;outline:none;">
+      </div>
+      <div id="backup-verify-error" style="color:var(--danger,#ef4444);font-size:0.8rem;margin-bottom:8px;display:none;"></div>
+      <button onclick="verifyAndShowBackupCodes()" style="width:100%;padding:10px;background:var(--accent,#6366f1);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">Show Codes</button>
+    `;
+
+    document.getElementById('backup-codes-modal').style.display = 'flex';
+    lucide.createIcons();
+  }
+
+  async function verifyAndShowBackupCodes() {
+    const code = document.getElementById('backup-verify-code').value.trim();
+    const errorEl = document.getElementById('backup-verify-error');
+    const displayEl = document.getElementById('backup-codes-display');
+
+    if (!code || code.length !== 6) {
+      errorEl.textContent = 'Please enter a 6-digit code';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    errorEl.style.display = 'none';
+    displayEl.innerHTML = '<div style="font-size:0.75rem;color:var(--text-dim,#64748b);">Verifying...</div>';
+
+    try {
+      const r = await fetch('/api/mfa/backup-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      if (!r.ok) {
+        const data = await r.json();
+        displayEl.innerHTML = `
+          <div style="color:var(--danger,#ef4444);font-size:0.85rem;margin-bottom:12px;">${data.error || 'Invalid code'}</div>
+          <button onclick="showBackupCodes()" style="width:100%;padding:10px;background:var(--surface-3,#1e2535);border:1px solid var(--border,#2a3448);border-radius:6px;color:var(--text,#e2e8f0);cursor:pointer;">Try Again</button>
+        `;
+        return;
+      }
+
+      const data = await r.json();
+      const codes = data.backup_codes || [];
+
+      if (codes.length === 0) {
+        displayEl.innerHTML = '<div style="font-size:0.85rem;color:var(--text-muted,#94a3b8);">All backup codes have been used. Consider disabling and re-enabling MFA to generate new codes.</div>';
+      } else {
+        displayEl.innerHTML = `
+          <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--text-dim,#64748b);margin-bottom:12px;">${codes.length} Unused Code${codes.length !== 1 ? 's' : ''}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">
+            ${codes.map(c => `<div style="padding:8px;background:var(--surface-3,#1e2535);border-radius:4px;text-align:center;">${c}</div>`).join('')}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-dim,#64748b);margin-top:12px;">⚠️ Each code can only be used once</div>
+        `;
+      }
+    } catch (e) {
+      displayEl.innerHTML = '<div style="font-size:0.85rem;color:var(--danger,#ef4444);">Failed to load backup codes.</div>';
+    }
+  }
+
+  function closeBackupCodes() {
+    document.getElementById('backup-codes-modal').style.display = 'none';
+  }
+
+  // Load MFA status when profile modal opens
+  const _originalOpenProfileModal = openProfileModal;
+  openProfileModal = function() {
+    _originalOpenProfileModal();
+    loadMfaStatus();
+  };
 </script>

@@ -15,6 +15,11 @@ spec:
   {{- if .Values.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.service.loadBalancerIP | quote }}
   {{- end }}
+  # Session affinity - routes same user to same pod (enables multi-replica HA)
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 86400
   selector:
     {{- include "janus.webui.selectorLabels" . | nindent 4 }}
   ports:

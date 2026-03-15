@@ -1,5 +1,9 @@
 ---
 # Number of replicas for both controller and webui deployments.
+# High Availability: Set to 2+ for zero-downtime deployments.
+# - Webui uses sticky sessions (sessionAffinity: ClientIP) for multi-replica support
+# - Controller uses leader election (one active, others standby)
+# - PostgreSQL recommended (not required) for multi-replica to share profiles/audit data
 # replicaCount > 1 also enables PodDisruptionBudget (pdb.yaml)
 replicaCount: 1
 # Extra labels added to all k8s resources (merged with the standard
@@ -14,7 +18,7 @@ labels: {}
 # → templates: controller-deployment.yaml, webui-deployment.yaml
 image:
   repository: infroware/k8s-janus
-  tag: "v1.0.5"
+  tag: "v1.0.6"
   pullPolicy: IfNotPresent
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.

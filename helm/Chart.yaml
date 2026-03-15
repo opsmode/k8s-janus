@@ -2,16 +2,16 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 1.0.5
-appVersion: "1.0.5"
+version: 1.0.6
+appVersion: "1.0.6"
 annotations:
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Colored PS1 now works in bash — use --norc --noprofile so rc files don't overwrite it"
-    - kind: fixed
-      description: "Quick commands ReferenceError on pod click — _cmdsEnabled declared before setActivePane"
-    - kind: fixed
-      description: "Status page: approved-by shown for Active/Expired/Revoked phases; cancel button grouped with terminal link"
+    - kind: added
+      description: "MFA/TOTP support — optional 2FA before terminal access with QR code setup, backup codes, and encrypted storage"
+    - kind: added
+      description: "Native HA support — multi-replica deployments with sticky sessions, leader election, and DB-backed profiles (no Redis required)"
+    - kind: changed
+      description: "User profiles now stored in PostgreSQL when enabled (fallback to memory) for HA compatibility"
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/infroware/k8s-janus
