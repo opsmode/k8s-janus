@@ -210,8 +210,10 @@ def _stream_thread(exec_resp, pod_name: str,
             if exec_resp.peek_stderr():
                 out_q.put(exec_resp.read_stderr())
     except Exception as e:
-        logger.debug(f"🧵 Stream thread ended for {pod_name}: {e}")
+        logger.warning(f"🧵 [{request_name}] Stream thread exception for {pod_name}: {e}")
     finally:
+        stream_open = exec_resp.is_open() if exec_resp else False
+        logger.info(f"🧵 [{request_name}] Stream thread exiting for {pod_name} — stream_open={stream_open} stop_requested={stop_evt.is_set()}")
         out_q.put(None)
 
 
@@ -221,10 +223,11 @@ async def _read_pod(loop, websocket: WebSocket, out_q: _queue.Queue, pod_name: s
         while True:
             chunk = await loop.run_in_executor(None, out_q.get)
             if chunk is None:
+                logger.info(f"📭 Read task: stream thread signaled termination for {pod_name}")
                 break
             await websocket.send_text(chunk)
     except Exception as e:
-        logger.debug(f"📭 Read task ended for {pod_name}: {e}")
+        logger.warning(f"📭 Read task exception for {pod_name}: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -459,8 +462,8 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
             elif msg_type == "resize":
                 pass  # informational only with sync k8s client
 
-    except WebSocketDisconnect:
-        pass
+    except WebSocketDisconnect as e:
+        logger.info(f"🔌 [{name}] WebSocket disconnected — code={getattr(e, 'code', 'N/A')} reason={getattr(e, 'reason', 'N/A')}")
     except Exception as e:
         logger.error(f"💥 Terminal session error: {e}")
         try:
