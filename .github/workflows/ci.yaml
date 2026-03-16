@@ -17,40 +17,63 @@ env:
   IMAGE: infroware/k8s-janus
 
 jobs:
+  # Combine all linting into one job with parallel steps
   lint:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
 
-      - name: Lint controller
-        working-directory: controller
-        run: flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402
+      # Run all lint steps in parallel using background jobs
+      - name: Lint all components
+        run: |
+          # Run linters in parallel
+          cd controller && flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402 &
+          CONTROLLER_PID=$!
 
-      - name: Lint webui
-        working-directory: webui
-        run: flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402
+          cd ../webui && flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402 &
+          WEBUI_PID=$!
 
-  helm-lint:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v6
-      - name: Lint Helm chart
-        run: helm lint helm/ --strict
+          cd ../helm && helm lint . --strict &
+          HELM_PID=$!
+
+          # Wait for all and check exit codes
+          wait $CONTROLLER_PID
+          CONTROLLER_EXIT=$?
+          wait $WEBUI_PID
+          WEBUI_EXIT=$?
+          wait $HELM_PID
+          HELM_EXIT=$?
+
+          # Fail if any linter failed
+          if [ $CONTROLLER_EXIT -ne 0 ] || [ $WEBUI_EXIT -ne 0 ] || [ $HELM_EXIT -ne 0 ]; then
+            echo "Linting failed"
+            exit 1
+          fi
 
   test:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
 
+      # Cache pip packages to avoid reinstalling every time
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('webui/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Run webui tests
         working-directory: webui
         run: |
-          pip3 install --break-system-packages pytest pytest-asyncio httpx
-          pip3 install --break-system-packages -r requirements.txt
+          # Install only if not cached
+          pip3 install --break-system-packages --root-user-action=ignore --quiet pytest pytest-asyncio httpx
+          pip3 install --break-system-packages --root-user-action=ignore --quiet -r requirements.txt
           python3 -m pytest tests/ -v --tb=short
 
   build:
-    needs: [lint, helm-lint, test]
+    needs: [lint, test]
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
@@ -73,14 +96,10 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          # Use GitHub Actions cache instead of local - more reliable
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: linux/amd64
-
-      - name: Rotate build cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Update ArgoCD image tag
         env:
