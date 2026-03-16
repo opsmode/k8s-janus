@@ -610,7 +610,9 @@
     .pg-per-page { display: flex; align-items: center; gap: 6px; }
   </style>
   <link rel="stylesheet" href="/static/command-palette.css">
+  <link rel="stylesheet" href="/static/toast.css">
   <script src="/static/command-palette.js"></script>
+  <script src="/static/toast.js"></script>
 </head>
 <body>
   {% set page_subtitle = "The gatekeeper who never sleeps (unlike your on-call engineer)" %}
@@ -1401,14 +1403,9 @@
   <script>
     // ── Toast system ──
     function showToast(msg, type = 'info', duration = 5000) {
-      const icons = { info: 'info', warning: 'alert-triangle', error: 'alert-circle', success: 'check-circle' };
-      const colors = { info: 'var(--info)', warning: 'var(--warning)', error: 'var(--danger)', success: 'var(--success)' };
-      const t = document.createElement('div');
-      t.className = 'toast' + (type === 'warning' ? ' warning' : '');
-      t.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:15px;height:15px;color:${colors[type]||'var(--info)'};"></i><span>${msg}</span>`;
-      document.getElementById('toast-container').appendChild(t);
-      lucide.createIcons({ nodes: [t] });
-      setTimeout(() => t.remove(), duration);
+      if (window.toast) {
+        window.toast.show(type, msg, '', duration);
+      }
     }
 
     // ── Session expiry warning (OIDC only, 24h cookie) ──

@@ -513,7 +513,9 @@
     .audit-event.deleted  { color: #64748b; border-color: rgba(100,116,139,0.2); background: rgba(100,116,139,0.06); }
   </style>
   <link rel="stylesheet" href="/static/command-palette.css">
+  <link rel="stylesheet" href="/static/toast.css">
   <script src="/static/command-palette.js"></script>
+  <script src="/static/toast.js"></script>
 </head>
 <body>
   {% set page_title_extra %}<span style="font-size:0.65rem;font-weight:500;background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.04em;vertical-align:middle;">⚡ GOD MODE</span>{% endset %}
@@ -1035,6 +1037,7 @@
         var data = await _jsonOrErr(resp);
         if (data.ok) {
           _setRowPhase(name, 'Revoked');
+          showToast('Access revoked', 'warning', 4000);
         } else {
           _showBanner('Revoke failed: ' + (data.error || 'unknown error'), 'error');
           closeDetail();
@@ -1080,6 +1083,7 @@
           if (row && data.ttlSeconds) row.dataset.ttl = data.ttlSeconds;
           if (row && data.expiresAt)  row.dataset.expires = data.expiresAt;
           _setRowPhase(name, 'Approved');
+          showToast('Access request approved', 'success', 4000);
         } else {
           _showBanner('Approve failed: ' + (data.error || 'unknown error'), 'error');
           closeDetail();
@@ -1102,6 +1106,7 @@
         var data = await _jsonOrErr(resp);
         if (data.ok) {
           _setRowPhase(name, 'Denied');
+          showToast('Access request denied', 'success', 4000);
         } else {
           _showBanner('Deny failed: ' + (data.error || 'unknown error'), 'error');
           closeDetail();
@@ -1161,14 +1166,7 @@
     }
 
     function _showBanner(msg, type) {
-      var el = document.createElement('div');
-      el.style.cssText = 'position:fixed;top:90px;right:24px;z-index:999;padding:10px 16px;border-radius:8px;font-size:0.82rem;font-weight:500;' +
-        (type === 'success'
-          ? 'background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#34d399;'
-          : 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;');
-      el.textContent = msg;
-      document.body.appendChild(el);
-      setTimeout(function() { el.remove(); }, 3500);
+      showToast(msg, type === 'success' ? 'success' : 'error', 5000);
     }
 
     // ── Audit log ──
@@ -1229,14 +1227,9 @@
 
     // ── Toast system ──
     function showToast(msg, type = 'info', duration = 5000) {
-      const icons = { info: 'info', warning: 'alert-triangle', error: 'alert-circle', success: 'check-circle' };
-      const colors = { info: 'var(--info)', warning: 'var(--warning)', error: 'var(--danger)', success: 'var(--success)' };
-      const t = document.createElement('div');
-      t.className = 'toast' + (type === 'warning' ? ' warning' : '');
-      t.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:15px;height:15px;color:${colors[type]||'var(--info)'};"></i><span>${msg}</span>`;
-      document.getElementById('toast-container').appendChild(t);
-      lucide.createIcons({ nodes: [t] });
-      setTimeout(() => t.remove(), duration);
+      if (window.toast) {
+        window.toast.show(type, msg, '', duration);
+      }
     }
 
     // ── Session expiry warning ──
