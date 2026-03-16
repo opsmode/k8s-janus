@@ -5,7 +5,7 @@
 # - Controller uses leader election (one active, others standby)
 # - PostgreSQL recommended (not required) for multi-replica to share profiles/audit data
 # replicaCount > 1 also enables PodDisruptionBudget (pdb.yaml)
-replicaCount: 3
+replicaCount: 1
 # Extra labels added to all k8s resources (merged with the standard
 # app.kubernetes.io/* labels that are always applied automatically).
 # Example:
@@ -107,7 +107,7 @@ webui:
   baseUrl: ""
   authEnabled: false
   containerPort: 8000
-  mfaEncryptionKey: "eV9Zg+ofm2Wd5a7nC/CpMkGluNY2LXDndB3ItlY16Lg="
+  mfaEncryptionKey: ""
   resources:
     requests:
       cpu: 50m
