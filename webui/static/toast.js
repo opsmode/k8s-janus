@@ -124,7 +124,14 @@ class ToastManager {
   }
 }
 
-window.toast = new ToastManager();
+// Initialize after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.toast = new ToastManager();
+  });
+} else {
+  window.toast = new ToastManager();
+}
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ToastManager;
