@@ -924,6 +924,14 @@
       } else if (phase === 'Active' || phase === 'Approved') {
         actionsHtml = '<div class="action-cell" id="actions-'+name+'">';
         if (phase === 'Active') {
+          // Show terminal link if this is admin's own request
+          var currentUser = '{{ caller }}';
+          if (requester.toLowerCase() === currentUser.toLowerCase()) {
+            actionsHtml +=
+              '<a href="/terminal/'+cluster+'/'+name+'" class="action-btn terminal-btn" '
+              +'style="background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;text-decoration:none;">'
+              +'<i data-lucide="terminal" style="width:12px;height:12px;"></i> Terminal</a>';
+          }
           actionsHtml +=
             '<div class="extend-wrap" id="extend-wrap-'+name+'">'
             +'<button class="action-btn extend-btn" onclick="toggleExtend(\''+name+'\',\''+cluster+'\',event)">'
