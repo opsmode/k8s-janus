@@ -58,6 +58,10 @@ spec:
           env:
             - name: APP_DIR
               value: /app/webui
+            {{- if .Values.webui.mfaEncryptionKey }}
+            - name: MFA_ENCRYPTION_KEY
+              value: {{ .Values.webui.mfaEncryptionKey | quote }}
+            {{- end }}
             {{- if .Values.postgresql.enabled }}
             - name: DB_HOST
               value: {{ .Values.postgresql.host | quote }}

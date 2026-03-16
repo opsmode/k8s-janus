@@ -98,11 +98,16 @@ controller:
 #              False for local dev or environments without an auth proxy.
 # containerPort: internal port the webui process listens on (do not change
 #                unless you build a custom image that uses a different port).
+# mfaEncryptionKey: base64-encoded 32-byte key for encrypting MFA secrets.
+#                   Generate with: openssl rand -base64 32
+#                   IMPORTANT: Store securely — losing this key means losing all MFA setups.
+#                   Leave empty to use an ephemeral key (secrets lost on restart).
 # → templates: webui-deployment.yaml, webui-service.yaml
 webui:
   baseUrl: ""
   authEnabled: false
   containerPort: 8000
+  mfaEncryptionKey: "eV9Zg+ofm2Wd5a7nC/CpMkGluNY2LXDndB3ItlY16Lg="
   resources:
     requests:
       cpu: 50m
