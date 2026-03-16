@@ -96,6 +96,9 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.sha }}
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            APP_VERSION=${{ steps.tag.outputs.sha }}
           # Use GitHub Actions cache instead of local - more reliable
           cache-from: type=gha
           cache-to: type=gha,mode=max
