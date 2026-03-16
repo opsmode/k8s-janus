@@ -1,0 +1,161 @@
+{{- if and (not .Values.remote.enabled) .Values.tokenRefresh.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "janus.fullname" . }}-token-refresh
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "janus.fullname" . }}-token-refresh
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "janus.fullname" . }}-token-refresh
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "janus.fullname" . }}-token-refresh
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "janus.fullname" . }}-token-refresh
+    namespace: {{ .Values.janus.namespace }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "janus.fullname" . }}-token-refresh
+  namespace: {{ .Values.janus.namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+spec:
+  # Run every {{ .Values.tokenRefresh.schedule }} (default: weekly on Sunday at 2 AM)
+  schedule: "{{ .Values.tokenRefresh.schedule }}"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "janus.labels" . | nindent 12 }}
+        spec:
+          serviceAccountName: {{ include "janus.fullname" . }}-token-refresh
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: token-refresh
+              image: bitnami/kubectl:{{ .Values.tokenRefresh.kubectlVersion }}
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  echo "🔄 Starting remote cluster token refresh..."
+
+                  # Find all remote cluster kubeconfig secrets
+                  SECRETS=$(kubectl get secrets -n {{ .Values.janus.namespace }} \
+                    -o json | jq -r '.items[] | select(.metadata.name | endswith("-kubeconfig")) | .metadata.name')
+
+                  if [ -z "$SECRETS" ]; then
+                    echo "ℹ️  No remote cluster kubeconfig secrets found"
+                    exit 0
+                  fi
+
+                  REFRESHED=0
+                  FAILED=0
+
+                  for SECRET_NAME in $SECRETS; do
+                    echo ""
+                    echo "📝 Processing secret: $SECRET_NAME"
+
+                    # Extract kubeconfig
+                    kubectl get secret "$SECRET_NAME" -n {{ .Values.janus.namespace }} \
+                      -o jsonpath='{.data.kubeconfig}' | base64 -d > /tmp/kubeconfig.yaml
+
+                    # Test if token is still valid
+                    if kubectl --kubeconfig=/tmp/kubeconfig.yaml get ns >/dev/null 2>&1; then
+                      echo "✅ Token still valid, skipping refresh"
+                      continue
+                    fi
+
+                    echo "⚠️  Token expired or invalid, attempting refresh..."
+
+                    # Extract cluster info from kubeconfig
+                    CLUSTER_NAME=$(yq eval '.clusters[0].name' /tmp/kubeconfig.yaml)
+                    SERVER_URL=$(yq eval '.clusters[0].cluster.server' /tmp/kubeconfig.yaml)
+                    CA_DATA=$(yq eval '.clusters[0].cluster.certificate-authority-data' /tmp/kubeconfig.yaml)
+                    SA_NAME=$(yq eval '.users[0].user.tokenFile' /tmp/kubeconfig.yaml | sed 's|.*/serviceaccounts/||;s|/token||' || echo "janus-remote")
+
+                    # Try to request a new token from the remote cluster
+                    # This will only work if we have valid credentials to create tokens
+                    # In most cases, this will fail and require manual intervention
+
+                    echo "❌ Cannot auto-refresh token for remote cluster"
+                    echo "   Cluster: $CLUSTER_NAME"
+                    echo "   Server: $SERVER_URL"
+                    echo "   Service Account: $SA_NAME"
+                    echo ""
+                    echo "   To refresh manually, run on the remote cluster:"
+                    echo "   kubectl create token $SA_NAME -n {{ .Values.janus.namespace }} --duration={{ .Values.remote.tokenDuration }}"
+                    echo ""
+
+                    FAILED=$((FAILED + 1))
+                  done
+
+                  echo ""
+                  echo "📊 Summary:"
+                  echo "   Refreshed: $REFRESHED"
+                  echo "   Failed: $FAILED"
+
+                  if [ $FAILED -gt 0 ]; then
+                    echo ""
+                    echo "⚠️  $FAILED token(s) require manual refresh"
+                    exit 1
+                  fi
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
+{{- end }}

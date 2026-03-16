@@ -157,6 +157,15 @@ remote:
   serviceAccountName: janus-remote
   # Token lifetime for the static kubeconfig Secret (re-run setup.sh to refresh).
   tokenDuration: "8760h"
+# Automated token refresh for remote clusters (central cluster only).
+# CronJob checks remote cluster tokens and alerts when they need manual refresh.
+# → templates: token-refresh-cronjob.yaml
+tokenRefresh:
+  enabled: false
+  # Cron schedule for token validation (default: weekly on Sunday at 2 AM UTC)
+  schedule: "0 2 * * 0"
+  # kubectl image version for token refresh job
+  kubectlVersion: "1.31"
 # Native OIDC/OAuth2 authentication. When enabled, Janus handles the OAuth
 # flow directly — no oauth2-proxy or ingress annotation required.
 # Supports any OIDC-compliant provider plus GitHub (OAuth2).
