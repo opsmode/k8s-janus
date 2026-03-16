@@ -108,16 +108,15 @@ jobs:
           open(req_file, 'w').write('\n'.join(out) + '\n')
           PYEOF
 
-      - name: Open PR if anything changed
-        uses: peter-evans/create-pull-request@v8
-        with:
-          commit-message: "chore: upgrade python dependencies"
-          branch: deps/python-upgrade
-          delete-branch: true
-          title: "chore: weekly python dependency upgrade"
-          body: |
-            Automated weekly dependency upgrade.
-
-            Packages updated in `controller/requirements.txt` and/or `webui/requirements.txt`.
-            CI will run on this PR — merge once green.
-          labels: dependencies
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add controller/requirements.txt webui/requirements.txt
+          if git diff --staged --quiet; then
+            echo "No dependency changes detected"
+          else
+            git commit -m "chore: upgrade python dependencies"
+            git push
+            echo "Dependencies updated and pushed to main"
+          fi
