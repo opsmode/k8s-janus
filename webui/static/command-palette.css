@@ -7,7 +7,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 99998;
+  z-index: 999998;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
   opacity: 0;
@@ -24,7 +24,7 @@
   top: 20%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.95);
-  z-index: 99999;
+  z-index: 999999;
   width: min(640px, 90vw);
   max-height: 70vh;
   background: rgba(13, 17, 23, 0.95);
