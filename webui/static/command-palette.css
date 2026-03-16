@@ -108,8 +108,6 @@
   padding: 8px;
   min-height: 200px;
   max-height: 400px;
-  position: relative;
-  z-index: 1;
 }
 
 .cmd-palette-results::-webkit-scrollbar {
@@ -159,6 +157,7 @@
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 .cmd-palette-item::before {
@@ -253,8 +252,6 @@
   padding: 12px 20px;
   background: rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
-  position: relative;
-  z-index: 2;
 }
 
 .cmd-palette-hint {
