@@ -26,14 +26,14 @@ jobs:
       # Run all lint steps in parallel using background jobs
       - name: Lint all components
         run: |
-          # Run linters in parallel
-          cd controller && flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402 &
+          # Run linters in parallel (use subshells with proper paths)
+          (cd controller && flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402) &
           CONTROLLER_PID=$!
 
-          cd ../webui && flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402 &
+          (cd webui && flake8 . --max-line-length=120 --extend-ignore=E501,W503,E221,E225,E272,E302,E303,E305,E306,E402) &
           WEBUI_PID=$!
 
-          cd ../helm && helm lint . --strict &
+          (cd helm && helm lint . --strict) &
           HELM_PID=$!
 
           # Wait for all and check exit codes
@@ -57,7 +57,7 @@ jobs:
 
       # Cache pip packages to avoid reinstalling every time
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('webui/requirements.txt') }}
