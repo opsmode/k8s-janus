@@ -274,7 +274,8 @@
   text-align: center;
 }
 
-/* Animated gradient border effect */
+/* Animated gradient border effect - DISABLED to fix click issues */
+/*
 @keyframes gradient-border {
   0% {
     background-position: 0% 50%;
@@ -305,3 +306,4 @@
   filter: blur(8px);
   pointer-events: none;
 }
+*/
