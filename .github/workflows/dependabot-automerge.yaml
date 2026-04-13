@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: meta
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
 
       - name: Auto-merge patch and minor updates
         # Skip Docker entirely (base image tags like 3.12→3.14 are major Python bumps, not semver minor)
