@@ -44,10 +44,9 @@ ingress:
 # → templates: webui-httproute.yaml (only rendered when enabled: true)
 httproute:
   enabled: false
-  hostname: ""           # e.g. janus.infroware.com
+  hostname: "" # e.g. janus.infroware.com
   gatewayName: main
   gatewayNamespace: gateway
-
 # Core Janus configuration — passed to both deployments via ConfigMap.
 # → templates: configmap.yaml, namespace.yaml
 janus:
