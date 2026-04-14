@@ -37,6 +37,17 @@ ingress:
   # oAuth2ProxyAuthUrl: https://oauth2-proxy.example.com/oauth2/auth
   # oAuth2ProxyAuthSignInUrl: https://oauth2-proxy.example.com/oauth2/start
   proxyReadTimeout: "3600" # nginx proxy-read-timeout in seconds
+# Gateway API HTTPRoute for Envoy Gateway / any Gateway API-compatible proxy.
+# Alternative to ingress — use this instead of ingress when running on a cluster
+# with a Gateway API controller (e.g. Envoy Gateway, Istio, Cilium).
+# TLS is terminated at the Gateway level; no cert config needed here.
+# → templates: webui-httproute.yaml (only rendered when enabled: true)
+httproute:
+  enabled: false
+  hostname: ""           # e.g. janus.infroware.com
+  gatewayName: main
+  gatewayNamespace: gateway
+
 # Core Janus configuration — passed to both deployments via ConfigMap.
 # → templates: configmap.yaml, namespace.yaml
 janus:

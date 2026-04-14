@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "K8s-Janus Values",
-  "description": "Helm values for K8s-Janus — Just-in-Time Kubernetes pod access",
+  "description": "Helm values for K8s-Janus \u2014 Just-in-Time Kubernetes pod access",
   "type": "object",
   "properties": {
     "replicaCount": {
@@ -13,16 +13,27 @@
     "labels": {
       "description": "Extra labels added to all Kubernetes resources",
       "type": "object",
-      "additionalProperties": { "type": "string" }
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "image": {
       "type": "object",
       "properties": {
-        "repository": { "type": "string", "default": "infroware/k8s-janus" },
-        "tag":        { "type": "string" },
+        "repository": {
+          "type": "string",
+          "default": "infroware/k8s-janus"
+        },
+        "tag": {
+          "type": "string"
+        },
         "pullPolicy": {
           "type": "string",
-          "enum": ["Always", "IfNotPresent", "Never"],
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ],
           "default": "IfNotPresent"
         }
       }
@@ -32,80 +43,186 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "LoadBalancer", "NodePort"],
+          "enum": [
+            "ClusterIP",
+            "LoadBalancer",
+            "NodePort"
+          ],
           "default": "LoadBalancer"
         },
-        "port": { "type": "integer", "default": 80 }
+        "port": {
+          "type": "integer",
+          "default": 80
+        }
       }
     },
     "ingress": {
       "type": "object",
       "properties": {
-        "enabled":             { "type": "boolean", "default": false },
-        "ingressClass":        { "type": "string" },
-        "clusterIssuer":       { "type": "string" },
-        "host":                { "type": "string" },
-        "proxyReadTimeout":    { "type": "string", "default": "3600" },
-        "oAuth2ProxyAuthUrl":         { "type": "string" },
-        "oAuth2ProxyAuthSignInUrl":   { "type": "string" }
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "ingressClass": {
+          "type": "string"
+        },
+        "clusterIssuer": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "proxyReadTimeout": {
+          "type": "string",
+          "default": "3600"
+        },
+        "oAuth2ProxyAuthUrl": {
+          "type": "string"
+        },
+        "oAuth2ProxyAuthSignInUrl": {
+          "type": "string"
+        }
       }
     },
     "janus": {
       "type": "object",
       "properties": {
-        "namespace":            { "type": "string", "default": "k8s-janus" },
-        "defaultTtlSeconds":    { "type": "integer", "minimum": 600, "maximum": 28800, "default": 3600 },
-        "maxTtlSeconds":        { "type": "integer", "minimum": 600, "maximum": 28800, "default": 28800 },
-        "crdRetentionSeconds":  { "type": "integer", "default": 86400 },
-        "idleTimeoutSeconds":   { "type": "integer", "default": 900 },
-        "displayTimezone":      { "type": "string", "default": "Europe/Berlin" },
+        "namespace": {
+          "type": "string",
+          "default": "k8s-janus"
+        },
+        "defaultTtlSeconds": {
+          "type": "integer",
+          "minimum": 600,
+          "maximum": 28800,
+          "default": 3600
+        },
+        "maxTtlSeconds": {
+          "type": "integer",
+          "minimum": 600,
+          "maximum": 28800,
+          "default": 28800
+        },
+        "crdRetentionSeconds": {
+          "type": "integer",
+          "default": 86400
+        },
+        "idleTimeoutSeconds": {
+          "type": "integer",
+          "default": 900
+        },
+        "displayTimezone": {
+          "type": "string",
+          "default": "Europe/Berlin"
+        },
         "adminEmails": {
           "type": "array",
-          "items": { "type": "string", "format": "email" }
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
         },
         "excludedNamespaces": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "controller": {
       "type": "object",
       "properties": {
-        "resources": { "type": "object" }
+        "resources": {
+          "type": "object"
+        }
       }
     },
     "webui": {
       "type": "object",
       "properties": {
-        "baseUrl":       { "type": "string", "default": "" },
-        "authEnabled":   { "type": "boolean", "default": false },
-        "containerPort": { "type": "integer", "default": 8000 },
-        "resources":     { "type": "object" }
+        "baseUrl": {
+          "type": "string",
+          "default": ""
+        },
+        "authEnabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "containerPort": {
+          "type": "integer",
+          "default": 8000
+        },
+        "resources": {
+          "type": "object"
+        }
       }
     },
     "externalSecrets": {
       "type": "object",
       "properties": {
-        "enabled":         { "type": "boolean", "default": false },
-        "secretStore":     { "type": "string" },
-        "refreshInterval": { "type": "string" }
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "secretStore": {
+          "type": "string"
+        },
+        "refreshInterval": {
+          "type": "string"
+        }
       }
     },
     "postgresql": {
       "type": "object",
       "properties": {
-        "enabled":   { "type": "boolean", "default": false },
-        "host":      { "type": "string" },
-        "port":      { "type": "integer", "default": 5432 },
-        "database":  { "type": "string" },
-        "username":  { "type": "string" }
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "default": 5432
+        },
+        "database": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
       }
     },
     "pdb": {
       "type": "object",
       "properties": {
-        "minAvailable": { "type": "integer", "default": 1 }
+        "minAvailable": {
+          "type": "integer",
+          "default": 1
+        }
+      }
+    },
+    "httproute": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "hostname": {
+          "type": "string",
+          "default": ""
+        },
+        "gatewayName": {
+          "type": "string",
+          "default": "main"
+        },
+        "gatewayNamespace": {
+          "type": "string",
+          "default": "gateway"
+        }
       }
     }
   }
