@@ -1,0 +1,141 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: "add Gateway API HTTPRoute support (httproute.enabled)"
+    - kind: changed
+      description: "bump the python-webui group in /webui with 3 updates (#23)"
+    - kind: changed
+      description: "bump the python-webui group in /webui with 5 updates (#21)"
+    - kind: changed
+      description: "bump the python-controller group (#20)"
+    - kind: changed
+      description: "bump the python-webui group in /webui with 2 updates (#19)"
+    - kind: changed
+      description: "bump kopf in /controller in the python-controller group (#18)"
+    - kind: changed
+      description: "bump kopf in /controller in the python-controller group (#17)"
+    - kind: changed
+      description: "bump uvicorn[standard] (#16)"
+    - kind: changed
+      description: "upgrade python dependencies"
+    - kind: fixed
+      description: "commit directly to main instead of creating PR for dependency updates"
+    - kind: fixed
+      description: "remove token parameter to use default GITHUB_TOKEN in create-pull-request"
+    - kind: fixed
+      description: "use github.token context instead of secrets.GITHUB_TOKEN"
+    - kind: fixed
+      description: "use GITHUB_TOKEN instead of PAT_TOKEN in update-deps workflow"
+    - kind: changed
+      description: "Revert \"feat: add minimal toast notifications at bottom-left\""
+    - kind: changed
+      description: "Revert \"fix: initialize toast manager after DOM ready to prevent null appendChild error\""
+    - kind: changed
+      description: "bump kopf in /controller in the python-controller group (#14)"
+    - kind: fixed
+      description: "initialize toast manager after DOM ready to prevent null appendChild error"
+    - kind: added
+      description: "add minimal toast notifications at bottom-left"
+    - kind: changed
+      description: "Revert \"feat: add premium animated toast notifications with glassmorphism\""
+    - kind: added
+      description: "add premium animated toast notifications with glassmorphism"
+    - kind: changed
+      description: "bump python in the docker group (#13)"
+    - kind: fixed
+      description: "disable animated gradient border causing click blocking"
+    - kind: fixed
+      description: "remove problematic z-index stacking from command palette"
+    - kind: fixed
+      description: "significantly increase command palette z-index to 999999"
+    - kind: fixed
+      description: "use image tag as APP_VERSION instead of Chart.AppVersion"
+    - kind: fixed
+      description: "set APP_VERSION from git SHA in Docker builds"
+    - kind: fixed
+      description: "command palette z-index and pointer-events issues"
+    - kind: added
+      description: "add premium command palette (Cmd+K) with glassmorphism design"
+    - kind: fixed
+      description: "restore standard Helm defaults in values.yaml"
+    - kind: added
+      description: "add persistent MFA encryption key configuration"
+    - kind: changed
+      description: "add enhanced terminal session logging to diagnose premature closures"
+    - kind: fixed
+      description: "show terminal link for admin's own Active requests in admin panel"
+    - kind: fixed
+      description: "upgrade cache action to v5 (latest)"
+    - kind: fixed
+      description: "correct parallel lint paths and upgrade cache action"
+    - kind: changed
+      description: "optimize CI workflow for faster execution"
+    - kind: fixed
+      description: "suppress pip root user warning in runner Dockerfile"
+    - kind: changed
+      description: "build runner image for AMD64 only to speed up CI"
+    - kind: fixed
+      description: "correct pillow version to 12.1.1, increase replicas to 3 for HA testing"
+    - kind: fixed
+      description: "add pillow dependency for qrcode MFA QR generation"
+    - kind: fixed
+      description: "use PAT_TOKEN for update-deps workflow PR creation"
+    - kind: fixed
+      description: "remove unused json import, add --break-system-packages for macOS CI"
+    - kind: added
+      description: "add MFA/TOTP and native HA support — bump to v1.0.6"
+    - kind: changed
+      description: "remove video and screenshots from README"
+apiVersion: v2
+appVersion: 1.0.6
+description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+  approval workflow.
+home: https://infroware.github.io/k8s-janus
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+keywords:
+- - kubernetes
+- - k8s-janus
+- - rbac
+- - access-control
+- - security
+- - jit
+- - zero-trust
+- - kubectl
+- - operator
+- - multi-cluster
+- - devops
+- - platform-engineering
+- - audit
+- - terminal
+- - pod-access
+maintainers:
+- - email: devops@infroware.com
+  name: infroware
+name: k8s-janus
+sources:
+- - https://github.com/infroware/k8s-janus
+type: application
+version: 1.0.6
+
+...
+files:
+  k8s-janus-1.0.6.tgz: sha256:b07996b9b9c64b9c57361cc14b5c631fe53609b13479d02791f7f3752de30e26
+-----BEGIN PGP SIGNATURE-----
+
+wsFcBAEBCgAQBQJp3agICRBDCheZqELC2gAAbogQAAdH+1SWGZwgQXxNaSlIbIxi
+1mL4uUhkVrcDnLiQXqBiWdXV8R8B0yYkvjr1PDRmLH93HyI//T8BmJDyTEuLqi/D
+zpCH0/IJlUcDKfDY5/S3BskL8EeSpB2Cm9Jt7SMbbbyCyFVYq/5+wtL+f0KPEN7x
++DtZyjodxmTMIWs+AaZcGg4cbot/HnrhX3cf2LCvuImEYrr7Ar5jVeDjt/rOFEpQ
+O4pdL5U6KVZf4kBHK2hWEx4h/f9qdIVa167ur2AYQeZ2gHws3WWVL3sEgSuZiyv6
+jOkzPLR9QgIayCmLiO3i4hj+q8bRE1YaLYd+roITBzEsiCXUbKAV/139ctLe3ywX
+EePa2hK3+yEH0aCGlJuvtwE0zIvRbKqk5mwiwn406lXXfE4FTlepY0wWS3g78+1E
+0fhCyUAmu6h0qDuuZQfPqTXF18/NHRWHlwx8m49ajTqZ3Lj80UloTAlA99v6904D
+BOjqgmNLPkXbgZvGXpe1PPzIq5qn9xsKxMxe2YkVA5CKu/MU0UqjB5l6Mq8Ys4Xs
+HF8hrvd4smHSjyD51CxKqnOdNjbdB+XLfHEb5/bh7GsQg6goRkwFxNcYwPN58Dag
+Aupshw93QUSxOrIJLvptOoiHmccEjxWVFkYnQgjD8Md0dZtHG1pwreSodu3ZYrsk
+8tJ4fzhSwz83rlMoxBC7
+=GBMN
+-----END PGP SIGNATURE-----

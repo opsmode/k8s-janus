@@ -3,6 +3,128 @@ entries:
   k8s-janus:
   - annotations:
       artifacthub.io/changes: |
+        - kind: added
+          description: "add Gateway API HTTPRoute support (httproute.enabled)"
+        - kind: changed
+          description: "bump the python-webui group in /webui with 3 updates (#23)"
+        - kind: changed
+          description: "bump the python-webui group in /webui with 5 updates (#21)"
+        - kind: changed
+          description: "bump the python-controller group (#20)"
+        - kind: changed
+          description: "bump the python-webui group in /webui with 2 updates (#19)"
+        - kind: changed
+          description: "bump kopf in /controller in the python-controller group (#18)"
+        - kind: changed
+          description: "bump kopf in /controller in the python-controller group (#17)"
+        - kind: changed
+          description: "bump uvicorn[standard] (#16)"
+        - kind: changed
+          description: "upgrade python dependencies"
+        - kind: fixed
+          description: "commit directly to main instead of creating PR for dependency updates"
+        - kind: fixed
+          description: "remove token parameter to use default GITHUB_TOKEN in create-pull-request"
+        - kind: fixed
+          description: "use github.token context instead of secrets.GITHUB_TOKEN"
+        - kind: fixed
+          description: "use GITHUB_TOKEN instead of PAT_TOKEN in update-deps workflow"
+        - kind: changed
+          description: "Revert \"feat: add minimal toast notifications at bottom-left\""
+        - kind: changed
+          description: "Revert \"fix: initialize toast manager after DOM ready to prevent null appendChild error\""
+        - kind: changed
+          description: "bump kopf in /controller in the python-controller group (#14)"
+        - kind: fixed
+          description: "initialize toast manager after DOM ready to prevent null appendChild error"
+        - kind: added
+          description: "add minimal toast notifications at bottom-left"
+        - kind: changed
+          description: "Revert \"feat: add premium animated toast notifications with glassmorphism\""
+        - kind: added
+          description: "add premium animated toast notifications with glassmorphism"
+        - kind: changed
+          description: "bump python in the docker group (#13)"
+        - kind: fixed
+          description: "disable animated gradient border causing click blocking"
+        - kind: fixed
+          description: "remove problematic z-index stacking from command palette"
+        - kind: fixed
+          description: "significantly increase command palette z-index to 999999"
+        - kind: fixed
+          description: "use image tag as APP_VERSION instead of Chart.AppVersion"
+        - kind: fixed
+          description: "set APP_VERSION from git SHA in Docker builds"
+        - kind: fixed
+          description: "command palette z-index and pointer-events issues"
+        - kind: added
+          description: "add premium command palette (Cmd+K) with glassmorphism design"
+        - kind: fixed
+          description: "restore standard Helm defaults in values.yaml"
+        - kind: added
+          description: "add persistent MFA encryption key configuration"
+        - kind: changed
+          description: "add enhanced terminal session logging to diagnose premature closures"
+        - kind: fixed
+          description: "show terminal link for admin's own Active requests in admin panel"
+        - kind: fixed
+          description: "upgrade cache action to v5 (latest)"
+        - kind: fixed
+          description: "correct parallel lint paths and upgrade cache action"
+        - kind: changed
+          description: "optimize CI workflow for faster execution"
+        - kind: fixed
+          description: "suppress pip root user warning in runner Dockerfile"
+        - kind: changed
+          description: "build runner image for AMD64 only to speed up CI"
+        - kind: fixed
+          description: "correct pillow version to 12.1.1, increase replicas to 3 for HA testing"
+        - kind: fixed
+          description: "add pillow dependency for qrcode MFA QR generation"
+        - kind: fixed
+          description: "use PAT_TOKEN for update-deps workflow PR creation"
+        - kind: fixed
+          description: "remove unused json import, add --break-system-packages for macOS CI"
+        - kind: added
+          description: "add MFA/TOTP and native HA support — bump to v1.0.6"
+        - kind: changed
+          description: "remove video and screenshots from README"
+    apiVersion: v2
+    appVersion: 1.0.6
+    created: "2026-04-14T02:35:53.056920769Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: b07996b9b9c64b9c57361cc14b5c631fe53609b13479d02791f7f3752de30e26
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@infroware.com
+      name: infroware
+    name: k8s-janus
+    sources:
+    - https://github.com/infroware/k8s-janus
+    type: application
+    urls:
+    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.6.tgz
+    version: 1.0.6
+  - annotations:
+      artifacthub.io/changes: |
         - kind: changed
           description: "bump to v1.0.5 — PS1/bash fix, quick cmds TDZ fix, status page improvements"
         - kind: fixed
@@ -17,7 +139,7 @@ entries:
           description: "use printf to inject PS1 escape bytes — works in bash/sh/ash"
     apiVersion: v2
     appVersion: 1.0.5
-    created: "2026-03-08T17:54:22.523471688Z"
+    created: "2026-04-14T02:35:53.055939892Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ef240104cafbae50a6de0a480af7bd2c0d70eda657153cee8c76d94d896f6841
@@ -67,7 +189,7 @@ entries:
           description: "seed initials immediately for all avatar elements; populate own-email avatars in peer rows"
     apiVersion: v2
     appVersion: 1.0.4
-    created: "2026-03-08T17:54:22.52265367Z"
+    created: "2026-04-14T02:35:53.055134652Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: e8e45014a59c3dd7c8b96c78e7740f4902c9d0e30d0cccfdd3cb9d46407c9151
@@ -99,46 +221,4 @@ entries:
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-1.0.4.tgz
     version: 1.0.4
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: fixed
-          description: "disable build cache on release to ensure BUILD_DATE is baked correctly"
-        - kind: changed
-          description: "skip CI build on version tag pushes (release.yaml handles those)"
-        - kind: added
-          description: "requester/approver avatars in admin list; fix BUILD_DATE in root Dockerfile"
-    apiVersion: v2
-    appVersion: 1.0.3
-    created: "2026-03-08T17:54:22.521787913Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: b08e4ad869901c2877b3343b504cb974bc95e1399cbdf599ba8f21efd0b2186c
-    home: https://infroware.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@infroware.com
-      name: infroware
-    name: k8s-janus
-    sources:
-    - https://github.com/infroware/k8s-janus
-    type: application
-    urls:
-    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.3.tgz
-    version: 1.0.3
-generated: "2026-03-08T17:54:22.520824713Z"
+generated: "2026-04-14T02:35:53.053983407Z"
