@@ -1,55 +1,35 @@
-# Self-hosted CI Runner (WSL2 native)
+# CI Runner Image
 
-Native GitHub Actions runner for `infroware/k8s-janus` CI — runs directly on WSL2, no Docker container overhead.
+Pre-baked runner image for `infroware/k8s-janus` CI. Eliminates per-job install overhead.
 
-## Prerequisites
+## What's baked in
 
-- WSL2 with Ubuntu 22.04 or 24.04
-- systemd enabled:
-  ```
-  echo -e "[boot]\nsystemd=true" | sudo tee /etc/wsl.conf
-  wsl.exe --shutdown
-  ```
+- Python 3 + all deps from `controller/requirements.txt` + `webui/requirements.txt` + `flake8`
+- Docker CLI + buildx plugin
+- Helm 3
+- yq (latest stable)
+- GitHub known hosts for `github.com` (no `ssh-keyscan` at runtime)
 
-## Install
+## Rebuild
 
-```bash
-bash .github/runner/install.sh <GITHUB_PAT>
-```
+Automatically rebuilt by `.github/workflows/runner-image.yaml` on any change to:
+- This Dockerfile
+- `controller/requirements.txt`
+- `webui/requirements.txt`
 
-Get a PAT at: **github.com → Settings → Developer settings → Fine-grained tokens**  
-Required scope: `infroware/k8s-janus` → Actions (read/write)
+Or trigger manually via `workflow_dispatch`.
 
-The script installs: Docker CE, Helm, yq, Python deps, flake8, the runner binary, and registers it as a systemd service.
-
-## What's installed
-
-| Tool | Purpose |
-|------|---------|
-| Docker CE + buildx | `docker/build-push-action` in CI |
-| Helm | `helm lint` in CI |
-| yq | Helm values patching in release workflow |
-| Python deps + flake8 | Tests and linting |
-| GitHub known hosts | `ssh-keyscan` baked in — no runtime delay |
-
-## Manage the service
+## Register a self-hosted runner using this image
 
 ```bash
-# Status
-sudo ~/actions-runner/svc.sh status
-
-# Logs
-journalctl -u actions.runner.infroware.k8s-janus.<runner-name> -f
-
-# Stop / start
-sudo ~/actions-runner/svc.sh stop
-sudo ~/actions-runner/svc.sh start
-
-# Remove
-sudo ~/actions-runner/svc.sh uninstall
-~/actions-runner/config.sh remove --token <removal-token>
+docker run -d --restart=unless-stopped \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e RUNNER_URL=https://github.com/infroware/k8s-janus \
+  -e RUNNER_TOKEN=<token-from-github-settings> \
+  -e RUNNER_NAME=janus-runner-1 \
+  -e RUNNER_LABELS=self-hosted \
+  infroware/k8s-janus-runner:latest \
+  bash -c "/opt/config.sh --url \$RUNNER_URL --token \$RUNNER_TOKEN --name \$RUNNER_NAME --labels \$RUNNER_LABELS --unattended && /opt/run.sh"
 ```
 
-## Re-run after WSL2 restart
-
-The systemd service starts automatically on WSL2 boot (when systemd is enabled).
+Get the token from: `github.com/infroware/k8s-janus → Settings → Actions → Runners → New self-hosted runner`.
