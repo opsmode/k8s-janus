@@ -1,4 +1,4 @@
-{{- if and (not .Values.remote.enabled) .Values.postgresql.enabled }}
+{{- if and (not .Values.remote.enabled) (include "janus.postgresql.enabled" .) }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -26,6 +26,23 @@ spec:
         runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      {{- if (.Values.postgresql.bundled).enabled }}
+      initContainers:
+        - name: wait-for-postgresql
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ include "janus.postgresql.host" . }} -p 5432 -U {{ .Values.postgresql.username | default "k8s-janus" | quote }}; do
+                echo "Waiting for PostgreSQL..."; sleep 2
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      {{- end }}
       containers:
         - name: init-db
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -39,13 +56,13 @@ spec:
                 - ALL
           env:
             - name: DB_HOST
-              value: {{ .Values.postgresql.host | quote }}
+              value: {{ include "janus.postgresql.host" . | quote }}
             - name: DB_PORT
-              value: {{ .Values.postgresql.port | quote }}
+              value: {{ .Values.postgresql.port | default 5432 | quote }}
             - name: DB_NAME
-              value: {{ .Values.postgresql.database | quote }}
+              value: {{ .Values.postgresql.database | default "k8s-janus" | quote }}
             - name: DB_USER
-              value: {{ .Values.postgresql.username | quote }}
+              value: {{ .Values.postgresql.username | default "k8s-janus" | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

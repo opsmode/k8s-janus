@@ -52,16 +52,16 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "janus.configmap.name" . }}
-          {{- if .Values.postgresql.enabled }}
+          {{- if include "janus.postgresql.enabled" . }}
           env:
             - name: DB_HOST
-              value: {{ .Values.postgresql.host | quote }}
+              value: {{ include "janus.postgresql.host" . | quote }}
             - name: DB_PORT
-              value: {{ .Values.postgresql.port | quote }}
+              value: {{ .Values.postgresql.port | default 5432 | quote }}
             - name: DB_NAME
-              value: {{ .Values.postgresql.database | quote }}
+              value: {{ .Values.postgresql.database | default "k8s-janus" | quote }}
             - name: DB_USER
-              value: {{ .Values.postgresql.username | quote }}
+              value: {{ .Values.postgresql.username | default "k8s-janus" | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

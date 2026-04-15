@@ -68,6 +68,27 @@ app.kubernetes.io/component: webui
 
 
 {{/*
+PostgreSQL — resolved host.
+Bundled: internal service name. External: values.postgresql.host.
+*/}}
+{{- define "janus.postgresql.host" -}}
+{{- if (.Values.postgresql.bundled).enabled -}}
+{{- printf "%s-postgresql" (include "janus.fullname" .) }}
+{{- else -}}
+{{- .Values.postgresql.host | default "" }}
+{{- end -}}
+{{- end }}
+
+{{/*
+PostgreSQL — true when either bundled or external is enabled.
+*/}}
+{{- define "janus.postgresql.enabled" -}}
+{{- if or .Values.postgresql.enabled ((.Values.postgresql.bundled).enabled) -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
 Name of the Secret holding OIDC clientSecret + sessionSecret.
 Priority: existingSecret > ESO-created (janus-oidc) > plain Secret (janus-oidc)
 ESO and plain Secret both target the same name, so the reference is always the same.

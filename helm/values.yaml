@@ -137,21 +137,32 @@ externalSecrets:
   enabled: false
   # secretStore: "my-secret-store"  # ClusterSecretStore name (required when enabled)
   # refreshInterval: "1h"
-# PostgreSQL backend for persistent request history (optional).
-# When disabled, Janus uses in-memory state — data is lost on pod restart.
-# Password must exist in Secret k8s-janus-postgresql (key: password).
-# Create it manually or use externalSecrets to sync it automatically.
-# → templates: controller-deployment.yaml, webui-deployment.yaml
+# PostgreSQL backend for persistent request history.
+# When disabled, Janus uses SQLite — data is lost on pod restart (single-replica only).
+#
+# Two modes:
+#   bundled  — deploy a PostgreSQL StatefulSet inside the cluster (recommended default).
+#              Password is auto-generated and stored in a Secret; stable across upgrades.
+#   external — connect to an existing PostgreSQL instance you manage.
+#              Set host/port/database/username and create the password Secret manually
+#              (or use externalSecrets to sync it from a secret store).
+#
+# → templates: postgresql-bundled.yaml, init-db-job.yaml,
+#              controller-deployment.yaml, webui-deployment.yaml,
 #              postgresql-externalsecret.yaml (when externalSecrets also true)
-# postgresql:
-#   enabled: true
-#   host: "postgres-host"
-#   port: 5432
-#   database: "k8s-janus"
-#   username: "k8s-janus"
-#   # secretKey: "K8S-JANUS-DB-PASSWORD"  # key in the external secret store
 postgresql:
-  enabled: false
+  enabled: false      # set true to use external PostgreSQL
+  bundled:
+    enabled: false    # set true to deploy in-cluster PostgreSQL (overrides enabled above)
+    image: postgres:16-alpine
+    storageSize: 2Gi
+    storageClass: ""  # leave empty for cluster default StorageClass
+  # External PostgreSQL settings (used when bundled.enabled=false)
+  host: ""
+  port: 5432
+  database: "k8s-janus"
+  username: "k8s-janus"
+  # secretKey: "K8S-JANUS-DB-PASSWORD"  # key in external secret store (externalSecrets)
 # PodDisruptionBudget — only rendered when replicaCount > 1.
 # minAvailable: minimum number of pods that must remain available during
 # voluntary disruptions (node drains, rolling updates).
