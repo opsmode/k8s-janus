@@ -38,6 +38,39 @@ spec:
         runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      {{- if include "janus.postgresql.enabled" . }}
+      initContainers:
+        - name: wait-for-migrations
+          image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          command:
+            - sh
+            - -c
+            - |
+              until psql "postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME" \
+                -c "SELECT 1 FROM local_users LIMIT 1" >/dev/null 2>&1; do
+                echo "Waiting for DB migrations..."; sleep 3
+              done
+              echo "Migrations ready."
+          env:
+            - name: DB_HOST
+              value: {{ include "janus.postgresql.host" . | quote }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.port | default 5432 | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database | default "k8s-janus" | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username | default "k8s-janus" | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "janus.fullname" . }}-postgresql
+                  key: password
+      {{- end }}
       containers:
         - name: webui
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

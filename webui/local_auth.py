@@ -13,7 +13,8 @@ from datetime import datetime, timezone
 
 import bcrypt
 
-from db import LocalUser, get_session, db_enabled
+import db as _db
+from db import LocalUser, get_session
 
 logger = logging.getLogger("janus.local_auth")
 
@@ -59,7 +60,7 @@ def _row_to_dict(u: LocalUser) -> dict:
 
 
 def get_user(email: str) -> dict | None:
-    if not db_enabled:
+    if not _db.db_enabled:
         return None
     try:
         with get_session() as session:
@@ -74,7 +75,7 @@ def get_user(email: str) -> dict | None:
 
 def verify_user(email: str, password: str) -> dict | None:
     """Return user dict if credentials are valid and account is active, else None."""
-    if not db_enabled:
+    if not _db.db_enabled:
         return None
     try:
         with get_session() as session:
@@ -90,7 +91,7 @@ def verify_user(email: str, password: str) -> dict | None:
 
 
 def list_users() -> list[dict]:
-    if not db_enabled:
+    if not _db.db_enabled:
         return []
     try:
         with get_session() as session:
@@ -105,7 +106,7 @@ def list_users() -> list[dict]:
 
 def create_user(email: str, name: str, password: str, is_admin: bool = False) -> dict | None:
     """Create a new local user. Returns user dict, or None if email already exists."""
-    if not db_enabled:
+    if not _db.db_enabled:
         return None
     try:
         with get_session() as session:
@@ -130,7 +131,7 @@ def create_user(email: str, name: str, password: str, is_admin: bool = False) ->
 
 
 def delete_user(email: str) -> bool:
-    if not db_enabled:
+    if not _db.db_enabled:
         return False
     try:
         with get_session() as session:
@@ -144,7 +145,7 @@ def delete_user(email: str) -> bool:
 
 
 def set_password(email: str, new_password: str) -> bool:
-    if not db_enabled:
+    if not _db.db_enabled:
         return False
     try:
         with get_session() as session:
@@ -161,7 +162,7 @@ def set_password(email: str, new_password: str) -> bool:
 
 
 def set_admin(email: str, is_admin: bool) -> bool:
-    if not db_enabled:
+    if not _db.db_enabled:
         return False
     try:
         with get_session() as session:
