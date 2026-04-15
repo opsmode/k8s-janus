@@ -70,13 +70,20 @@ spec:
         app.kubernetes.io/component: database
     spec:
       securityContext:
+        runAsNonRoot: true
         runAsUser: 999
         runAsGroup: 999
         fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: postgresql
           image: {{ (.Values.postgresql.bundled).image | default "postgres:16-alpine" | quote }}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 5432
               name: postgres
