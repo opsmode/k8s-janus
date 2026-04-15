@@ -338,7 +338,7 @@ async def on_startup():
         if generated:
             logger.warning("=" * 60)
             logger.warning("🔑 LOCAL AUTH — default admin account created")
-            logger.warning(f"   email   : admin@local")
+            logger.warning("   email   : admin@local")
             logger.warning(f"   password: {generated}")
             logger.warning("   Change this password via Admin → Users.")
             logger.warning("=" * 60)
@@ -1021,7 +1021,7 @@ async def get_avatar(email: str):
 async def api_list_local_users(request: Request):
     if not LOCAL_AUTH_ENABLED:
         return JSONResponse({"error": "not available"}, status_code=404)
-    if err := _require_admin(request):
+    if _require_admin(request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     return JSONResponse(local_auth.list_users())
 
@@ -1030,7 +1030,7 @@ async def api_list_local_users(request: Request):
 async def api_create_local_user(request: Request):
     if not LOCAL_AUTH_ENABLED:
         return JSONResponse({"error": "not available"}, status_code=404)
-    if err := _require_admin(request):
+    if _require_admin(request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     body = await request.json()
     email    = str(body.get("email", "")).strip().lower()
@@ -1050,7 +1050,7 @@ async def api_create_local_user(request: Request):
 async def api_delete_local_user(request: Request, email: str):
     if not LOCAL_AUTH_ENABLED:
         return JSONResponse({"error": "not available"}, status_code=404)
-    if err := _require_admin(request):
+    if _require_admin(request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     caller, _ = _get_user(request)
     if email.lower() == caller.lower():
@@ -1065,7 +1065,7 @@ async def api_delete_local_user(request: Request, email: str):
 async def api_reset_local_user_password(request: Request, email: str):
     if not LOCAL_AUTH_ENABLED:
         return JSONResponse({"error": "not available"}, status_code=404)
-    if err := _require_admin(request):
+    if _require_admin(request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     body = await request.json()
     new_password = str(body.get("password", "")).strip()
@@ -1081,7 +1081,7 @@ async def api_reset_local_user_password(request: Request, email: str):
 async def api_set_local_user_admin(request: Request, email: str):
     if not LOCAL_AUTH_ENABLED:
         return JSONResponse({"error": "not available"}, status_code=404)
-    if err := _require_admin(request):
+    if _require_admin(request):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     caller, _ = _get_user(request)
     if email.lower() == caller.lower():
