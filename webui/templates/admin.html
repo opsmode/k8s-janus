@@ -773,8 +773,20 @@
             <input id="cu-name" type="text" placeholder="Full name" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.87rem;outline:none;">
           </div>
           <div>
-            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">Password</label>
-            <input id="cu-password" type="password" placeholder="Min 8 characters" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.87rem;outline:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <label style="font-size:0.75rem;color:var(--text-muted);">Password</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
+                <input id="cu-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);" onchange="toggleRandomPassword()">
+                Generate random
+              </label>
+            </div>
+            <div style="position:relative;">
+              <input id="cu-password" type="password" placeholder="Min 8 characters" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 36px 9px 12px;color:var(--text);font-size:0.87rem;outline:none;box-sizing:border-box;">
+              <button type="button" onclick="toggleCuPasswordVisibility()" title="Show/hide" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px;display:flex;">
+                <i id="cu-pw-eye" data-lucide="eye" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <div id="cu-random-display" style="display:none;margin-top:6px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.04em;word-break:break-all;"></div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <input id="cu-admin" type="checkbox" style="width:15px;height:15px;accent-color:var(--accent);">
@@ -1495,12 +1507,55 @@
         fetch('/api/local-users').then(r => r.json()).then(renderUsers).catch(() => {});
       }
 
+      function _genPassword(len) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const arr = new Uint8Array(len);
+        crypto.getRandomValues(arr);
+        return Array.from(arr).map(b => chars[b % chars.length]).join('');
+      }
+
+      window.toggleRandomPassword = function() {
+        const isRandom = document.getElementById('cu-random').checked;
+        const pwInput  = document.getElementById('cu-password');
+        const display  = document.getElementById('cu-random-display');
+        if (isRandom) {
+          const pw = _genPassword(20);
+          pwInput.value = pw;
+          pwInput.style.display = 'none';
+          document.querySelector('[onclick="toggleCuPasswordVisibility()"]').style.display = 'none';
+          display.textContent = pw;
+          display.style.display = 'block';
+        } else {
+          pwInput.value = '';
+          pwInput.style.display = '';
+          document.querySelector('[onclick="toggleCuPasswordVisibility()"]').style.display = '';
+          display.style.display = 'none';
+          pwInput.focus();
+        }
+      };
+
+      window.toggleCuPasswordVisibility = function() {
+        const inp = document.getElementById('cu-password');
+        const icon = document.getElementById('cu-pw-eye');
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        icon.setAttribute('data-lucide', show ? 'eye-off' : 'eye');
+        if (window.lucide) lucide.createIcons();
+      };
+
       window.openCreateUserModal = function() {
         document.getElementById('cu-email').value = '';
         document.getElementById('cu-name').value = '';
         document.getElementById('cu-password').value = '';
+        document.getElementById('cu-password').type = 'password';
+        document.getElementById('cu-pw-eye').setAttribute('data-lucide', 'eye');
+        document.getElementById('cu-random').checked = false;
+        document.getElementById('cu-random-display').style.display = 'none';
+        document.getElementById('cu-password').style.display = '';
+        document.querySelector('[onclick="toggleCuPasswordVisibility()"]').style.display = '';
         document.getElementById('cu-admin').checked = false;
         document.getElementById('cu-error').style.display = 'none';
+        if (window.lucide) lucide.createIcons();
         const m = document.getElementById('create-user-modal');
         m.style.display = 'flex';
         setTimeout(() => document.getElementById('cu-email').focus(), 50);

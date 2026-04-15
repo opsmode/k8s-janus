@@ -197,6 +197,7 @@
       transition: background 0.3s;
     }
     .status-dot.live { background: var(--success); box-shadow: 0 0 5px rgba(16,185,129,0.6); }
+    .status-dot.reconnecting { background: #f59e0b; }
     .status-dot.error { background: var(--danger); }
 
     .pane-actions {
@@ -518,18 +519,8 @@
       };
 
       es.onerror = function() {
-        _setDot(component, 'error');
+        _setDot(component, 'reconnecting');
         es.close();
-        // Show a transient error line then reconnect
-        var s2 = _state[component];
-        if (!s2.paused) {
-          var body = document.getElementById('log-' + component);
-          var sp = document.createElement('span');
-          sp.className = 'log-line warning';
-          sp.textContent = '[connection lost — reconnecting in 5s…]';
-          body.appendChild(sp);
-          body.scrollTop = body.scrollHeight;
-        }
         setTimeout(function() { startStream(component); }, 5000);
       };
     }

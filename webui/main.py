@@ -2231,7 +2231,7 @@ async def stream_system_logs(request: Request, component: str, tail: int = 200):
                 for chunk in resp:
                     text = chunk.decode("utf-8", errors="replace") if isinstance(chunk, (bytes, bytearray)) else str(chunk)
                     for line in text.splitlines():
-                        if line:
+                        if line and "fsnotify" not in line:
                             loop.call_soon_threadsafe(_safe_put, line)
             except Exception as exc:
                 loop.call_soon_threadsafe(_safe_put, f"[stream ended: {exc}]")

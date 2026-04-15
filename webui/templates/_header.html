@@ -10,25 +10,7 @@
     health_indicator — if true, render a health status dot in the header
 #}
 
-{# Apply saved theme BEFORE first paint to avoid flash #}
-<script>(function(){var t=localStorage.getItem('janus_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}());</script>
-
 <style>
-/* Light theme variable overrides — scoped to [data-theme="light"] on <html> */
-[data-theme="light"] {
-  --bg: #f8fafc;
-  --surface: #fff;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
-  --border: #cbd5e1;
-  --text: #0f172a;
-  --text-muted: #475569;
-  --text-dim: #94a3b8;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-}
 /* Health dot */
 #hdr-health-dot {
   width: 8px; height: 8px;
@@ -61,11 +43,6 @@
     {% if health_indicator is defined and health_indicator %}
     <span id="hdr-health-dot" data-status="ok" title="System healthy"></span>
     {% endif %}
-
-    {# Dark / light mode toggle #}
-    <button id="hdr-theme-btn" class="hdr-icon-btn" onclick="toggleTheme()" title="Toggle dark/light mode" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;">
-      <i data-lucide="moon" id="hdr-theme-icon" style="width:16px;height:16px;"></i>
-    </button>
 
     <a href="https://github.com/infroware/k8s-janus" target="_blank" rel="noopener"
        class="hdr-icon-btn" title="View on GitHub">
@@ -133,28 +110,6 @@
   });
   window.toggleUserDropdown = toggleUserDropdown;
   window.closeUserDropdown = closeUserDropdown;
-
-  /* ---- dark / light toggle ---- */
-  function _applyTheme(t) {
-    var icon = document.getElementById('hdr-theme-icon');
-    if (t === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-      if (icon) icon.setAttribute('data-lucide', 'sun');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      if (icon) icon.setAttribute('data-lucide', 'moon');
-    }
-    if (window.lucide) lucide.createIcons();
-  }
-  function toggleTheme() {
-    var current = localStorage.getItem('janus_theme') || 'dark';
-    var next = current === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('janus_theme', next);
-    _applyTheme(next);
-  }
-  // Apply on load (icon only — attribute already set before paint)
-  _applyTheme(localStorage.getItem('janus_theme') || 'dark');
-  window.toggleTheme = toggleTheme;
 
   /* ---- health indicator ---- */
   var _dot = document.getElementById('hdr-health-dot');
