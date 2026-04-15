@@ -1,4 +1,4 @@
-FROM python:3.14-alpine
+FROM python:3.13-alpine
 
 ARG BUILD_DATE=unknown
 ARG APP_VERSION=dev
@@ -7,7 +7,7 @@ ENV APP_VERSION=${APP_VERSION}
 
 WORKDIR /app
 
-# Upgrade all packages to pick up security patches, then install build deps
+# Upgrade OS packages for security patches, then install build deps
 RUN apk upgrade --no-cache && \
     apk add --no-cache libpq gcc musl-dev
 
