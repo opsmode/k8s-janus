@@ -178,6 +178,18 @@ class UserProfile(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False)
 
 
+class LocalUser(Base):
+    __tablename__ = "local_users"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    email         = Column(String(255), unique=True, nullable=False, index=True)
+    name          = Column(String(100), nullable=False)
+    password_hash = Column(Text, nullable=False)
+    is_admin      = Column(Boolean, nullable=False, default=False)
+    is_active     = Column(Boolean, nullable=False, default=True)
+    created_at    = Column(DateTime(timezone=True), nullable=False)
+
+
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------

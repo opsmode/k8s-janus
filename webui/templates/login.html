@@ -126,6 +126,17 @@
     .sign-in-btn:active { transform: translateY(0); }
     .provider-icon { width: 18px; height: 18px; flex-shrink: 0; }
 
+    /* local auth form */
+    .field { display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 14px; }
+    .field label { font-size: 0.75rem; font-weight: 500; color: var(--text-muted); }
+    .field input {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+      color: var(--text); font-size: 0.88rem; outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--accent); }
+
     .divider { margin: 20px 0 14px; border: none; border-top: 1px solid var(--border); }
 
     .footer-note { font-size: 0.7rem; color: var(--text-dim); line-height: 1.6; }
@@ -150,8 +161,24 @@
     </div>
     {% endif %}
 
+    {% if mode == "local" %}
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" placeholder="admin@local" required autofocus>
+      </div>
+      <div class="field" style="margin-bottom:20px;">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="••••••••••••" required>
+      </div>
+      <button type="submit" class="sign-in-btn">
+        <i data-lucide="log-in" style="width:18px;height:18px;"></i>
+        Sign in
+      </button>
+    </form>
+    {% else %}
     <a href="/login/redirect?next={{ next | urlencode }}" class="sign-in-btn">
-      <!-- Provider-specific icon -->
       {% if provider == "google" %}
       <svg class="provider-icon" viewBox="0 0 24 24" fill="none">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#fff" fill-opacity=".9"/>
@@ -172,6 +199,7 @@
       {% endif %}
       Sign in with {{ provider_name }}
     </a>
+    {% endif %}
 
     <hr class="divider">
     <p class="footer-note">

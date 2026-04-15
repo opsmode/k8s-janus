@@ -204,15 +204,15 @@ jobs:
           [ -f /root/.ssh/known_hosts ] || ssh-keyscan github.com >> ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
 
-          rm -rf /tmp/argocd-release
-          git clone git@github.com:infroware/argocd.git /tmp/argocd-release
-          cd /tmp/argocd-release
+          rm -rf /tmp/playground-release
+          git clone git@github.com:infroware/playground.git /tmp/playground-release
+          cd /tmp/playground-release
 
           python3 "${GITHUB_WORKSPACE}/.github/scripts/bump-argocd-tag.py" "${VERSION}"
 
           git config user.email "ci@infroware.com"
           git config user.name "infroware-ci"
-          git add applications/janus.applicationset.yaml
+          git add gitops/apps/k8s-janus-central.yaml
           git diff --cached --quiet && echo "no change" && exit 0
           git commit -m "ci: bump k8s-janus image tag to ${VERSION}"
           git push

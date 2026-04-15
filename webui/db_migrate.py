@@ -117,6 +117,18 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 );
 
 CREATE INDEX IF NOT EXISTS ix_user_profiles_user_email ON user_profiles (user_email);
+
+CREATE TABLE IF NOT EXISTS local_users (
+    id            SERIAL PRIMARY KEY,
+    email         VARCHAR(255) NOT NULL UNIQUE,
+    name          VARCHAR(100) NOT NULL,
+    password_hash TEXT NOT NULL,
+    is_admin      BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_local_users_email ON local_users (email);
 """
 
 # Incremental columns added after initial schema — safe to re-run

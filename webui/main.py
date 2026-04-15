@@ -27,6 +27,7 @@ from db import (
     get_user_mfa, enable_user_mfa, disable_user_mfa, update_mfa_last_used,
     get_user_profile, save_user_profile,
 )
+import local_auth
 from k8s import (
     get_api_clients, get_cluster_config, get_allowed_namespaces,
     get_access_request, list_access_requests, read_token_secret,
@@ -65,9 +66,7 @@ except ZoneInfoNotFoundError:
     logger_pre.warning(f"⚠️  Unknown DISPLAY_TIMEZONE '{_tz_name}', falling back to UTC")
     DISPLAY_TZ = ZoneInfo("UTC")
 
-# AUTH_ENABLED controls whether X-Forwarded-Email headers are required.
-# Set to "false" when running without an auth proxy (local dev, no ingress SSO).
-# When false, all users are treated as admin (open mode).
+# AUTH_ENABLED: X-Forwarded-Email mode (oauth2-proxy / ingress SSO).
 AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() not in ("false", "0", "no")
 APP_VERSION  = os.environ.get("APP_VERSION", "dev")
 BUILD_DATE   = os.environ.get("BUILD_DATE", "unknown")
@@ -81,7 +80,11 @@ MAX_ACTIVE_REQUESTS     = int(os.environ.get("MAX_ACTIVE_REQUESTS", "5"))
 # ---------------------------------------------------------------------------
 # Native OIDC configuration
 # ---------------------------------------------------------------------------
-OIDC_ENABLED        = os.environ.get("OIDC_ENABLED", "false").lower() == "true"
+OIDC_ENABLED         = os.environ.get("OIDC_ENABLED", "false").lower() == "true"
+# LOCAL_AUTH_ENABLED: built-in username/password auth — active when neither OIDC nor
+# X-Forwarded-Email proxy is configured. An admin@local account is auto-created on
+# first startup with a random password printed to the application log.
+LOCAL_AUTH_ENABLED   = not OIDC_ENABLED and not AUTH_ENABLED
 OIDC_PROVIDER       = os.environ.get("OIDC_PROVIDER", "").lower()
 OIDC_CLIENT_ID      = os.environ.get("OIDC_CLIENT_ID", "")
 OIDC_CLIENT_SECRET  = os.environ.get("OIDC_CLIENT_SECRET", "")
@@ -252,7 +255,7 @@ app.mount("/static", StaticFiles(directory=f"{_APP_DIR}/static"), name="static")
 templates = Jinja2Templates(directory=f"{_APP_DIR}/templates")
 
 
-_OIDC_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout",
+_AUTH_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz", "/logout",
                       "/setup/upload", "/setup/upload-helper"}
 
 
@@ -280,10 +283,10 @@ class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 class _OIDCAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not OIDC_ENABLED:
+        if not OIDC_ENABLED and not LOCAL_AUTH_ENABLED:
             return await call_next(request)
         path = request.url.path
-        if path in _OIDC_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
+        if path in _AUTH_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
             return await call_next(request)
         if not request.session.get("user_email"):
             _json_prefixes = ("/api/", "/ws/", "/approve/", "/deny/", "/revoke/", "/cancel/", "/extend/")
@@ -330,7 +333,16 @@ async def on_startup():
     elif AUTH_ENABLED:
         logger.info(f"🚀 K8s-Janus WebUI {APP_VERSION} (built {BUILD_DATE}) — auth via ingress/oauth2-proxy (X-Forwarded-Email)")
     else:
-        logger.warning(f"🔓 K8s-Janus WebUI {APP_VERSION} (built {BUILD_DATE}) — OPEN MODE, no authentication required")
+        # LOCAL_AUTH_ENABLED — create admin@local if this is a fresh install
+        generated = local_auth.ensure_admin_user()
+        if generated:
+            logger.warning("=" * 60)
+            logger.warning("🔑 LOCAL AUTH — default admin account created")
+            logger.warning(f"   email   : admin@local")
+            logger.warning(f"   password: {generated}")
+            logger.warning("   Change this password via Admin → Users.")
+            logger.warning("=" * 60)
+        logger.info(f"🔐 K8s-Janus WebUI {APP_VERSION} (built {BUILD_DATE}) — local auth enabled")
     from k8s import EXCLUDED_NAMESPACES
     if EXCLUDED_NAMESPACES:
         logger.info(f"🚫 Excluded namespaces: {sorted(EXCLUDED_NAMESPACES)}")
@@ -362,18 +374,48 @@ async def mfa_verify_page(request: Request):
 
 
 @app.get("/login", include_in_schema=False)
-async def oidc_login(request: Request, next: str = "/", error: str = ""):
-    if not OIDC_ENABLED:
-        return RedirectResponse("/")
+async def login_page(request: Request, next: str = "/", error: str = ""):
     if request.session.get("user_email"):
         return RedirectResponse(next or "/")
-    provider_name = _PROVIDER_DISPLAY.get(OIDC_PROVIDER, OIDC_PROVIDER or "SSO")
-    return templates.TemplateResponse(request, "login.html", {
-        "provider_name": provider_name,
-        "provider": OIDC_PROVIDER,
-        "next": next,
-        "error": error,
-    })
+    if OIDC_ENABLED:
+        provider_name = _PROVIDER_DISPLAY.get(OIDC_PROVIDER, OIDC_PROVIDER or "SSO")
+        return templates.TemplateResponse(request, "login.html", {
+            "mode": "oidc",
+            "provider_name": provider_name,
+            "provider": OIDC_PROVIDER,
+            "next": next,
+            "error": error,
+        })
+    if LOCAL_AUTH_ENABLED:
+        return templates.TemplateResponse(request, "login.html", {
+            "mode": "local",
+            "next": next,
+            "error": error,
+        })
+    return RedirectResponse("/")
+
+
+@app.post("/login", include_in_schema=False)
+async def local_login(request: Request):
+    if not LOCAL_AUTH_ENABLED:
+        return RedirectResponse("/", status_code=302)
+    form = await request.form()
+    email    = str(form.get("email", "")).strip().lower()
+    password = str(form.get("password", ""))
+    next_url = str(form.get("next", "/")) or "/"
+    user = local_auth.verify_user(email, password)
+    if not user:
+        return templates.TemplateResponse(request, "login.html", {
+            "mode": "local",
+            "next": next_url,
+            "error": "Invalid email or password.",
+        })
+    request.session["user_email"] = user["email"]
+    request.session["user_name"]  = user["name"]
+    logger.info(f"🔐 Local auth login: {email}")
+    if next_url == "/" and user["is_admin"]:
+        next_url = "/admin"
+    return RedirectResponse(next_url, status_code=302)
 
 
 @app.get("/login/redirect", include_in_schema=False)
@@ -486,21 +528,21 @@ templates.env.globals["app_version"] = APP_VERSION
 
 
 def _is_admin(email: str) -> bool:
-    # Open mode (no auth of any kind) → everyone is admin
-    if not AUTH_ENABLED and not OIDC_ENABLED:
-        return True
     if not email:
         return False
+    if LOCAL_AUTH_ENABLED:
+        user = local_auth.get_user(email)
+        return bool(user and user["is_admin"] and user["is_active"])
     return email.lower() in ADMIN_EMAILS
 
 
 def _get_user(request: Request) -> tuple[str, str]:
-    """Return (email, name) from:
-    1. OIDC session cookie (when OIDC_ENABLED=true)
-    2. X-Forwarded-Email header from oauth2-proxy/ingress (legacy path)
-    3. Empty strings when AUTH_ENABLED=false (open mode)
+    """Return (email, name) for the current request.
+    1. OIDC or local-auth session cookie
+    2. X-Forwarded-Email header (oauth2-proxy / ingress SSO)
+    3. Empty strings (AUTH_ENABLED=false without OIDC/local-auth — should not happen in prod)
     """
-    if OIDC_ENABLED:
+    if OIDC_ENABLED or LOCAL_AUTH_ENABLED:
         email = request.session.get("user_email", "")
         name  = request.session.get("user_name", email)
         return email, name
@@ -519,6 +561,7 @@ def _base_context(request: Request) -> dict:
         "is_devops": _is_admin(user_email),
         "is_admin": _is_admin(user_email),
         "oidc_enabled": OIDC_ENABLED,
+        "local_auth_enabled": LOCAL_AUTH_ENABLED,
         "default_ttl": DEFAULT_TTL_SECONDS // 3600,
         "max_ttl": MAX_TTL_SECONDS // 3600,
         "approval_ttl_options": APPROVAL_TTL_OPTIONS,
@@ -526,11 +569,7 @@ def _base_context(request: Request) -> dict:
 
 
 def _require_admin(request: Request):
-    """Return 403 if caller is not in ADMIN_EMAILS, else None.
-    When both AUTH_ENABLED=false and OIDC_ENABLED=false, skip the check (open mode).
-    """
-    if not AUTH_ENABLED and not OIDC_ENABLED:
-        return None
+    """Return 403 response if caller is not an admin, else None."""
     user_email, _ = _get_user(request)
     if not _is_admin(user_email):
         return templates.TemplateResponse(request, "403.html", {"user_email": user_email}, status_code=403)
@@ -972,6 +1011,86 @@ async def get_avatar(email: str):
     else:
         p = _memory_profiles.get(email.lower(), {})
     return JSONResponse({"name": p.get("name", ""), "photo": p.get("photo", "")})
+
+
+# ---------------------------------------------------------------------------
+# Local auth — user management API (admin only)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/local-users", include_in_schema=False)
+async def api_list_local_users(request: Request):
+    if not LOCAL_AUTH_ENABLED:
+        return JSONResponse({"error": "not available"}, status_code=404)
+    if err := _require_admin(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    return JSONResponse(local_auth.list_users())
+
+
+@app.post("/api/local-users", include_in_schema=False)
+async def api_create_local_user(request: Request):
+    if not LOCAL_AUTH_ENABLED:
+        return JSONResponse({"error": "not available"}, status_code=404)
+    if err := _require_admin(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    body = await request.json()
+    email    = str(body.get("email", "")).strip().lower()
+    name     = str(body.get("name", "")).strip()
+    password = str(body.get("password", "")).strip()
+    is_admin = bool(body.get("is_admin", False))
+    if not email or not name or not password:
+        return JSONResponse({"error": "email, name, and password are required"}, status_code=400)
+    user = local_auth.create_user(email, name, password, is_admin=is_admin)
+    if user is None:
+        return JSONResponse({"error": "user already exists"}, status_code=409)
+    logger.info(f"👤 Local user created: {email} (admin={is_admin}) by {_get_user(request)[0]}")
+    return JSONResponse(user, status_code=201)
+
+
+@app.delete("/api/local-users/{email:path}", include_in_schema=False)
+async def api_delete_local_user(request: Request, email: str):
+    if not LOCAL_AUTH_ENABLED:
+        return JSONResponse({"error": "not available"}, status_code=404)
+    if err := _require_admin(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    caller, _ = _get_user(request)
+    if email.lower() == caller.lower():
+        return JSONResponse({"error": "cannot delete your own account"}, status_code=400)
+    if not local_auth.delete_user(email):
+        return JSONResponse({"error": "user not found"}, status_code=404)
+    logger.info(f"👤 Local user deleted: {email} by {caller}")
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/local-users/{email:path}/password", include_in_schema=False)
+async def api_reset_local_user_password(request: Request, email: str):
+    if not LOCAL_AUTH_ENABLED:
+        return JSONResponse({"error": "not available"}, status_code=404)
+    if err := _require_admin(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    body = await request.json()
+    new_password = str(body.get("password", "")).strip()
+    if len(new_password) < 8:
+        return JSONResponse({"error": "password must be at least 8 characters"}, status_code=400)
+    if not local_auth.set_password(email, new_password):
+        return JSONResponse({"error": "user not found"}, status_code=404)
+    logger.info(f"👤 Password reset for: {email} by {_get_user(request)[0]}")
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/local-users/{email:path}/admin", include_in_schema=False)
+async def api_set_local_user_admin(request: Request, email: str):
+    if not LOCAL_AUTH_ENABLED:
+        return JSONResponse({"error": "not available"}, status_code=404)
+    if err := _require_admin(request):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    caller, _ = _get_user(request)
+    if email.lower() == caller.lower():
+        return JSONResponse({"error": "cannot change your own admin status"}, status_code=400)
+    body = await request.json()
+    is_admin = bool(body.get("is_admin", False))
+    if not local_auth.set_admin(email, is_admin):
+        return JSONResponse({"error": "user not found"}, status_code=404)
+    return JSONResponse({"ok": True})
 
 
 # ---------------------------------------------------------------------------

@@ -104,8 +104,10 @@ controller:
 # Web UI deployment settings.
 # baseUrl: public URL of this instance — used for approval callback links.
 #          Leave empty to auto-derive from the LoadBalancer IP.
-# authEnabled: true when an oauth2-proxy/SSO ingress sets X-Forwarded-Email.
-#              False for local dev or environments without an auth proxy.
+# authEnabled: set to true when an oauth2-proxy/SSO ingress sets X-Forwarded-Email.
+#              When false (default) and oidc.enabled is also false, Janus uses built-in
+#              local auth: an admin@local account is created on first startup and the
+#              password is printed to the application log.
 # containerPort: internal port the webui process listens on (do not change
 #                unless you build a custom image that uses a different port).
 # mfaEncryptionKey: base64-encoded 32-byte key for encrypting MFA secrets.

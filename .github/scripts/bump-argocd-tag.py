@@ -4,7 +4,7 @@ import re
 import sys
 
 tag = sys.argv[1]
-f = "applications/janus.applicationset.yaml"
+f = "gitops/apps/k8s-janus-central.yaml"
 content = open(f).read()
 updated = re.sub(r'tag: "[^"]*"', f'tag: "{tag}"', content)
 open(f, "w").write(updated)
