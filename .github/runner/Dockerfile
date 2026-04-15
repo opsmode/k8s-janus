@@ -45,7 +45,7 @@ RUN pip3 install --break-system-packages --root-user-action=ignore --quiet -r /t
     pip3 install --break-system-packages --root-user-action=ignore --quiet flake8
 
 # ── GitHub Actions runner binary (arch-aware) ─────────────────────────────────
-ARG RUNNER_VERSION=2.323.0
+ARG RUNNER_VERSION=2.333.1
 RUN ARCH=$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/') \
     && mkdir -p /actions-runner \
     && curl -fsSL \
