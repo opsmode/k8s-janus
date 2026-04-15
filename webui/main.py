@@ -146,11 +146,47 @@ if OIDC_ENABLED:
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+_LEVEL_STYLES = {
+    "DEBUG":    ("\033[36m",  "🔍"),  # cyan
+    "INFO":     ("\033[32m",  "ℹ️ "),  # green
+    "WARNING":  ("\033[33m",  "🚨"),  # yellow
+    "ERROR":    ("\033[31m",  "❌"),  # red
+    "CRITICAL": ("\033[35m",  "🔥"),  # magenta
+}
+_RESET  = "\033[0m"
+_DIM    = "\033[2m"
+_BOLD   = "\033[1m"
+
+_LOGGER_ICONS = {
+    "k8s-janus-webui":  "🌐",
+    "janus.local_auth": "🔑",
+    "k8s-janus.db":     "🗄️ ",
+    "uvicorn":          "🦄",
+    "uvicorn.error":    "🦄",
+}
+
+
+class _ColourFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        colour, level_icon = _LEVEL_STYLES.get(record.levelname, ("", "  "))
+        logger_icon = _LOGGER_ICONS.get(record.name, "  ")
+        ts   = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
+        msg  = record.getMessage()
+        if record.exc_info:
+            msg += "\n" + self.formatException(record.exc_info)
+        return (
+            f"{_DIM}{ts}{_RESET} "
+            f"{logger_icon} {_DIM}{record.name}{_RESET} "
+            f"{colour}{_BOLD}{level_icon}{_RESET} "
+            f"{colour}{msg}{_RESET}"
+        )
+
+
+_handler = logging.StreamHandler()
+_handler.setFormatter(_ColourFormatter())
+logging.root.setLevel(logging.INFO)
+logging.root.handlers = [_handler]
+
 logger = logging.getLogger("k8s-janus-webui")
 logger.setLevel(logging.INFO)
 
@@ -333,16 +369,24 @@ async def on_startup():
     elif AUTH_ENABLED:
         logger.info(f"🚀 K8s-Janus WebUI {APP_VERSION} (built {BUILD_DATE}) — auth via ingress/oauth2-proxy (X-Forwarded-Email)")
     else:
-        # LOCAL_AUTH_ENABLED — create admin@local if this is a fresh install
-        generated = local_auth.ensure_admin_user()
-        if generated:
-            logger.warning("=" * 60)
-            logger.warning("🔑 LOCAL AUTH — default admin account created")
-            logger.warning("   email   : admin@local")
-            logger.warning(f"   password: {generated}")
-            logger.warning("   Change this password via Admin → Users.")
-            logger.warning("=" * 60)
+        # LOCAL_AUTH_ENABLED — create admin@local in the background so the
+        # server starts immediately and passes the startup probe even when
+        # PostgreSQL is still coming up.
         logger.info(f"🔐 K8s-Janus WebUI {APP_VERSION} (built {BUILD_DATE}) — local auth enabled")
+
+        async def _bootstrap_admin():
+            generated = await asyncio.get_event_loop().run_in_executor(
+                None, local_auth.ensure_admin_user
+            )
+            if generated:
+                logger.warning("=" * 60)
+                logger.warning("🔑 LOCAL AUTH — default admin account created")
+                logger.warning("   email   : admin@local")
+                logger.warning(f"   password: {generated}")
+                logger.warning("   Change this password via Admin → Users.")
+                logger.warning("=" * 60)
+
+        asyncio.ensure_future(_bootstrap_admin())
     from k8s import EXCLUDED_NAMESPACES
     if EXCLUDED_NAMESPACES:
         logger.info(f"🚫 Excluded namespaces: {sorted(EXCLUDED_NAMESPACES)}")
