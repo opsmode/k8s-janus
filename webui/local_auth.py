@@ -8,6 +8,7 @@ printed to the application log.
 import logging
 import secrets
 import string
+import time
 from datetime import datetime, timezone
 
 import bcrypt
@@ -180,33 +181,39 @@ def set_admin(email: str, is_admin: bool) -> bool:
 # Bootstrap
 # ---------------------------------------------------------------------------
 
-def ensure_admin_user() -> str | None:
+def ensure_admin_user(retries: int = 10, delay: float = 3.0) -> str | None:
     """
     Create the default admin@local account if no local users exist.
     Returns the generated password (to be logged once), or None if users
-    already exist.
+    already exist. Retries on connection failure to handle cold starts where
+    the webui comes up before PostgreSQL is ready.
     """
-    if not db_enabled:
-        # SQLite dev path — still needs a user
-        pass
-    try:
-        with get_session() as session:
-            if session is None:
-                return None
-            if session.query(LocalUser).count() > 0:
-                return None
-            password = generate_password()
-            u = LocalUser(
-                email=_ADMIN_EMAIL,
-                name="Admin",
-                password_hash=hash_password(password),
-                is_admin=True,
-                is_active=True,
-                created_at=_now(),
-            )
-            session.add(u)
-            session.flush()
-            return password
-    except Exception as e:
-        logger.error(f"ensure_admin_user() failed: {e}")
-        return None
+    for attempt in range(1, retries + 1):
+        try:
+            with get_session() as session:
+                if session is None:
+                    return None
+                if session.query(LocalUser).count() > 0:
+                    return None
+                password = generate_password()
+                u = LocalUser(
+                    email=_ADMIN_EMAIL,
+                    name="Admin",
+                    password_hash=hash_password(password),
+                    is_admin=True,
+                    is_active=True,
+                    created_at=_now(),
+                )
+                session.add(u)
+                session.flush()
+                return password
+        except Exception as e:
+            if attempt < retries:
+                logger.warning(
+                    f"ensure_admin_user() attempt {attempt}/{retries} failed, "
+                    f"retrying in {delay:.0f}s: {e}"
+                )
+                time.sleep(delay)
+            else:
+                logger.error(f"ensure_admin_user() failed after {retries} attempts: {e}")
+    return None

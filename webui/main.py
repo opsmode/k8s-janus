@@ -403,8 +403,10 @@ async def local_login(request: Request):
     email    = str(form.get("email", "")).strip().lower()
     password = str(form.get("password", ""))
     next_url = str(form.get("next", "/")) or "/"
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
     user = local_auth.verify_user(email, password)
     if not user:
+        logger.warning(f"Login failed: {email} from {client_ip}")
         return templates.TemplateResponse(request, "login.html", {
             "mode": "local",
             "next": next_url,
@@ -412,7 +414,7 @@ async def local_login(request: Request):
         })
     request.session["user_email"] = user["email"]
     request.session["user_name"]  = user["name"]
-    logger.info(f"🔐 Local auth login: {email}")
+    logger.info(f"Login success: {email} from {client_ip}")
     if next_url == "/" and user["is_admin"]:
         next_url = "/admin"
     return RedirectResponse(next_url, status_code=302)
@@ -489,7 +491,8 @@ async def oidc_callback(request: Request):
     request.session["user_email"] = email.lower()
     request.session["user_name"]  = name
     next_url = request.session.pop("oidc_next", "/") or "/"
-    logger.info(f"🔐 OIDC login: {email}")
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    logger.info(f"Login success (oidc): {email} from {client_ip}")
     # Redirect admins to /admin unless a specific next URL was requested
     if next_url == "/" and _is_admin(email.lower()):
         next_url = "/admin"
@@ -498,8 +501,8 @@ async def oidc_callback(request: Request):
 
 @app.get("/logout", include_in_schema=False)
 async def oidc_logout(request: Request):
-    logger.warning(f"🔐 /logout called — referer: {request.headers.get('referer', 'none')} "
-                   f"user-agent: {request.headers.get('user-agent', 'none')[:60]}")
+    email = request.session.get("user_email", "unknown")
+    logger.info(f"Logout: {email}")
     request.session.clear()
     if OIDC_ENABLED:
         return templates.TemplateResponse(request, "signedout.html")
