@@ -2,11 +2,12 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ── System deps ───────────────────────────────────────────────────────────────
+# ── System deps (incl. libicu for .NET / Actions runner) ─────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git openssh-client gnupg \
       python3 python3-pip \
       jq unzip \
+      libicu74 \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Docker CLI + buildx (arch-aware) ─────────────────────────────────────────
