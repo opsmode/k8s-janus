@@ -4,30 +4,121 @@
 {{- $namespace  := .Values.janus.namespace }}
 {{- $dbName     := .Values.postgresql.database | default "k8s-janus" }}
 {{- $dbUser     := .Values.postgresql.username | default "k8s-janus" }}
-
-{{/*
-  Lookup existing Secret to keep the password stable across upgrades.
-  On first install the Secret doesn't exist yet — generate a random password.
-*/}}
-{{- $existingSecret := lookup "v1" "Secret" $namespace $secretName }}
-{{- $password := "" }}
-{{- if $existingSecret }}
-{{- $password = index $existingSecret.data "password" | b64dec }}
-{{- else }}
-{{- $password = randAlphaNum 24 }}
-{{- end }}
 ---
+# ServiceAccount for the secret-init Job (minimal permissions)
 apiVersion: v1
-kind: Secret
+kind: ServiceAccount
 metadata:
-  name: {{ $secretName }}
+  name: {{ $fullname }}-postgresql-init
   namespace: {{ $namespace }}
   labels:
     {{- include "janus.labels" . | nindent 4 }}
-    app.kubernetes.io/component: database
-type: Opaque
-stringData:
-  password: {{ $password | quote }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-postgresql-init
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-postgresql-init
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}-postgresql-init
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fullname }}-postgresql-init
+    namespace: {{ $namespace }}
+---
+# Job: create the PostgreSQL password Secret only if it does not already exist.
+# Running as a pre-install/pre-upgrade hook means it completes before the
+# StatefulSet starts, so PostgreSQL always initialises with the correct password.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-postgresql-secret-init
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "janus.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 60
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "janus.labels" . | nindent 8 }}
+        app.kubernetes.io/component: postgresql-secret-init
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $fullname }}-postgresql-init
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: secret-init
+          image: bitnami/kubectl:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          command:
+            - sh
+            - -c
+            - |
+              if kubectl get secret {{ $secretName }} -n {{ $namespace }} >/dev/null 2>&1; then
+                echo "Secret {{ $secretName }} already exists — skipping."
+              else
+                PASSWORD=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 24)
+                kubectl create secret generic {{ $secretName }} \
+                  --from-literal=password="${PASSWORD}" \
+                  -n {{ $namespace }}
+                echo "Secret {{ $secretName }} created."
+              fi
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
