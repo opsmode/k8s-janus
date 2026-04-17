@@ -379,11 +379,44 @@ async def on_startup():
                 None, local_auth.ensure_admin_user
             )
             if generated:
+                # Store password in a K8s Secret so it can be retrieved without
+                # reading pod logs. The Secret is named janus-admin-bootstrap and
+                # should be deleted after the admin logs in and sets a new password.
+                secret_stored = False
+                try:
+                    from kubernetes import client as _k8s, config as _k8sc
+                    try:
+                        _k8sc.load_incluster_config()
+                    except Exception:
+                        _k8sc.load_kube_config()
+                    core = _k8s.CoreV1Api()
+                    secret_name = "janus-admin-bootstrap"
+                    body = _k8s.V1Secret(
+                        metadata=_k8s.V1ObjectMeta(
+                            name=secret_name,
+                            namespace=JANUS_NAMESPACE,
+                            annotations={"janus/info": "Delete this Secret after logging in and changing the admin password."},
+                        ),
+                        string_data={"email": "admin@local", "password": generated},
+                    )
+                    try:
+                        core.create_namespaced_secret(namespace=JANUS_NAMESPACE, body=body)
+                    except _k8s.exceptions.ApiException:
+                        core.patch_namespaced_secret(name=secret_name, namespace=JANUS_NAMESPACE, body=body)
+                    secret_stored = True
+                except Exception as e:
+                    logger.warning(f"Could not store admin bootstrap Secret: {e}")
+
                 logger.warning("=" * 60)
                 logger.warning("🔑 LOCAL AUTH — default admin account created")
-                logger.warning("   email   : admin@local")
-                logger.warning(f"   password: {generated}")
-                logger.warning("   Change this password via Admin → Users.")
+                logger.warning("   email : admin@local")
+                if secret_stored:
+                    logger.warning(f"   password stored in Secret '{secret_name}' — retrieve with:")
+                    logger.warning(f"   kubectl get secret {secret_name} -n {JANUS_NAMESPACE} "
+                                   "-o jsonpath='{.data.password}' | base64 -d")
+                else:
+                    logger.warning(f"   password: {generated}")
+                logger.warning("   Change this password via Admin → Users, then delete the Secret.")
                 logger.warning("=" * 60)
 
         asyncio.ensure_future(_bootstrap_admin())
