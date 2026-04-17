@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timezone
 
 import bcrypt
+from psycopg2.errors import UniqueViolation
 
 import db as _db
 from db import LocalUser, get_session
@@ -209,6 +210,8 @@ def ensure_admin_user(retries: int = 10, delay: float = 3.0) -> str | None:
                 session.flush()
                 return password
         except Exception as e:
+            if isinstance(e.__cause__, UniqueViolation) or isinstance(e, UniqueViolation):
+                return None
             if attempt < retries:
                 logger.warning(
                     f"ensure_admin_user() attempt {attempt}/{retries} failed, "
