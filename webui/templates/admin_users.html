@@ -9,80 +9,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
+  {% include '_base_styles.html' %}
   <style>
-    :root {
-      --bg:          #080c14;
-      --surface:     #0d1117;
-      --surface-2:   #161b27;
-      --surface-3:   #1e2535;
-      --border:      #2a3448;
-      --border-light:#334155;
-      --text:        #e2e8f0;
-      --text-muted:  #94a3b8;
-      --text-dim:    #64748b;
-      --accent:      #6366f1;
-      --accent-glow: rgba(99,102,241,0.35);
-      --accent-2:    #8b5cf6;
-      --success:     #10b981;
-      --warning:     #f59e0b;
-      --danger:      #ef4444;
-      --info:        #3b82f6;
-      --radius:      12px;
-      --radius-sm:   8px;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
-    }
-    .page-scroll { flex: 1; overflow-y: auto; }
-    .container { max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; }
+    .container { max-width: 900px; margin: 32px auto; padding: 0 24px 48px; }
     .breadcrumb {
       display: flex; align-items: center; gap: 8px;
       font-size: 0.8rem; color: var(--text-dim); margin-bottom: 20px;
     }
     .breadcrumb a { color: var(--text-muted); text-decoration: none; }
     .breadcrumb a:hover { color: var(--text); }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-    .card-header {
-      display: flex; align-items: center; gap: 12px;
-    }
-    .card-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .card-header h2 { font-size: 0.95rem; font-weight: 600; }
-    .btn-sm {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 500;
-      background: var(--surface-2); border: 1px solid var(--border);
-      color: var(--text); cursor: pointer; text-decoration: none;
-    }
-    .btn-sm:hover { background: var(--surface-3); border-color: var(--border-light); }
-    .btn-primary { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
-    .btn-primary:hover { opacity: 0.9; }
-    .table-wrap { overflow-x: auto; margin-top: 12px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th { text-align: left; padding: 8px 12px; color: var(--text-dim); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
-    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--surface-2); }
-    .modal-backdrop {
-      display: none; position: fixed; inset: 0; z-index: 200;
-      background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
-    }
+    /* Modal overrides for user modals (z-index lower than profile modal) */
+    #create-user-modal, #reset-pw-modal { z-index: 200; }
     .modal-box {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 12px; padding: 28px 32px; width: 360px; max-width: 90vw;
@@ -97,7 +34,6 @@
     }
     input.inp:focus { border-color: var(--accent); }
     .err { display: none; font-size: 0.78rem; color: #fca5a5; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -154,7 +90,7 @@
   </div>
 
   <!-- Create user modal -->
-  <div id="create-user-modal" class="modal-backdrop" onclick="if(event.target===this)closeCreateUserModal()">
+  <div id="create-user-modal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeCreateUserModal()">
     <div class="modal-box">
       <h3><i data-lucide="user-plus" style="width:16px;height:16px;color:var(--accent);"></i> Create user</h3>
       <div class="field">
@@ -197,7 +133,7 @@
   </div>
 
   <!-- Reset password modal -->
-  <div id="reset-pw-modal" class="modal-backdrop" onclick="if(event.target===this)closeResetPwModal()">
+  <div id="reset-pw-modal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeResetPwModal()">
     <div class="modal-box">
       <h3><i data-lucide="key" style="width:16px;height:16px;color:var(--accent);"></i> Reset password</h3>
       <p id="rp-label" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;"></p>
