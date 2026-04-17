@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K8S-Janus | Users</title>
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg:          #080c14;
+      --surface:     #0d1117;
+      --surface-2:   #161b27;
+      --surface-3:   #1e2535;
+      --border:      #2a3448;
+      --border-light:#334155;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-dim:    #64748b;
+      --accent:      #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-2:    #8b5cf6;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --info:        #3b82f6;
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    }
+    .page-scroll { flex: 1; overflow-y: auto; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; }
+    .breadcrumb {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; color: var(--text-dim); margin-bottom: 20px;
+    }
+    .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--text); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .card-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .card-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .btn-sm {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 500;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; text-decoration: none;
+    }
+    .btn-sm:hover { background: var(--surface-3); border-color: var(--border-light); }
+    .btn-primary { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+    .btn-primary:hover { opacity: 0.9; }
+    .table-wrap { overflow-x: auto; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 8px 12px; color: var(--text-dim); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-2); }
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
+    }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 28px 32px; width: 360px; max-width: 90vw;
+    }
+    .modal-box h3 { font-size: 0.95rem; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .field { display: flex; flex-direction: column; gap: 12px; }
+    .field-row { display: flex; flex-direction: column; }
+    label.lbl { font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    input.inp {
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 0.87rem; outline: none;
+    }
+    input.inp:focus { border-color: var(--accent); }
+    .err { display: none; font-size: 0.78rem; color: #fca5a5; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  {% set page_title_extra %}<span style="font-size:0.65rem;font-weight:500;background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.04em;vertical-align:middle;">⚡ GOD MODE</span>{% endset %}
+  {% set page_subtitle = "User Management" %}
+  {% set brand_href = "/admin" %}
+  {% set nav_items = [
+    {"href": "/admin", "icon": "shield", "label": "Admin"},
+    {"href": "/logs", "icon": "scroll-text", "label": "Logs"},
+    {"href": "/", "icon": "layout-dashboard", "label": "My Requests"}
+  ] %}
+  {% include '_header.html' %}
+
+  <div id="toast-container"></div>
+
+  <div class="page-scroll">
+  <div class="container">
+
+    <div class="breadcrumb">
+      <a href="/admin"><i data-lucide="shield" style="width:13px;height:13px;"></i> Admin</a>
+      <span>/</span>
+      <span>Users</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="margin-bottom:16px;">
+        <div class="card-icon">
+          <i data-lucide="users" style="width:16px;height:16px;"></i>
+        </div>
+        <h2>Users</h2>
+        <button class="btn-sm" id="btn-new-user" onclick="openCreateUserModal()" style="margin-left:auto;">
+          <i data-lucide="plus" style="width:13px;height:13px;"></i> New user
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- Create user modal -->
+  <div id="create-user-modal" class="modal-backdrop" onclick="if(event.target===this)closeCreateUserModal()">
+    <div class="modal-box">
+      <h3><i data-lucide="user-plus" style="width:16px;height:16px;color:var(--accent);"></i> Create user</h3>
+      <div class="field">
+        <div class="field-row">
+          <label class="lbl" for="cu-email">Email</label>
+          <input class="inp" id="cu-email" type="email" placeholder="user@example.com">
+        </div>
+        <div class="field-row">
+          <label class="lbl" for="cu-name">Name</label>
+          <input class="inp" id="cu-name" type="text" placeholder="Full name">
+        </div>
+        <div class="field-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <label class="lbl" style="margin-bottom:0;">Password</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
+              <input id="cu-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);" onchange="toggleRandomPassword()">
+              Generate random
+            </label>
+          </div>
+          <div style="position:relative;">
+            <input class="inp" id="cu-password" type="password" placeholder="Min 8 characters" style="padding-right:36px;">
+            <button type="button" onclick="toggleCuPasswordVisibility()" title="Show/hide"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px;display:flex;">
+              <i id="cu-pw-eye" data-lucide="eye" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+          <div id="cu-random-display" style="display:none;margin-top:6px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.04em;word-break:break-all;"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input id="cu-admin" type="checkbox" style="width:15px;height:15px;accent-color:var(--accent);">
+          <label for="cu-admin" style="font-size:0.82rem;color:var(--text-muted);cursor:pointer;">Admin</label>
+        </div>
+        <div id="cu-error" class="err"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-sm" onclick="closeCreateUserModal()">Cancel</button>
+        <button class="btn-sm btn-primary" onclick="submitCreateUser()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset password modal -->
+  <div id="reset-pw-modal" class="modal-backdrop" onclick="if(event.target===this)closeResetPwModal()">
+    <div class="modal-box">
+      <h3><i data-lucide="key" style="width:16px;height:16px;color:var(--accent);"></i> Reset password</h3>
+      <p id="rp-label" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;"></p>
+      <input class="inp" id="rp-password" type="password" placeholder="New password (min 8 chars)">
+      <div id="rp-error" class="err" style="margin-top:8px;"></div>
+      <div class="modal-actions">
+        <button class="btn-sm" onclick="closeResetPwModal()">Cancel</button>
+        <button class="btn-sm btn-primary" onclick="submitResetPw()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  {% include '_profile_modal.html' %}
+
+  <script>
+    lucide.createIcons();
+
+    function fmt(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'});
+    }
+
+    function renderUsers(users) {
+      const tbody = document.getElementById('users-tbody');
+      if (!Array.isArray(users) || !users.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">No users</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>${u.email}</td>
+          <td>${u.name}</td>
+          <td>
+            <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;
+              background:${u.is_admin ? 'rgba(99,102,241,0.15)' : 'rgba(148,163,184,0.1)'};
+              color:${u.is_admin ? '#a5b4fc' : '#94a3b8'};">
+              ${u.is_admin ? 'admin' : 'user'}
+            </span>
+          </td>
+          <td style="color:var(--text-dim);font-size:0.8rem;">${fmt(u.created_at)}</td>
+          <td style="text-align:right;">
+            <button class="btn-sm" style="font-size:0.72rem;" onclick="openResetPw('${u.email}')">Reset pw</button>
+            <button class="btn-sm" style="font-size:0.72rem;margin-left:4px;" onclick="toggleAdmin('${u.email}', ${u.is_admin})">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>
+            <button class="btn-sm" style="font-size:0.72rem;margin-left:4px;color:#fca5a5;" onclick="deleteUser('${u.email}')">Delete</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    function loadUsers() {
+      fetch('/api/local-users')
+        .then(r => {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        })
+        .then(renderUsers)
+        .catch(() => {
+          document.getElementById('users-tbody').innerHTML =
+            '<tr><td colspan="5" style="text-align:center;color:var(--danger);padding:24px;">Failed to load users</td></tr>';
+        });
+    }
+
+    function _genPassword(len) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const arr = new Uint8Array(len);
+      crypto.getRandomValues(arr);
+      return Array.from(arr).map(b => chars[b % chars.length]).join('');
+    }
+
+    function toggleRandomPassword() {
+      const isRandom = document.getElementById('cu-random').checked;
+      const pwInput  = document.getElementById('cu-password');
+      const eyeBtn   = document.getElementById('cu-pw-eye').parentElement;
+      const display  = document.getElementById('cu-random-display');
+      if (isRandom) {
+        const pw = _genPassword(20);
+        pwInput.value = pw;
+        pwInput.style.display = 'none';
+        eyeBtn.style.display = 'none';
+        display.textContent = pw;
+        display.style.display = 'block';
+      } else {
+        pwInput.value = '';
+        pwInput.style.display = '';
+        eyeBtn.style.display = '';
+        display.style.display = 'none';
+        pwInput.focus();
+      }
+    }
+
+    function toggleCuPasswordVisibility() {
+      const inp = document.getElementById('cu-password');
+      const icon = document.getElementById('cu-pw-eye');
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      icon.setAttribute('data-lucide', show ? 'eye-off' : 'eye');
+      lucide.createIcons();
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('cu-email').value = '';
+      document.getElementById('cu-name').value = '';
+      document.getElementById('cu-password').value = '';
+      document.getElementById('cu-password').type = 'password';
+      document.getElementById('cu-password').style.display = '';
+      document.getElementById('cu-pw-eye').setAttribute('data-lucide', 'eye');
+      document.getElementById('cu-pw-eye').parentElement.style.display = '';
+      document.getElementById('cu-random').checked = false;
+      document.getElementById('cu-random-display').style.display = 'none';
+      document.getElementById('cu-admin').checked = false;
+      document.getElementById('cu-error').style.display = 'none';
+      lucide.createIcons();
+      document.getElementById('create-user-modal').style.display = 'flex';
+      setTimeout(() => document.getElementById('cu-email').focus(), 50);
+    }
+
+    function closeCreateUserModal() {
+      document.getElementById('create-user-modal').style.display = 'none';
+    }
+
+    function submitCreateUser() {
+      const email = document.getElementById('cu-email').value.trim();
+      const name  = document.getElementById('cu-name').value.trim();
+      const pw    = document.getElementById('cu-password').value;
+      const admin = document.getElementById('cu-admin').checked;
+      const errEl = document.getElementById('cu-error');
+      if (!email || !name || !pw) { errEl.textContent = 'All fields required.'; errEl.style.display='block'; return; }
+      fetch('/api/local-users', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email, name, password: pw, is_admin: admin}),
+      }).then(async r => {
+        if (r.ok) { closeCreateUserModal(); loadUsers(); }
+        else { const d = await r.json(); errEl.textContent = d.error || 'Error'; errEl.style.display='block'; }
+      });
+    }
+
+    let _rpEmail = '';
+    function openResetPw(email) {
+      _rpEmail = email;
+      document.getElementById('rp-label').textContent = email;
+      document.getElementById('rp-password').value = '';
+      document.getElementById('rp-error').style.display = 'none';
+      document.getElementById('reset-pw-modal').style.display = 'flex';
+      setTimeout(() => document.getElementById('rp-password').focus(), 50);
+    }
+    function closeResetPwModal() {
+      document.getElementById('reset-pw-modal').style.display = 'none';
+    }
+    function submitResetPw() {
+      const pw = document.getElementById('rp-password').value;
+      const errEl = document.getElementById('rp-error');
+      if (pw.length < 8) { errEl.textContent = 'Min 8 characters.'; errEl.style.display='block'; return; }
+      fetch(`/api/local-users/${encodeURIComponent(_rpEmail)}/password`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: pw}),
+      }).then(r => {
+        if (r.ok) closeResetPwModal();
+        else r.json().then(d => { errEl.textContent = d.error || 'Error'; errEl.style.display='block'; });
+      });
+    }
+
+    function deleteUser(email) {
+      if (!confirm(`Delete user ${email}?`)) return;
+      fetch(`/api/local-users/${encodeURIComponent(email)}`, {method: 'DELETE'})
+        .then(r => { if (r.ok) loadUsers(); });
+    }
+
+    function toggleAdmin(email, currentlyAdmin) {
+      fetch(`/api/local-users/${encodeURIComponent(email)}/admin`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({is_admin: !currentlyAdmin}),
+      }).then(r => { if (r.ok) loadUsers(); });
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

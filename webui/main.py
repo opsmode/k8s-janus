@@ -1029,6 +1029,35 @@ async def admin(request: Request):
     return templates.TemplateResponse(request, "admin.html", ctx)
 
 
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users(request: Request):
+    if (err := _require_admin(request)):
+        return err
+    ctx = _base_context(request)
+    ctx["is_admin"] = True
+    return templates.TemplateResponse(request, "admin_users.html", ctx)
+
+
+@app.post("/api/me/password", include_in_schema=False)
+async def api_change_my_password(request: Request):
+    if not LOCAL_AUTH_ENABLED:
+        return JSONResponse({"error": "not available"}, status_code=404)
+    user_email, _ = _get_user(request)
+    if not user_email:
+        return JSONResponse({"error": "unauthenticated"}, status_code=401)
+    body = await request.json()
+    current_password = str(body.get("current_password", "")).strip()
+    new_password = str(body.get("new_password", "")).strip()
+    if len(new_password) < 8:
+        return JSONResponse({"error": "New password must be at least 8 characters"}, status_code=400)
+    if not local_auth.verify_user(user_email, current_password):
+        return JSONResponse({"error": "Current password is incorrect"}, status_code=400)
+    if not local_auth.set_password(user_email, new_password):
+        return JSONResponse({"error": "user not found"}, status_code=404)
+    logger.info(f"👤 Password changed by: {user_email}")
+    return JSONResponse({"ok": True})
+
+
 @app.get("/api/pods/{cluster}/{namespace}")
 async def preview_pods(cluster: str, namespace: str):
     if not _valid_cluster(cluster) or not _valid_ns(namespace):
