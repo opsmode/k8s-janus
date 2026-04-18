@@ -924,7 +924,7 @@ choco install kubernetes-cli</span>
       document.querySelectorAll('#central-list .context-item').forEach(item => {
         item.classList.toggle('selected', item.querySelector('input').checked);
       });
-      btnStart.disabled = !central;
+      btnStart.disabled = false;
       if (centralNameRow) {
         centralNameRow.style.display = central ? 'flex' : 'none';
         if (central) {
@@ -998,13 +998,12 @@ choco install kubernetes-cli</span>
     // Panel 3 — Run setup
     // ---------------------------------------------------------------------------
     async function startSetup() {
-      const central = document.querySelector('input[name="central"]:checked')?.value;
-      if (!central) return;
+      const central = document.querySelector('input[name="central"]:checked')?.value || '';
 
       const centralNameRaw    = document.getElementById('central-cluster-name')?.value.trim() || '';
-      const central_name      = centralNameRaw.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || '';
+      const central_name      = centralNameRaw.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'cluster1';
       const centralDisplayRaw = document.getElementById('central-display-name')?.value.trim() || '';
-      const central_display   = centralDisplayRaw || central || '';
+      const central_display   = centralDisplayRaw || central || 'cluster1';
 
       const remotes = [];
       for (const cb of document.querySelectorAll('input[name="remote"]:checked')) {
