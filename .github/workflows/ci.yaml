@@ -110,8 +110,8 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s' "$ARGOCD_DEPLOY_KEY" > ~/.ssh/argocd_deploy
           chmod 600 ~/.ssh/argocd_deploy
-          [ -f /root/.ssh/known_hosts ] || ssh-keyscan github.com >> ~/.ssh/known_hosts
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes"
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/argocd_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
           rm -rf /tmp/playground
           git clone git@github.com:infroware/playground.git /tmp/playground
