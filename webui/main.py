@@ -1000,14 +1000,16 @@ async def _run_setup_task(
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     ctx = _base_context(request)
-    all_requests = list_access_requests()
     user_email = ctx["user_email"]
     is_admin = _is_admin(user_email)
-    ctx["access_requests"] = (
-        all_requests if is_admin
-        else [ar for ar in all_requests if ar.get("spec", {}).get("requester", "").lower() == user_email.lower()]
-    )
-    ctx["is_admin"] = is_admin
+    if is_admin:
+        return RedirectResponse(url="/admin", status_code=302)
+    all_requests = list_access_requests()
+    ctx["access_requests"] = [
+        ar for ar in all_requests
+        if ar.get("spec", {}).get("requester", "").lower() == user_email.lower()
+    ]
+    ctx["is_admin"] = False
     return templates.TemplateResponse(request, "index.html", ctx)
 
 
