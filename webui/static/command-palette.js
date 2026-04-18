@@ -237,12 +237,14 @@ class CommandPalette {
     const input = document.getElementById('cmd-palette-input');
 
     backdrop.style.opacity = '0';
+    backdrop.style.pointerEvents = 'none';
     palette.style.transform = 'translate(-50%, -50%) scale(0.95)';
     palette.style.opacity = '0';
     palette.style.pointerEvents = 'none';
 
     setTimeout(() => {
       backdrop.classList.remove('active');
+      backdrop.style.pointerEvents = '';
       palette.classList.remove('active');
       palette.style.pointerEvents = '';
       input.value = '';

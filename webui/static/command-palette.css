@@ -20,6 +20,7 @@
 
 .cmd-palette {
   display: none;
+  pointer-events: none;
   position: fixed;
   top: 20%;
   left: 50%;
@@ -44,6 +45,7 @@
 
 .cmd-palette.active {
   display: flex;
+  pointer-events: auto;
 }
 
 /* Header with search input */
