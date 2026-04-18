@@ -296,6 +296,32 @@
     .audit-event.revoked  { color: #fb923c; border-color: rgba(251,146,60,0.3);  background: rgba(251,146,60,0.08); }
     .audit-event.expired  { color: #94a3b8; border-color: rgba(148,163,184,0.2); background: rgba(148,163,184,0.06); }
     .audit-event.deleted  { color: #64748b; border-color: rgba(100,116,139,0.2); background: rgba(100,116,139,0.06); }
+
+    /* ── Audit Log Modal ── */
+    #audit-modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 1200;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #audit-modal-backdrop.open { display: flex; }
+    #audit-modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); width: min(960px, 96vw); max-height: 84vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      position: relative;
+    }
+    #audit-modal::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    #audit-modal-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 24px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    #audit-modal-body { overflow-y: auto; flex: 1; padding: 0; }
+    #audit-modal-body table { width: 100%; }
   </style>
   <link rel="stylesheet" href="/static/command-palette.css?v=2">
   <script src="/static/command-palette.js?v=2"></script>
@@ -325,7 +351,7 @@
     <div class="card" id="setup-card" style="margin-bottom:16px;">
       <div class="card-header" onclick="toggleSetupCard()" style="cursor:pointer;user-select:none;">
         <div class="card-icon" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));">
-          <i data-lucide="wand-2" style="width:16px;height:16px;"></i>
+          <i data-lucide="server" style="width:16px;height:16px;"></i>
         </div>
         <h2>Cluster Setup</h2>
         {% if clusters %}
@@ -580,9 +606,47 @@
           </tbody>
         </table>
       </div>
+      <div id="audit-more-row" style="display:none;padding:12px 0 0;text-align:center;">
+        <button id="audit-more-btn" onclick="openAuditModal()"
+          style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:0.8rem;padding:6px 18px;cursor:pointer;transition:border-color 0.15s,color 0.15s;">
+          View all <span id="audit-more-count"></span> entries →
+        </button>
+      </div>
     </div>
   </div>
   </div><!-- /page-scroll -->
+
+  <!-- Audit Log Full Modal -->
+  <div id="audit-modal-backdrop" onclick="if(event.target===this)closeAuditModal()">
+    <div id="audit-modal">
+      <div id="audit-modal-header">
+        <div class="card-icon" style="flex-shrink:0;">
+          <i data-lucide="scroll-text" style="width:16px;height:16px;"></i>
+        </div>
+        <h2 style="font-size:0.95rem;font-weight:600;">Audit Log</h2>
+        <span id="audit-modal-count" style="font-size:0.75rem;color:var(--text-dim);margin-left:6px;"></span>
+        <button onclick="closeAuditModal()" style="margin-left:auto;background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;padding:4px;border-radius:4px;">
+          <i data-lucide="x" style="width:16px;height:16px;"></i>
+        </button>
+      </div>
+      <div id="audit-modal-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Event</th>
+                <th>Request</th>
+                <th>Actor</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody id="audit-modal-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
   {% include '_profile_modal.html' %}
 
@@ -1079,36 +1143,58 @@
       } catch(e) { return iso.slice(0, 19).replace('T', ' '); }
     }
 
+    var _auditRows = [];
+
+    function _auditRowHtml(r) {
+      var cls = _EVENT_CLASS[r.event] || '';
+      return '<tr>' +
+        '<td style="white-space:nowrap;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;">' + _fmtTs(r.timestamp) + '</td>' +
+        '<td><span class="audit-event ' + cls + '">' + (r.event || '—') + '</span></td>' +
+        '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;color:#a5b4fc;">' + (r.request_name || '—') + '</td>' +
+        '<td style="font-size:0.8rem;">' + (r.actor || '—') + '</td>' +
+        '<td style="font-size:0.8rem;color:var(--text-dim);">' + (r.detail || '') + '</td>' +
+        '</tr>';
+    }
+
     async function loadAuditLog() {
       var statusEl = document.getElementById('audit-status');
       var tbody = document.getElementById('audit-tbody');
       try {
         var resp = await fetch('/api/audit');
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        var rows = await resp.json();
-        if (!rows.length) {
+        _auditRows = await resp.json();
+        if (!_auditRows.length) {
           tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">No audit entries yet (DB not enabled or no events recorded)</td></tr>';
           statusEl.textContent = '';
           return;
         }
-        var html = '';
-        rows.forEach(function(r) {
-          var cls = _EVENT_CLASS[r.event] || '';
-          html += '<tr>' +
-            '<td style="white-space:nowrap;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;">' + _fmtTs(r.timestamp) + '</td>' +
-            '<td><span class="audit-event ' + cls + '">' + (r.event || '—') + '</span></td>' +
-            '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;color:#a5b4fc;">' + (r.request_name || '—') + '</td>' +
-            '<td style="font-size:0.8rem;">' + (r.actor || '—') + '</td>' +
-            '<td style="font-size:0.8rem;color:var(--text-dim);">' + (r.detail || '') + '</td>' +
-            '</tr>';
-        });
-        tbody.innerHTML = html;
-        statusEl.textContent = rows.length + ' entries';
+        var preview = _auditRows.slice(0, 5);
+        tbody.innerHTML = preview.map(_auditRowHtml).join('');
+        statusEl.textContent = '5 of ' + _auditRows.length;
+        if (_auditRows.length > 5) {
+          document.getElementById('audit-more-count').textContent = _auditRows.length;
+          document.getElementById('audit-more-row').style.display = '';
+        }
       } catch(e) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">Could not load audit log</td></tr>';
         statusEl.textContent = '';
       }
     }
+
+    function openAuditModal() {
+      document.getElementById('audit-modal-tbody').innerHTML = _auditRows.map(_auditRowHtml).join('');
+      document.getElementById('audit-modal-count').textContent = _auditRows.length + ' entries';
+      document.getElementById('audit-modal-backdrop').classList.add('open');
+      lucide.createIcons({ nodes: [document.getElementById('audit-modal')] });
+    }
+
+    function closeAuditModal() {
+      document.getElementById('audit-modal-backdrop').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeAuditModal();
+    });
 
     loadAuditLog();
 

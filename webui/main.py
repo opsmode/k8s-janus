@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import sys
 import logging
 import uuid
 import secrets
@@ -167,6 +168,10 @@ _LOGGER_ICONS = {
 
 
 class _ColourFormatter(logging.Formatter):
+    def __init__(self, use_color: bool = True) -> None:
+        super().__init__()
+        self._use_color = use_color
+
     def format(self, record: logging.LogRecord) -> str:
         colour, level_icon = _LEVEL_STYLES.get(record.levelname, ("", "  "))
         logger_icon = _LOGGER_ICONS.get(record.name, "  ")
@@ -174,16 +179,18 @@ class _ColourFormatter(logging.Formatter):
         msg  = record.getMessage()
         if record.exc_info:
             msg += "\n" + self.formatException(record.exc_info)
-        return (
-            f"{_DIM}{ts}{_RESET} "
-            f"{logger_icon} {_DIM}{record.name}{_RESET} "
-            f"{colour}{_BOLD}{level_icon}{_RESET} "
-            f"{colour}{msg}{_RESET}"
-        )
+        if self._use_color:
+            return (
+                f"{_DIM}{ts}{_RESET} "
+                f"{logger_icon} {_DIM}{record.name}{_RESET} "
+                f"{colour}{_BOLD}{level_icon}{_RESET} "
+                f"{colour}{msg}{_RESET}"
+            )
+        return f"{ts} {logger_icon} {record.name} {level_icon} {msg}"
 
 
 _handler = logging.StreamHandler()
-_handler.setFormatter(_ColourFormatter())
+_handler.setFormatter(_ColourFormatter(use_color=sys.stderr.isatty()))
 logging.root.setLevel(logging.INFO)
 logging.root.handlers = [_handler]
 
