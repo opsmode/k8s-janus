@@ -664,9 +664,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-group">
-            <!-- spacer to keep grid aligned when ns panel is full-width below -->
-          </div>
+
           <div class="form-group full" id="ns-section" style="display:none;">
             <label>
               Namespaces
@@ -711,6 +709,11 @@
           <i data-lucide="list" style="width:16px;height:16px;"></i>
         </div>
         <h2>{{ 'All Requests' if is_admin else 'My Requests' }}</h2>
+        {% if is_admin %}
+        <a href="/admin" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:var(--accent);border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;">
+          <i data-lucide="shield" style="width:13px;height:13px;"></i> Admin Panel
+        </a>
+        {% endif %}
         {% if access_requests %}
         <div class="section-meta">
           <i data-lucide="layers" style="width:13px;height:13px;"></i>

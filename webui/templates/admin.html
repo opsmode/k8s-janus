@@ -470,7 +470,7 @@
                     </button>
                     {% elif phase in ("Active", "Approved") %}
                     <button class="action-btn revoke-btn" style="padding:3px 8px;font-size:0.72rem;"
-                      onclick="quickRevoke('{{ ar_cluster }}','{{ ar.metadata.name }}','{{ spec.get(\"requester\",\"\") }}',this)">
+                      onclick="quickRevoke('{{ ar_cluster }}','{{ ar.metadata.name }}','{{ spec.get('requester','') }}',this)">
                       <i data-lucide="shield-off" style="width:11px;height:11px;"></i> Revoke
                     </button>
                     {% endif %}

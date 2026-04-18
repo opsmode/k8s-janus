@@ -770,12 +770,11 @@ async def setup_run(request: Request):
 
     if not session_id or session_id not in _setup_kubeconfigs:
         return JSONResponse({"error": "Session not found. Please re-upload your kubeconfig."}, status_code=400)
-    if not central:
-        return JSONResponse({"error": "No central cluster selected."}, status_code=400)
 
     kc = _setup_kubeconfigs[session_id]
     q: asyncio.Queue = asyncio.Queue()
     _setup_queues[session_id] = q
+    central      = central or central_name or "cluster1"
     display = central_display or central_name or central
     asyncio.ensure_future(_run_setup_task(session_id, kc, central, display, remotes, JANUS_NAMESPACE, q))
     return JSONResponse({"ok": True})
