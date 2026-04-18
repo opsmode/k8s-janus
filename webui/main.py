@@ -994,11 +994,13 @@ async def _run_setup_task(
 async def index(request: Request):
     ctx = _base_context(request)
     all_requests = list_access_requests()
-    ctx["access_requests"] = [
-        ar for ar in all_requests
-        if ar.get("spec", {}).get("requester", "").lower() == ctx["user_email"].lower()
-    ]
-    ctx["is_admin"] = False
+    user_email = ctx["user_email"]
+    is_admin = _is_admin(user_email)
+    ctx["access_requests"] = (
+        all_requests if is_admin
+        else [ar for ar in all_requests if ar.get("spec", {}).get("requester", "").lower() == user_email.lower()]
+    )
+    ctx["is_admin"] = is_admin
     return templates.TemplateResponse(request, "index.html", ctx)
 
 
@@ -1598,11 +1600,11 @@ async def status(request: Request, cluster: str, name: str):
     if not ar:
         ctx = _base_context(request)
         ctx["error"] = f"Request '{name}' not found on cluster '{cluster}'"
-        ctx["access_requests"] = [
-            ar for ar in list_access_requests()
-            if ar.get("spec", {}).get("requester", "").lower() == ctx["user_email"].lower()
-        ]
-        ctx["is_admin"] = False
+        _ue = ctx["user_email"]
+        _adm = _is_admin(_ue)
+        _all = list_access_requests()
+        ctx["access_requests"] = _all if _adm else [r for r in _all if r.get("spec", {}).get("requester", "").lower() == _ue.lower()]
+        ctx["is_admin"] = _adm
         return templates.TemplateResponse(request, "index.html", ctx)
 
     ar_status   = ar.get("status", {})

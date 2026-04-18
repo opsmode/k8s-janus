@@ -440,6 +440,10 @@
       word-wrap: break-word;
     }
     .log-line { padding: 2px 0; white-space: pre-wrap; word-break: break-all; }
+    .log-line.ll-error    { color: #fca5a5; }
+    .log-line.ll-warn     { color: #fde68a; }
+    .log-line.ll-info     { color: var(--text-muted); }
+    .log-line.ll-debug    { color: var(--text-dim); }
     .log-section-break {
       margin: 8px 0 4px;
       padding: 2px 8px;
@@ -1150,6 +1154,16 @@
           }
           // Add section breaks before lines that start with a timestamp (ISO-8601 or k8s log format)
           const _tsRe = /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
+          const _lvRe = /\b(error|err|fatal|critical|warn(?:ing)?|info|debug|trace)\b/i;
+          function _logClass(line) {
+            const lv = (line.match(_lvRe) || [])[1] || '';
+            const l = lv.toLowerCase();
+            if (/^(error|err|fatal|critical)$/.test(l)) return 'll-error';
+            if (/^warn/.test(l)) return 'll-warn';
+            if (l === 'debug' || l === 'trace') return 'll-debug';
+            if (l === 'info') return 'll-info';
+            return '';
+          }
           let prev = null;
           el.innerHTML = d.logs.split('\n').map(l => {
             const m = l.match(_tsRe);
@@ -1161,7 +1175,8 @@
               }
               prev = day;
             }
-            return out + `<div class="log-line">${escapeHtml(l)}</div>`;
+            const cls = _logClass(l);
+            return out + `<div class="log-line${cls ? ' ' + cls : ''}">${escapeHtml(l)}</div>`;
           }).join('');
           el.scrollTop = el.scrollHeight;
         } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;">${e.message}</div>`; }

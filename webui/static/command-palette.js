@@ -239,10 +239,12 @@ class CommandPalette {
     backdrop.style.opacity = '0';
     palette.style.transform = 'translate(-50%, -50%) scale(0.95)';
     palette.style.opacity = '0';
+    palette.style.pointerEvents = 'none';
 
     setTimeout(() => {
       backdrop.classList.remove('active');
       palette.classList.remove('active');
+      palette.style.pointerEvents = '';
       input.value = '';
     }, 200);
   }
