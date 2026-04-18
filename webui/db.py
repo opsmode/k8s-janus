@@ -451,9 +451,12 @@ def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
 # Encryption key for TOTP secrets — read from env or generate (ephemeral)
 _MFA_ENCRYPTION_KEY = os.environ.get("MFA_ENCRYPTION_KEY", "")
 if not _MFA_ENCRYPTION_KEY:
-    # Generate ephemeral key — secrets lost on pod restart (acceptable for dev/demo)
     _MFA_ENCRYPTION_KEY = Fernet.generate_key().decode()
-    logger.warning("⚠️  MFA_ENCRYPTION_KEY not set — using ephemeral key (secrets lost on restart)")
+    logger.error(
+        "MFA_ENCRYPTION_KEY not set — TOTP secrets will be lost on pod restart. "
+        "Generate a stable key with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\" "
+        "and set it as a Kubernetes Secret mounted as MFA_ENCRYPTION_KEY env var."
+    )
 
 _fernet = Fernet(_MFA_ENCRYPTION_KEY.encode())
 

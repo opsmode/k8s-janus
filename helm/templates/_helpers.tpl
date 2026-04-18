@@ -96,3 +96,11 @@ ESO and plain Secret both target the same name, so the reference is always the s
 {{- define "janus.oidc.secretName" -}}
 {{- .Values.oidc.existingSecret | default (printf "%s-oidc" (include "janus.fullname" .)) }}
 {{- end }}
+
+{{/*
+Name of the Secret holding the MFA encryption key.
+Priority: existingSecret > plain Secret (janus-mfa)
+*/}}
+{{- define "janus.mfa.secretName" -}}
+{{- (.Values.webui.mfa).existingSecret | default (printf "%s-mfa" (include "janus.fullname" .)) }}
+{{- end }}
