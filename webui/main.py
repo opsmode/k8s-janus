@@ -1088,6 +1088,73 @@ async def preview_pods(cluster: str, namespace: str):
         return JSONResponse({"error": "Failed to list pods", "pods": []})
 
 
+@app.get("/api/pod-info/{cluster}/{namespace}/{pod}", include_in_schema=False)
+async def pod_info(cluster: str, namespace: str, pod: str, request: Request):
+    if not _require_active_request(request, cluster, namespace):
+        return JSONResponse({"error": "No active request"}, status_code=403)
+    if not _valid_cluster(cluster) or not _valid_ns(namespace):
+        return JSONResponse({"error": "Invalid cluster or namespace"}, status_code=400)
+    try:
+        _, core_v1 = get_api_clients(cluster)
+        p = core_v1.read_namespaced_pod(name=pod, namespace=namespace)
+    except Exception as e:
+        logger.error(f"💥 pod-info {cluster}/{namespace}/{pod}: {e}")
+        return JSONResponse({"error": "Pod not found"}, status_code=404)
+
+    def _qty(q):
+        return str(q) if q else None
+
+    containers = []
+    for c in (p.spec.containers or []):
+        res = c.resources or {}
+        req = res.requests or {}
+        lim = res.limits or {}
+        mounts = [
+            {"name": v.name, "mountPath": v.mount_path}
+            for v in (c.volume_mounts or [])
+        ]
+        containers.append({
+            "name": c.name,
+            "image": c.image,
+            "requests": {"cpu": _qty(req.get("cpu")), "memory": _qty(req.get("memory"))},
+            "limits":   {"cpu": _qty(lim.get("cpu")), "memory": _qty(lim.get("memory"))},
+            "volumeMounts": mounts,
+        })
+
+    created = p.metadata.creation_timestamp
+    age_s = int((datetime.now(timezone.utc) - created).total_seconds()) if created else None
+
+    return JSONResponse({
+        "name": p.metadata.name,
+        "namespace": p.metadata.namespace,
+        "phase": (p.status.phase or "Unknown"),
+        "createdAt": created.isoformat() if created else None,
+        "ageSeconds": age_s,
+        "containers": containers,
+    })
+
+
+def _require_active_request(request: Request, cluster: str, namespace: str) -> bool:
+    user_email, _ = _get_user(request)
+    if not user_email:
+        return False
+    if _is_admin(user_email):
+        return True
+    for ar in list_access_requests():
+        spec = ar.get("spec", {})
+        st   = ar.get("status", {})
+        if st.get("phase") != "Active":
+            continue
+        if ar.get("_cluster", "") != cluster:
+            continue
+        if spec.get("requester", "").lower() != user_email.lower():
+            continue
+        nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else [])
+        if namespace in nss:
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Profile API — server-side avatar/name store (DB-backed for HA)
 # ---------------------------------------------------------------------------
