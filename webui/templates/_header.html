@@ -44,10 +44,12 @@
     <span id="hdr-health-dot" data-status="ok" title="System healthy"></span>
     {% endif %}
 
+    {% if is_admin %}
     <a href="https://github.com/infroware/k8s-janus" target="_blank" rel="noopener"
        class="hdr-icon-btn" title="View on GitHub">
       <i data-lucide="github" style="width:16px;height:16px;"></i>
     </a>
+    {% endif %}
 
     {% if nav_items is defined %}
       {% for item in nav_items %}
@@ -76,7 +78,7 @@
           <i data-lucide="user-circle" style="width:13px;height:13px;"></i>
           Edit profile
         </button>
-        {% if oidc_enabled %}
+        {% if oidc_enabled or local_auth_enabled %}
         <div class="hdr-dropdown-divider"></div>
         <a href="/logout" class="hdr-dropdown-item hdr-dropdown-signout">
           <i data-lucide="log-out" style="width:13px;height:13px;"></i>

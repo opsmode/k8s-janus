@@ -305,6 +305,7 @@
   {% set page_subtitle = "The All-Seeing Eye · You didn't come this far just to click buttons" %}
   {% set brand_href = "/admin" %}
   {% set nav_items = [
+    {"href": "/admin/users", "icon": "users", "label": "Users"},
     {"href": "/logs", "icon": "scroll-text", "label": "Logs"},
     {"href": "/", "icon": "layout-dashboard", "label": "My Requests"}
   ] %}
@@ -456,12 +457,29 @@
                   </span>
                 </td>
                 <td style="white-space:nowrap;font-size:0.78rem;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
-                <td>
-                  <button class="detail-btn" id="detail-btn-{{ ar.metadata.name }}"
-                    onclick="toggleDetailBtn(this)">
-                    <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
-                    Details
-                  </button>
+                <td style="white-space:nowrap;">
+                  <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;">
+                    {% if phase == "Pending" %}
+                    <button class="action-btn approve-btn" style="padding:3px 8px;font-size:0.72rem;"
+                      onclick="quickApprove('{{ ar_cluster }}','{{ ar.metadata.name }}',this)">
+                      <i data-lucide="check" style="width:11px;height:11px;"></i> Approve
+                    </button>
+                    <button class="action-btn deny-btn" style="padding:3px 8px;font-size:0.72rem;"
+                      onclick="quickDeny('{{ ar_cluster }}','{{ ar.metadata.name }}',this)">
+                      <i data-lucide="x" style="width:11px;height:11px;"></i> Deny
+                    </button>
+                    {% elif phase in ("Active", "Approved") %}
+                    <button class="action-btn revoke-btn" style="padding:3px 8px;font-size:0.72rem;"
+                      onclick="quickRevoke('{{ ar_cluster }}','{{ ar.metadata.name }}','{{ spec.get(\"requester\",\"\") }}',this)">
+                      <i data-lucide="shield-off" style="width:11px;height:11px;"></i> Revoke
+                    </button>
+                    {% endif %}
+                    <button class="detail-btn" id="detail-btn-{{ ar.metadata.name }}"
+                      onclick="toggleDetailBtn(this)">
+                      <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
+                      Details
+                    </button>
+                  </div>
                 </td>
               </tr>
               <!-- detail row injected by JS -->
@@ -786,6 +804,51 @@
       updateTtlRemaining();
       // Load avatars + names for the newly injected detail panel avatars
       if (typeof _loadPeerAvatars === 'function') _loadPeerAvatars();
+    }
+
+    // ── Quick inline actions (from row buttons) ──
+    async function quickApprove(cluster, name, btn) {
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        var resp = await fetch('/approve/' + cluster + '/' + name, {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}',
+        });
+        var data = await _jsonOrErr(resp);
+        if (data.ok) {
+          _setRowPhase(name, 'Approved');
+          _removeQuickBtns(name);
+        } else { _showBanner('Approve failed: ' + (data.error || 'unknown'), 'error'); btn.disabled = false; btn.textContent = 'Approve'; }
+      } catch(e) { _showBanner('Approve failed: ' + e, 'error'); btn.disabled = false; btn.textContent = 'Approve'; }
+    }
+
+    async function quickDeny(cluster, name, btn) {
+      var reason = prompt('Denial reason (optional):');
+      if (reason === null) return;
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        var body = new FormData(); body.append('denial_reason', reason || '');
+        var resp = await fetch('/deny/' + cluster + '/' + name, { method: 'POST', body: body });
+        var data = await _jsonOrErr(resp);
+        if (data.ok) { _setRowPhase(name, 'Denied'); _removeQuickBtns(name); }
+        else { _showBanner('Deny failed: ' + (data.error || 'unknown'), 'error'); btn.disabled = false; btn.textContent = 'Deny'; }
+      } catch(e) { _showBanner('Deny failed: ' + e, 'error'); btn.disabled = false; btn.textContent = 'Deny'; }
+    }
+
+    async function quickRevoke(cluster, name, requester, btn) {
+      if (!confirm('Revoke access for ' + requester + '?')) return;
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        var resp = await fetch('/revoke/' + cluster + '/' + name, { method: 'POST', headers: {'Accept': 'application/json'} });
+        var data = await _jsonOrErr(resp);
+        if (data.ok) { _setRowPhase(name, 'Revoked'); _removeQuickBtns(name); }
+        else { _showBanner('Revoke failed: ' + (data.error || 'unknown'), 'error'); btn.disabled = false; btn.textContent = 'Revoke'; }
+      } catch(e) { _showBanner('Revoke failed: ' + e, 'error'); btn.disabled = false; btn.textContent = 'Revoke'; }
+    }
+
+    function _removeQuickBtns(name) {
+      var row = document.querySelector('tr.req-row[data-name="'+name+'"]');
+      if (!row) return;
+      row.querySelectorAll('.approve-btn, .deny-btn, .revoke-btn').forEach(function(b) { b.remove(); });
     }
 
     // ── Initial render ──

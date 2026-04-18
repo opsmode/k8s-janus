@@ -137,9 +137,19 @@
     <div class="modal-box">
       <h3><i data-lucide="key" style="width:16px;height:16px;color:var(--accent);"></i> Reset password</h3>
       <p id="rp-label" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;"></p>
-      <input class="inp" id="rp-password" type="password" placeholder="New password (min 8 chars)">
-      <div id="rp-error" class="err" style="margin-top:8px;"></div>
-      <div class="modal-actions">
+      <div class="field-row" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label class="lbl" style="margin-bottom:0;">New password</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
+            <input id="rp-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);" onchange="toggleRpRandom()">
+            Generate random
+          </label>
+        </div>
+        <input class="inp" id="rp-password" type="password" placeholder="New password (min 8 chars)">
+        <div id="rp-random-display" style="display:none;margin-top:6px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.04em;word-break:break-all;"></div>
+      </div>
+      <div id="rp-error" class="err" style="margin-top:4px;"></div>
+      <div class="modal-actions" style="margin-top:14px;">
         <button class="btn-sm" onclick="closeResetPwModal()">Cancel</button>
         <button class="btn-sm btn-primary" onclick="submitResetPw()">Reset</button>
       </div>
@@ -150,6 +160,25 @@
 
   <script>
     lucide.createIcons();
+
+    // ── Toast ──
+    function showToast(msg, type) {
+      const icons = {info:'info', success:'check-circle', error:'alert-circle', warning:'alert-triangle'};
+      const colors = {info:'var(--info,#3b82f6)', success:'var(--success,#10b981)', error:'var(--danger,#ef4444)', warning:'var(--warning,#f59e0b)'};
+      const t = document.createElement('div');
+      t.className = 'toast' + (type === 'warning' ? ' warning' : '');
+      t.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:15px;height:15px;color:${colors[type]||colors.info};flex-shrink:0;"></i><span>${msg}</span>`;
+      document.getElementById('toast-container').appendChild(t);
+      lucide.createIcons({ nodes: [t] });
+      setTimeout(() => t.remove(), 4000);
+    }
+
+    // ── Escape key closes modals ──
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('create-user-modal').style.display !== 'none') { closeCreateUserModal(); return; }
+      if (document.getElementById('reset-pw-modal').style.display !== 'none') { closeResetPwModal(); }
+    });
 
     function fmt(iso) {
       if (!iso) return '—';
@@ -265,7 +294,7 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({email, name, password: pw, is_admin: admin}),
       }).then(async r => {
-        if (r.ok) { closeCreateUserModal(); loadUsers(); }
+        if (r.ok) { closeCreateUserModal(); loadUsers(); showToast('User created: ' + email, 'success'); }
         else { const d = await r.json(); errEl.textContent = d.error || 'Error'; errEl.style.display='block'; }
       });
     }
@@ -275,12 +304,33 @@
       _rpEmail = email;
       document.getElementById('rp-label').textContent = email;
       document.getElementById('rp-password').value = '';
+      document.getElementById('rp-password').style.display = '';
+      document.getElementById('rp-random').checked = false;
+      document.getElementById('rp-random-display').style.display = 'none';
       document.getElementById('rp-error').style.display = 'none';
       document.getElementById('reset-pw-modal').style.display = 'flex';
+      lucide.createIcons();
       setTimeout(() => document.getElementById('rp-password').focus(), 50);
     }
     function closeResetPwModal() {
       document.getElementById('reset-pw-modal').style.display = 'none';
+    }
+    function toggleRpRandom() {
+      const isRandom = document.getElementById('rp-random').checked;
+      const pwInput  = document.getElementById('rp-password');
+      const display  = document.getElementById('rp-random-display');
+      if (isRandom) {
+        const pw = _genPassword(20);
+        pwInput.value = pw;
+        pwInput.style.display = 'none';
+        display.textContent = pw;
+        display.style.display = 'block';
+      } else {
+        pwInput.value = '';
+        pwInput.style.display = '';
+        display.style.display = 'none';
+        pwInput.focus();
+      }
     }
     function submitResetPw() {
       const pw = document.getElementById('rp-password').value;
@@ -291,7 +341,7 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({password: pw}),
       }).then(r => {
-        if (r.ok) closeResetPwModal();
+        if (r.ok) { closeResetPwModal(); showToast('Password reset for ' + _rpEmail, 'success'); }
         else r.json().then(d => { errEl.textContent = d.error || 'Error'; errEl.style.display='block'; });
       });
     }
@@ -299,15 +349,22 @@
     function deleteUser(email) {
       if (!confirm(`Delete user ${email}?`)) return;
       fetch(`/api/local-users/${encodeURIComponent(email)}`, {method: 'DELETE'})
-        .then(r => { if (r.ok) loadUsers(); });
+        .then(r => { if (r.ok) { loadUsers(); showToast('User deleted: ' + email, 'info'); } });
     }
 
     function toggleAdmin(email, currentlyAdmin) {
+      const action = currentlyAdmin ? 'Remove admin from' : 'Make admin';
+      if (!confirm(`${action} ${email}?`)) return;
       fetch(`/api/local-users/${encodeURIComponent(email)}/admin`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({is_admin: !currentlyAdmin}),
-      }).then(r => { if (r.ok) loadUsers(); });
+      }).then(r => {
+        if (r.ok) {
+          loadUsers();
+          showToast(currentlyAdmin ? `Admin removed from ${email}` : `${email} is now admin`, 'success');
+        }
+      });
     }
 
     loadUsers();

@@ -1000,7 +1000,6 @@ async def index(request: Request):
         if ar.get("spec", {}).get("requester", "").lower() == ctx["user_email"].lower()
     ]
     ctx["is_admin"] = False
-    ctx["health_indicator"] = True
     return templates.TemplateResponse(request, "index.html", ctx)
 
 
@@ -1025,7 +1024,6 @@ async def admin(request: Request):
     except Exception:
         pass
     ctx["janus_webui_svc"] = webui_svc
-    ctx["health_indicator"] = True
     return templates.TemplateResponse(request, "admin.html", ctx)
 
 
