@@ -105,8 +105,10 @@ def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
     """
     _MAX_ATTEMPTS = 3
     _TRANSIENT = {429, 500, 502, 503, 504}
+    logger.info(f"🔌 Terminal: _open_shell starting for {pod} (attempt {_attempt+1})")
     for shell in ('/bin/bash', '/bin/sh', '/bin/ash'):
         try:
+            logger.debug(f"🔍 Terminal: probing {shell} on {pod}")
             probe = stream(
                 core_v1.connect_get_namespaced_pod_exec,
                 pod, namespace,
@@ -138,6 +140,7 @@ def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
                 command=[shell, '-c', _ps1_setup],
                 stderr=True, stdin=True, stdout=True, tty=True,
                 _preload_content=False,
+                _request_timeout=15,
             )
             time.sleep(0.3)
             if s.is_open():
@@ -404,11 +407,15 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                         timeout=20.0,
                     )
                 except asyncio.TimeoutError:
-                    await websocket.send_text(
-                        f"\r\n\x1b[31m✗ Timed out connecting to {pod} (20s).\x1b[0m\r\n"
-                        "The exec API may be unreachable or the pod may not be responding.\r\n"
-                    )
-                    await websocket.send_text(json.dumps({"type": "pod_error", "pod": pod, "status": "timeout", "message": "exec timed out"}))
+                    logger.warning(f"⏱️  Terminal: _open_shell timed out for {pod} (20s)")
+                    try:
+                        await websocket.send_text(
+                            f"\r\n\x1b[31m✗ Timed out connecting to {pod} (20s).\x1b[0m\r\n"
+                            "The exec API may be unreachable or the pod may not be responding.\r\n"
+                        )
+                        await websocket.send_text(json.dumps({"type": "pod_error", "pod": pod, "status": "timeout", "message": "exec timed out"}))
+                    except Exception:
+                        pass
                     continue
 
                 if new_resp is None:

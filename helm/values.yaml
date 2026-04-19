@@ -98,8 +98,8 @@ controller:
       cpu: 50m
       memory: 64Mi
     limits:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 100m
+      memory: 100Mi
 # Web UI deployment settings.
 # baseUrl: public URL of this instance — used for approval callback links.
 #          Leave empty to auto-derive from the LoadBalancer IP.
@@ -130,8 +130,8 @@ webui:
       cpu: 50m
       memory: 64Mi
     limits:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 100m
+      memory: 100Mi
 # External Secrets Operator integration. When enabled, kubeconfig Secrets and
 # the PostgreSQL password Secret are synced from an external secret store
 # (e.g. AWS Secrets Manager, GCP Secret Manager, Vault) instead of being
