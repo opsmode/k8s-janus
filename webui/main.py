@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from core.config import (
     OIDC_ENABLED, LOCAL_AUTH_ENABLED, OIDC_SESSION_SECRET,
@@ -62,19 +63,49 @@ class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class _OIDCAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+class _OIDCAuthMiddleware:
+    """Pure ASGI auth middleware — works for both HTTP and WebSocket connections."""
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] not in ("http", "websocket"):
+            await self.app(scope, receive, send)
+            return
         if not OIDC_ENABLED and not LOCAL_AUTH_ENABLED:
-            return await call_next(request)
-        path = request.url.path
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
         if path in _AUTH_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
-            return await call_next(request)
-        if not request.session.get("user_email"):
+            await self.app(scope, receive, send)
+            return
+
+        # Read session populated by SessionMiddleware (already ran as outer layer)
+        from starlette.requests import HTTPConnection
+        conn = HTTPConnection(scope)
+        if not conn.session.get("user_email"):
+            if scope["type"] == "websocket":
+                # Close WebSocket with policy violation code
+                await send({"type": "websocket.close", "code": 4401, "reason": "unauthenticated"})
+                return
             _json_prefixes = ("/api/", "/ws/", "/approve/", "/deny/", "/revoke/", "/cancel/", "/extend/")
-            if path.startswith(_json_prefixes) or request.headers.get("accept", "").startswith("application/json"):
-                return JSONResponse({"error": "unauthenticated"}, status_code=401)
-            return RedirectResponse(f"/login?next={path}", status_code=302)
-        return await call_next(request)
+            headers = dict(scope.get("headers", []))
+            accept = headers.get(b"accept", b"").decode()
+            if path.startswith(_json_prefixes) or accept.startswith("application/json"):
+                body = b'{"error":"unauthenticated"}'
+                await send({"type": "http.response.start", "status": 401,
+                            "headers": [(b"content-type", b"application/json"),
+                                        (b"content-length", str(len(body)).encode())]})
+                await send({"type": "http.response.body", "body": body})
+                return
+            location = f"/login?next={path}".encode()
+            await send({"type": "http.response.start", "status": 302,
+                        "headers": [(b"location", location)]})
+            await send({"type": "http.response.body", "body": b""})
+            return
+
+        await self.app(scope, receive, send)
 
 
 # Middleware stack — LIFO: last added = outermost = runs first
