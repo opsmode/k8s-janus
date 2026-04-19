@@ -65,10 +65,10 @@ def init_db() -> None:
             kwargs["connect_args"] = {"check_same_thread": False}
         _engine = create_engine(url, **kwargs)
         _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
-        # DDL is owned by db_migrate.py (run as a pre-install/pre-upgrade Helm Job).
-        # For SQLite (dev/no-DB mode) we still create tables inline since there is no Job.
-        if not is_pg:
-            Base.metadata.create_all(_engine)
+        # create_all is idempotent (CREATE TABLE IF NOT EXISTS semantics) — safe on every
+        # startup. The Helm init-db Job also runs db_migrate.py for additive migrations,
+        # but ArgoCD skips Helm hooks so startup creation is the reliable baseline.
+        Base.metadata.create_all(_engine)
         db_enabled = True
         backend = "PostgreSQL" if is_pg else "SQLite (ephemeral)"
         logger.info(f"DB initialised ({backend})")
