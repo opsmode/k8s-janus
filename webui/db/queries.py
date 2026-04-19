@@ -12,6 +12,7 @@ from db.models import (
 import db.engine as _db_engine
 from db.engine import get_session, _now
 
+
 def _db_enabled() -> bool:
     return _db_engine.db_enabled
 

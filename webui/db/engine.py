@@ -18,6 +18,7 @@ logger = logging.getLogger("k8s-janus.db")
 # Engine setup
 # ---------------------------------------------------------------------------
 
+
 def _build_url() -> str:
     host = os.environ.get("DB_HOST", "")
     if host:

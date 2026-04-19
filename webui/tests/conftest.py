@@ -91,6 +91,7 @@ def _apply_patches(monkeypatch, extra=None):
 def admin_headers():
     return {"X-Forwarded-Email": ADMIN_EMAIL, "X-Forwarded-User": "Admin"}
 
+
 def user_headers():
     return {"X-Forwarded-Email": USER_EMAIL, "X-Forwarded-User": "User"}
 
