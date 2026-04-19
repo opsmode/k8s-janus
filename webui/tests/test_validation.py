@@ -1,31 +1,15 @@
 """
-Unit tests for input validation helpers in main.py.
+Unit tests for input validation helpers in core.k8s_helpers.
 No mocking needed — pure regex functions.
 """
 import sys
 import os
-from unittest.mock import MagicMock, patch
 
 _WEBUI_DIR = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, _WEBUI_DIR)
 os.environ.setdefault("APP_DIR", _WEBUI_DIR)
 
-# Patch heavy imports before loading main
-with patch.dict("sys.modules", {
-    "kubernetes": MagicMock(),
-    "kubernetes.client": MagicMock(),
-    "kubernetes.client.rest": MagicMock(),
-    "kubernetes.config": MagicMock(),
-    "authlib": MagicMock(),
-    "authlib.integrations": MagicMock(),
-    "authlib.integrations.starlette_client": MagicMock(),
-    "k8s": MagicMock(),
-    "terminal_ws": MagicMock(),
-    "db": MagicMock(db_enabled=False, init_db=MagicMock()),
-}):
-    import main  # noqa: F401  — side-effect: registers validators
-
-from main import _valid_name, _valid_cluster, _valid_ns
+from core.k8s_helpers import _valid_name, _valid_cluster, _valid_ns
 
 
 class TestValidName:

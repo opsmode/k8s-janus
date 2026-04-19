@@ -13,11 +13,11 @@ from .conftest import CLUSTER, REQ_NAME, USER_EMAIL, fake_ar
 class TestApprove:
 
     def test_approve_pending_ok(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending"))
         patch_status = MagicMock()
-        monkeypatch.setattr(main, "_patch_status", patch_status)
+        monkeypatch.setattr(routers.access_requests, "_patch_status", patch_status)
 
         r = admin_client.post(f"/approve/{CLUSTER}/{REQ_NAME}", json={})
 
@@ -32,15 +32,15 @@ class TestApprove:
         assert "approvedAt" in args[0][1]
 
     def test_approve_already_approved_is_409(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Approved"))
         r = admin_client.post(f"/approve/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 409
 
     def test_approve_not_found_is_404(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request", lambda *a, **k: None)
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request", lambda *a, **k: None)
         r = admin_client.post(f"/approve/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 404
 
@@ -55,16 +55,16 @@ class TestApprove:
     # ----- TTL override regression -----
     def test_ttl_override_calls_patch_without_content_type_kwarg(self, admin_client, monkeypatch):
         """Regression: _content_type kwarg caused ApiTypeError → HTTP 500."""
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending", ttl=3600))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
 
         # Mock patch_cluster_custom_object and capture kwargs
         mock_patch_obj = MagicMock()
         mock_api = MagicMock()
         mock_api.patch_cluster_custom_object = mock_patch_obj
-        monkeypatch.setattr(main, "get_api_clients", lambda *a: (mock_api, MagicMock()))
+        monkeypatch.setattr(routers.access_requests, "get_api_clients", lambda *a: (mock_api, MagicMock()))
 
         r = admin_client.post(
             f"/approve/{CLUSTER}/{REQ_NAME}",
@@ -80,14 +80,14 @@ class TestApprove:
             "_content_type kwarg causes ApiTypeError in kubernetes client"
 
     def test_ttl_override_sets_correct_ttl(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending", ttl=3600))
         patch_status = MagicMock()
-        monkeypatch.setattr(main, "_patch_status", patch_status)
+        monkeypatch.setattr(routers.access_requests, "_patch_status", patch_status)
 
         mock_api = MagicMock()
-        monkeypatch.setattr(main, "get_api_clients", lambda *a: (mock_api, MagicMock()))
+        monkeypatch.setattr(routers.access_requests, "get_api_clients", lambda *a: (mock_api, MagicMock()))
 
         admin_client.post(
             f"/approve/{CLUSTER}/{REQ_NAME}",
@@ -101,12 +101,12 @@ class TestApprove:
 
     def test_ttl_override_without_value_uses_original(self, admin_client, monkeypatch):
         """Empty ttl_seconds body should not call patch_cluster_custom_object."""
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending", ttl=3600))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
         mock_api = MagicMock()
-        monkeypatch.setattr(main, "get_api_clients", lambda *a: (mock_api, MagicMock()))
+        monkeypatch.setattr(routers.access_requests, "get_api_clients", lambda *a: (mock_api, MagicMock()))
 
         r = admin_client.post(f"/approve/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 200
@@ -120,11 +120,11 @@ class TestApprove:
 class TestDeny:
 
     def test_deny_pending_ok(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending"))
         patch_status = MagicMock()
-        monkeypatch.setattr(main, "_patch_status", patch_status)
+        monkeypatch.setattr(routers.access_requests, "_patch_status", patch_status)
 
         r = admin_client.post(
             f"/deny/{CLUSTER}/{REQ_NAME}",
@@ -137,15 +137,15 @@ class TestDeny:
         assert args["phase"] == "Denied"
 
     def test_deny_already_denied_is_409(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Denied"))
         r = admin_client.post(f"/deny/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 409
 
     def test_deny_not_found_is_404(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request", lambda *a, **k: None)
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request", lambda *a, **k: None)
         r = admin_client.post(f"/deny/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 404
 
@@ -156,10 +156,10 @@ class TestDeny:
 class TestRevoke:
 
     def test_revoke_active_returns_json(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Active"))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
 
         r = admin_client.post(
             f"/revoke/{CLUSTER}/{REQ_NAME}",
@@ -170,10 +170,10 @@ class TestRevoke:
         assert r.json()["phase"] == "Revoked"
 
     def test_revoke_active_without_accept_redirects(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Active"))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
 
         r = admin_client.post(
             f"/revoke/{CLUSTER}/{REQ_NAME}",
@@ -183,11 +183,11 @@ class TestRevoke:
         assert r.headers["location"] == "/admin"
 
     def test_revoke_expired_request_noop_redirect(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Expired"))
         patch_status = MagicMock()
-        monkeypatch.setattr(main, "_patch_status", patch_status)
+        monkeypatch.setattr(routers.access_requests, "_patch_status", patch_status)
 
         r = admin_client.post(
             f"/revoke/{CLUSTER}/{REQ_NAME}",
@@ -204,10 +204,10 @@ class TestRevoke:
 class TestCancel:
 
     def test_cancel_pending_by_owner_ok(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending", requester=USER_EMAIL))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
 
         r = user_client.post(
             f"/cancel/{CLUSTER}/{REQ_NAME}",
@@ -218,10 +218,10 @@ class TestCancel:
         assert r.json()["phase"] == "Cancelled"
 
     def test_cancel_active_by_owner_ok(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Active", requester=USER_EMAIL))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
 
         r = user_client.post(
             f"/cancel/{CLUSTER}/{REQ_NAME}",
@@ -231,9 +231,9 @@ class TestCancel:
         assert r.json()["ok"] is True
 
     def test_cancel_by_different_user_is_403(self, user_client, monkeypatch):
-        import main
+        import routers.access_requests
         # Request belongs to someone else
-        monkeypatch.setattr(main, "get_access_request",
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending", requester="other@test.com"))
         r = user_client.post(
             f"/cancel/{CLUSTER}/{REQ_NAME}",
@@ -242,8 +242,8 @@ class TestCancel:
         assert r.status_code == 403
 
     def test_cancel_already_cancelled_is_409(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Cancelled", requester=USER_EMAIL))
         r = user_client.post(
             f"/cancel/{CLUSTER}/{REQ_NAME}",
@@ -252,8 +252,8 @@ class TestCancel:
         assert r.status_code == 409
 
     def test_cancel_not_found_is_404(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request", lambda *a, **k: None)
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request", lambda *a, **k: None)
         r = user_client.post(
             f"/cancel/{CLUSTER}/{REQ_NAME}",
             headers={"Accept": "application/json"},
@@ -261,10 +261,10 @@ class TestCancel:
         assert r.status_code == 404
 
     def test_admin_can_cancel_any_request(self, admin_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending", requester="someone@test.com"))
-        monkeypatch.setattr(main, "_patch_status", MagicMock())
+        monkeypatch.setattr(routers.access_requests, "_patch_status", MagicMock())
 
         r = admin_client.post(
             f"/cancel/{CLUSTER}/{REQ_NAME}",

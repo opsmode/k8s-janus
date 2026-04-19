@@ -25,6 +25,8 @@ def _ar(name, phase="Pending", cluster="c", namespace="ns",
 def fresh_db():
     """Reinitialize DB with a fresh in-memory SQLite for every test."""
     import db
+    import db.engine as _db_engine
+    import db.queries as _db_queries
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -33,13 +35,15 @@ def fresh_db():
         connect_args={"check_same_thread": False},
     )
     db.Base.metadata.create_all(engine)
-    db._engine = engine
-    db._SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    db.db_enabled = True
+    _db_engine._engine = engine
+    _db_engine._SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    _db_engine.db_enabled = True
+    _db_queries.db_enabled = True
     yield
     db.Base.metadata.drop_all(engine)
     engine.dispose()
-    db.db_enabled = False
+    _db_engine.db_enabled = False
+    _db_queries.db_enabled = False
 
 
 # ---------------------------------------------------------------------------

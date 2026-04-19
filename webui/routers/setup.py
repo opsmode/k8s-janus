@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, Request, UploadFile, File, WebSocket
 from fastapi.responses import JSONResponse
 
-from core.auth import _base_context, _require_admin
+from core.auth import _base_context
 from core.templates import templates
 from k8s import JANUS_NAMESPACE, invalidate_clusters_cache
 

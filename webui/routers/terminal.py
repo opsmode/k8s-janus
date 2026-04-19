@@ -6,11 +6,11 @@ from fastapi import APIRouter, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from kubernetes.client.rest import ApiException
 
-from core.auth import _base_context, _get_user, _is_admin, _mfa_verified_recently, _require_active_request
+from core.auth import _base_context, _get_user, _mfa_verified_recently, _require_active_request
 from core.k8s_helpers import Phase, _valid_name, _valid_ns, _valid_cluster, _token_client
 from core.templates import templates
 from db import get_user_mfa
-from k8s import get_api_clients, get_access_request, get_cluster_config, list_access_requests
+from k8s import get_api_clients, get_access_request, get_cluster_config
 from terminal_ws import terminal_websocket_handler
 
 logger = logging.getLogger("k8s-janus-webui")

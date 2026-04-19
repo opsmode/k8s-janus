@@ -74,22 +74,22 @@ class TestAdminGating:
         assert r.status_code == 403
 
     def test_approve_forbidden_for_user(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending"))
         r = user_client.post(f"/approve/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 403
 
     def test_deny_forbidden_for_user(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Pending"))
         r = user_client.post(f"/deny/{CLUSTER}/{REQ_NAME}", json={})
         assert r.status_code == 403
 
     def test_revoke_forbidden_for_user(self, user_client, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "get_access_request",
+        import routers.access_requests
+        monkeypatch.setattr(routers.access_requests, "get_access_request",
                             lambda *a, **k: fake_ar(phase="Active"))
         r = user_client.post(
             f"/revoke/{CLUSTER}/{REQ_NAME}",

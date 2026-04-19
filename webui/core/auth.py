@@ -5,7 +5,6 @@ Authentication and authorization helpers for K8s-Janus WebUI.
 from datetime import datetime, timezone
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
 
 import local_auth
 from core.config import (

@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from core.auth import _base_context, _require_admin, _get_user, _is_admin
+from core.auth import _base_context, _require_admin, _get_user
 from core.config import LOCAL_AUTH_ENABLED
 from core.templates import templates
 from db import db_enabled, get_user_profile, save_user_profile

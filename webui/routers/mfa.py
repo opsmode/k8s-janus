@@ -2,7 +2,6 @@
 import base64
 import logging
 import secrets
-from datetime import datetime, timezone
 from io import BytesIO
 
 from fastapi import APIRouter, Request

@@ -21,16 +21,16 @@ def _make_pod(name=_POD_NAME, phase="Running", image="ubuntu:22.04"):
 
 def _mock_token_client(monkeypatch, pods=None, *, access_active=True):
     """Patch _token_client to return a fake core_v1 client (or None when inactive)."""
-    import main
+    import routers.terminal
     if not access_active:
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (None, ""))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (None, ""))
         return None
 
     core_v1 = MagicMock()
     core_v1.list_namespaced_pod.return_value.items = (
         pods if pods is not None else [_make_pod()]
     )
-    monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+    monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
     return core_v1
 
 
@@ -102,11 +102,11 @@ class TestListPods:
     def test_namespace_resolved_from_token_client(self, admin_client, monkeypatch):
         """_token_client resolves the namespace (from the access request, not raw query param).
         The resolved namespace is what gets passed to list_namespaced_pod."""
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         core_v1.list_namespaced_pod.return_value.items = []
         # _token_client returns (client, resolved_ns) — simulate resolving to "production"
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "production"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "production"))
         admin_client.get(f"/api/terminal/{CLUSTER}/{REQ_NAME}/pods?namespace=default")
         core_v1.list_namespaced_pod.assert_called_once()
         ca = core_v1.list_namespaced_pod.call_args
@@ -114,10 +114,10 @@ class TestListPods:
         assert call_ns == "production"
 
     def test_k8s_exception_returns_error_body(self, admin_client, monkeypatch):
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         core_v1.list_namespaced_pod.side_effect = Exception("connection refused")
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
         r = admin_client.get(f"/api/terminal/{CLUSTER}/{REQ_NAME}/pods?namespace=default")
         assert r.status_code == 200
         assert r.json()["error"] is not None
@@ -130,20 +130,20 @@ class TestListPods:
 class TestPodLogs:
 
     def test_returns_logs(self, admin_client, monkeypatch):
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         core_v1.read_namespaced_pod_log.return_value = "line1\nline2\n"
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
 
         r = admin_client.get(f"/api/terminal/{CLUSTER}/{REQ_NAME}/{_POD_NAME}/logs")
         assert r.status_code == 200
         assert "line1" in r.json()["logs"]
 
     def test_empty_logs_returns_empty_string(self, admin_client, monkeypatch):
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         core_v1.read_namespaced_pod_log.return_value = ""
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
         r = admin_client.get(f"/api/terminal/{CLUSTER}/{REQ_NAME}/{_POD_NAME}/logs")
         assert r.status_code == 200
         assert r.json()["logs"] == ""
@@ -165,19 +165,19 @@ class TestPodLogs:
 
     def test_tail_clamped_to_max(self, admin_client, monkeypatch):
         """tail param > 5000 must be clamped to 5000."""
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         core_v1.read_namespaced_pod_log.return_value = "log"
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
         admin_client.get(f"/api/terminal/{CLUSTER}/{REQ_NAME}/{_POD_NAME}/logs?tail=99999")
         _, kwargs = core_v1.read_namespaced_pod_log.call_args
         assert kwargs.get("tail_lines", 0) <= 5000
 
     def test_k8s_exception_returns_error_body(self, admin_client, monkeypatch):
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         core_v1.read_namespaced_pod_log.side_effect = Exception("pod not found")
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
         r = admin_client.get(f"/api/terminal/{CLUSTER}/{REQ_NAME}/{_POD_NAME}/logs")
         assert r.status_code == 200
         assert r.json()["error"] is not None
@@ -190,7 +190,7 @@ class TestPodLogs:
 class TestPodEvents:
 
     def _mock_events(self, monkeypatch, events=None):
-        import main
+        import routers.terminal
         core_v1 = MagicMock()
         ev_mock = MagicMock()
         ev_mock.reason = "Pulled"
@@ -204,7 +204,7 @@ class TestPodEvents:
         core_v1.list_namespaced_event.return_value.items = (
             events if events is not None else [ev_mock]
         )
-        monkeypatch.setattr(main, "_token_client", lambda *a, **k: (core_v1, "default"))
+        monkeypatch.setattr(routers.terminal, "_token_client", lambda *a, **k: (core_v1, "default"))
         return core_v1
 
     def test_returns_events(self, admin_client, monkeypatch):

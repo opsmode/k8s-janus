@@ -1,14 +1,14 @@
 """Auth router — /login, /logout, /auth/callback, /mfa-verify."""
 import logging
 
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from core.config import (
     OIDC_ENABLED, LOCAL_AUTH_ENABLED, OIDC_PROVIDER, _PROVIDER_DISPLAY, _oauth,
     OIDC_ALLOWED_DOMAINS,
 )
-from core.auth import _is_admin, _get_user
+from core.auth import _is_admin
 from core.templates import templates
 import local_auth
 
