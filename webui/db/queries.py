@@ -9,7 +9,11 @@ from db.models import (
     AccessRequestRecord, AuditLog, TerminalCommand,
     UserQuickCommand, UserMFA, UserProfile,
 )
-from db.engine import db_enabled, get_session, _now
+import db.engine as _db_engine
+from db.engine import get_session, _now
+
+def _db_enabled() -> bool:
+    return _db_engine.db_enabled
 
 from cryptography.fernet import Fernet
 
@@ -51,7 +55,7 @@ def upsert_request(name: str, **fields) -> None:
     On insert: all fields are written.
     On update: created_at is never overwritten (preserves original creation time).
     """
-    if not db_enabled:
+    if not _db_enabled():
         return
     try:
         with get_session() as session:
@@ -76,7 +80,7 @@ def upsert_request(name: str, **fields) -> None:
 
 def log_audit(request_name: str, event: str, actor: str = "", detail: str = "") -> None:
     """Append a row to audit_logs."""
-    if not db_enabled:
+    if not _db_enabled():
         return
     try:
         with get_session() as session:
@@ -95,7 +99,7 @@ def log_audit(request_name: str, event: str, actor: str = "", detail: str = "") 
 
 def get_audit_log(request_name: str) -> list[dict]:
     """Return audit log entries for a specific request, oldest first."""
-    if not db_enabled:
+    if not _db_enabled():
         return []
     try:
         with get_session() as session:
@@ -123,7 +127,7 @@ def get_audit_log(request_name: str) -> list[dict]:
 
 def get_recent_audit_logs(limit: int = 200, offset: int = 0) -> list[dict]:
     """Return the most recent audit log entries across all requests, with pagination."""
-    if not db_enabled:
+    if not _db_enabled():
         return []
     try:
         with get_session() as session:
@@ -157,7 +161,7 @@ def get_recent_audit_logs(limit: int = 200, offset: int = 0) -> list[dict]:
 
 def log_command(request_name: str, pod: str, command: str) -> None:
     """Append a typed command to terminal_commands."""
-    if not db_enabled:
+    if not _db_enabled():
         return
     try:
         with get_session() as session:
@@ -175,7 +179,7 @@ def log_command(request_name: str, pod: str, command: str) -> None:
 
 def get_session_commands(request_name: str) -> list[dict]:
     """Return all typed commands for a request, oldest first."""
-    if not db_enabled:
+    if not _db_enabled():
         return []
     try:
         with get_session() as session:
@@ -202,7 +206,7 @@ def get_session_commands(request_name: str) -> list[dict]:
 
 def purge_old_records(days: int = 30) -> int:
     """Delete terminal_commands and audit_logs older than N days. Returns total rows deleted."""
-    if not db_enabled:
+    if not _db_enabled():
         return 0
     from datetime import timedelta
     cutoff = _now() - timedelta(days=days)
@@ -224,7 +228,7 @@ def purge_old_records(days: int = 30) -> int:
 # ---------------------------------------------------------------------------
 
 def get_user_quick_commands(user_email: str) -> list[dict]:
-    if not db_enabled:
+    if not _db_enabled():
         return []
     try:
         with get_session() as session:
@@ -244,7 +248,7 @@ def get_user_quick_commands(user_email: str) -> list[dict]:
 
 
 def create_user_quick_command(user_email: str, label: str, command: str) -> dict | None:
-    if not db_enabled:
+    if not _db_enabled():
         return None
     try:
         with get_session() as session:
@@ -264,7 +268,7 @@ def create_user_quick_command(user_email: str, label: str, command: str) -> dict
 
 
 def update_user_quick_command(user_email: str, cmd_id: int, label: str, command: str) -> bool:
-    if not db_enabled:
+    if not _db_enabled():
         return False
     try:
         with get_session() as session:
@@ -284,7 +288,7 @@ def update_user_quick_command(user_email: str, cmd_id: int, label: str, command:
 
 
 def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
-    if not db_enabled:
+    if not _db_enabled():
         return False
     try:
         with get_session() as session:
@@ -305,7 +309,7 @@ def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
 
 def get_user_mfa(user_email: str) -> dict | None:
     """Returns {enabled, totp_secret, backup_codes, created_at, last_used_at} or None."""
-    if not db_enabled:
+    if not _db_enabled():
         return None
     try:
         with get_session() as session:
@@ -331,7 +335,7 @@ def get_user_mfa(user_email: str) -> dict | None:
 
 def enable_user_mfa(user_email: str, totp_secret: str, backup_codes: list[str]) -> bool:
     """Enable MFA for user with TOTP secret and backup codes."""
-    if not db_enabled:
+    if not _db_enabled():
         return False
     try:
         with get_session() as session:
@@ -361,7 +365,7 @@ def enable_user_mfa(user_email: str, totp_secret: str, backup_codes: list[str]) 
 
 def disable_user_mfa(user_email: str) -> bool:
     """Disable MFA for user (clears secrets)."""
-    if not db_enabled:
+    if not _db_enabled():
         return False
     try:
         with get_session() as session:
@@ -381,7 +385,7 @@ def disable_user_mfa(user_email: str) -> bool:
 
 def update_mfa_last_used(user_email: str) -> None:
     """Update last_used_at timestamp for MFA."""
-    if not db_enabled:
+    if not _db_enabled():
         return
     try:
         with get_session() as session:
@@ -400,7 +404,7 @@ def update_mfa_last_used(user_email: str) -> None:
 
 def get_user_profile(user_email: str) -> dict:
     """Get profile for user. Returns {"name": "", "photo": ""} if not found."""
-    if not db_enabled:
+    if not _db_enabled():
         return {}
     try:
         with get_session() as session:
@@ -417,7 +421,7 @@ def get_user_profile(user_email: str) -> dict:
 
 def save_user_profile(user_email: str, name: str, photo: str) -> bool:
     """Save profile for user."""
-    if not db_enabled:
+    if not _db_enabled():
         return False
     try:
         with get_session() as session:

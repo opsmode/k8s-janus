@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse
 from core.auth import _base_context, _require_admin, _get_user
 from core.config import LOCAL_AUTH_ENABLED
 from core.templates import templates
-from db import db_enabled, get_user_profile, save_user_profile
+from db import get_user_profile, save_user_profile
+import db as _db
 from k8s import JANUS_NAMESPACE, list_access_requests
 import local_auth
 
@@ -83,7 +84,7 @@ async def save_profile(request: Request):
     photo = str(body.get("photo", ""))
     if photo and not photo.startswith("data:image/"):
         photo = ""
-    if db_enabled:
+    if _db.db_enabled:
         save_user_profile(user_email, name, photo)
     else:
         _memory_profiles[user_email.lower()] = {"name": name, "photo": photo}
@@ -92,7 +93,7 @@ async def save_profile(request: Request):
 
 @router.get("/api/avatar/{email}", include_in_schema=False)
 async def get_avatar(email: str):
-    if db_enabled:
+    if _db.db_enabled:
         p = get_user_profile(email)
     else:
         p = _memory_profiles.get(email.lower(), {})
