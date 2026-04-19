@@ -123,21 +123,24 @@ spec:
             httpGet:
               path: /healthz
               port: 8000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 5
-            failureThreshold: 30  # up to 150s for startup
+            failureThreshold: 30  # up to 180s for startup
+            timeoutSeconds: 3
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8000
             periodSeconds: 30
             failureThreshold: 3
+            timeoutSeconds: 3
           readinessProbe:
             httpGet:
               path: /healthz
               port: 8000
             periodSeconds: 10
             failureThreshold: 3
+            timeoutSeconds: 3
           volumeMounts:
             - name: tmp
               mountPath: /tmp
