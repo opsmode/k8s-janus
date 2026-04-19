@@ -18,6 +18,9 @@ values.local.yaml
 override*.yaml
 secrets.yaml
 
+# Claude Code local config
+.claude/
+
 # Terraform runtime artifacts
 .terraform/
 *.tfstate
