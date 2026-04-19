@@ -338,7 +338,8 @@
 <body>
 
   {% set page_subtitle = "The gatekeeper who never sleeps (unlike your on-call engineer)" %}
-  {% set nav_items = [{"href": "/", "icon": "home", "label": "Open Janus"}] %}
+  {% set nav_items = [] %}
+  {% set hide_user_menu = true %}
   {% set header_extra %}<div class="setup-badge">Setup Wizard</div>{% endset %}
   {% include '_header.html' %}
 

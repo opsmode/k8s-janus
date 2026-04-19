@@ -67,6 +67,7 @@
     </a>
     {% endif %}
 
+    {% if not hide_user_menu %}
     <div class="hdr-user-dropdown" id="hdr-user-dropdown">
       <div class="header-pill" onclick="toggleUserDropdown(event)" title="Account">
         <div class="avatar" id="user-avatar" data-email="{{ user_email | lower }}"></div>
@@ -87,6 +88,7 @@
         {% endif %}
       </div>
     </div>
+    {% endif %}
   </div>
 </header>
 

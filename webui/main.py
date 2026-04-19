@@ -77,7 +77,7 @@ class _OIDCAuthMiddleware:
             return
 
         path = scope.get("path", "")
-        if path in _AUTH_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup"):
+        if path in _AUTH_PUBLIC_PATHS or path.startswith("/static") or path.startswith("/setup") or path.startswith("/ws/setup"):
             await self.app(scope, receive, send)
             return
 
