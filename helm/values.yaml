@@ -18,7 +18,7 @@ labels: {}
 # → templates: controller-deployment.yaml, webui-deployment.yaml
 image:
   repository: infroware/k8s-janus
-  tag: "v1.0.6"
+  tag: "v1.0.7"
   pullPolicy: IfNotPresent
 # Web UI service. LoadBalancer exposes the UI externally.
 # The callback URL for approvals is auto-derived from the LoadBalancer IP.
@@ -156,12 +156,12 @@ externalSecrets:
 #              controller-deployment.yaml, webui-deployment.yaml,
 #              postgresql-externalsecret.yaml (when externalSecrets also true)
 postgresql:
-  enabled: false      # set true to use external PostgreSQL
+  enabled: false # set true to use external PostgreSQL
   bundled:
-    enabled: false    # set true to deploy in-cluster PostgreSQL (overrides enabled above)
+    enabled: false # set true to deploy in-cluster PostgreSQL (overrides enabled above)
     image: postgres:16-alpine
     storageSize: 2Gi
-    storageClass: ""  # leave empty for cluster default StorageClass
+    storageClass: "" # leave empty for cluster default StorageClass
   # External PostgreSQL settings (used when bundled.enabled=false)
   host: ""
   port: 5432
