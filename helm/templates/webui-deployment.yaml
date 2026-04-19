@@ -40,7 +40,7 @@ spec:
           type: RuntimeDefault
       {{- if include "janus.postgresql.enabled" . }}
       initContainers:
-        - name: wait-for-migrations
+        - name: wait-for-postgres
           image: postgres:16-alpine
           securityContext:
             allowPrivilegeEscalation: false
@@ -51,25 +51,17 @@ spec:
             - sh
             - -c
             - |
-              until psql "postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME" \
-                -c "SELECT 1 FROM local_users LIMIT 1" >/dev/null 2>&1; do
-                echo "Waiting for DB migrations..."; sleep 3
+              until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
+                echo "Waiting for PostgreSQL..."; sleep 3
               done
-              echo "Migrations ready."
+              echo "PostgreSQL ready."
           env:
             - name: DB_HOST
               value: {{ include "janus.postgresql.host" . | quote }}
             - name: DB_PORT
               value: {{ .Values.postgresql.port | default 5432 | quote }}
-            - name: DB_NAME
-              value: {{ .Values.postgresql.database | default "k8s-janus" | quote }}
             - name: DB_USER
               value: {{ .Values.postgresql.username | default "k8s-janus" | quote }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "janus.fullname" . }}-postgresql
-                  key: password
       {{- end }}
       containers:
         - name: webui
