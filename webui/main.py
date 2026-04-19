@@ -7,7 +7,7 @@ import asyncio
 import os
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -123,6 +123,7 @@ app.add_middleware(
 # Exception handlers
 # ---------------------------------------------------------------------------
 
+
 @app.exception_handler(404)
 async def _not_found(request: Request, exc):
     return templates.TemplateResponse(request, "404.html", {"path": request.url.path}, status_code=404)
@@ -135,6 +136,7 @@ async def _server_error(request: Request, exc):
 # ---------------------------------------------------------------------------
 # Startup
 # ---------------------------------------------------------------------------
+
 
 @app.on_event("startup")
 async def on_startup():
