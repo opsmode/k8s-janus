@@ -313,6 +313,8 @@
     }
     .detail-btn:hover { color: var(--text); border-color: var(--border-light); }
     .detail-btn.open { color: var(--accent); border-color: rgba(99,102,241,0.4); }
+    .terminal-btn { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .terminal-btn:hover { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
 
     /* ── PAGINATION ── */
     .pagination-bar {
@@ -509,7 +511,13 @@
               </td>
               <td style="white-space:nowrap;font-size:0.78rem;">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
               <td style="white-space:nowrap;">
-                {% if phase in ("Active", "Approved") %}
+                {% if phase == "Active" %}
+                <a href="/terminal/{{ ar_cluster }}/{{ ar.metadata.name }}"
+                   class="detail-btn terminal-btn" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+                  <i data-lucide="terminal" style="width:11px;height:11px;"></i>
+                  Terminal
+                </a>
+                {% elif phase == "Approved" %}
                 <a href="/terminal/{{ ar_cluster }}/{{ ar.metadata.name }}"
                    class="detail-btn" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
                   <i data-lucide="terminal" style="width:11px;height:11px;"></i>

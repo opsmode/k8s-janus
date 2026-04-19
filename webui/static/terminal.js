@@ -921,12 +921,17 @@ const { cluster, requestName, namespaces, namespace: initialNs } = window.PAGE_D
     async function loadPodInfo(podName, paneId) {
       const content = document.getElementById(`pane-${paneId}-info-content`);
       if (!content) return;
-      const ns = window.PAGE_DATA.namespace;
+      const podEntry = (window._podData || []).find(p => p.name === podName);
+      const ns = (podEntry && podEntry.namespace) || activeNs || window.PAGE_DATA.namespace;
       const clusterVal = window.PAGE_DATA.cluster;
       content.innerHTML = '<span style="color:var(--text-dim);">Loading…</span>';
       try {
         const r = await fetch(`/api/pod-info/${encodeURIComponent(clusterVal)}/${encodeURIComponent(ns)}/${encodeURIComponent(podName)}`);
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          content.innerHTML = `<span style="color:var(--text-dim);font-size:0.75rem;">${d.error || ('HTTP ' + r.status)}</span>`;
+          return;
+        }
         const d = await r.json();
         let html = `<div style="display:flex;flex-direction:column;gap:10px;">`;
         html += `<div style="display:flex;justify-content:space-between;align-items:center;">
@@ -953,7 +958,7 @@ const { cluster, requestName, namespaces, namespace: initialNs } = window.PAGE_D
         html += `</div>`;
         content.innerHTML = html;
       } catch(e) {
-        content.innerHTML = `<span style="color:var(--danger);">Failed to load pod info</span>`;
+        content.innerHTML = `<span style="color:var(--text-dim);font-size:0.75rem;">Pod info unavailable</span>`;
       }
     }
 

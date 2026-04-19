@@ -43,7 +43,7 @@
   {% set nav_items = [
     {"href": "/admin", "icon": "shield", "label": "Admin"},
     {"href": "/logs", "icon": "scroll-text", "label": "Logs"},
-    {"href": "/", "icon": "layout-dashboard", "label": "My Requests"}
+    {"href": "/", "icon": "layout-dashboard", "label": "Requests"}
   ] %}
   {% include '_header.html' %}
 
@@ -64,7 +64,10 @@
           <i data-lucide="users" style="width:16px;height:16px;"></i>
         </div>
         <h2>Users</h2>
-        <button class="btn-sm" id="btn-new-user" onclick="openCreateUserModal()" style="margin-left:auto;">
+        <button class="btn-sm" onclick="loadUsers()" style="margin-left:auto;">
+          <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh
+        </button>
+        <button class="btn-sm btn-primary" id="btn-new-user" onclick="openCreateUserModal()" style="margin-left:8px;">
           <i data-lucide="plus" style="width:13px;height:13px;"></i> New user
         </button>
       </div>

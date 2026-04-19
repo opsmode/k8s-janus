@@ -11,6 +11,7 @@ from core.config import (
     OIDC_ENABLED, LOCAL_AUTH_ENABLED, ADMIN_EMAILS,
     MFA_VERIFICATION_TIMEOUT,
     DEFAULT_TTL_SECONDS, MAX_TTL_SECONDS, APPROVAL_TTL_OPTIONS,
+    APP_VERSION,
 )
 from core.templates import templates
 from k8s import get_clusters, list_access_requests
@@ -54,6 +55,7 @@ def _base_context(request: Request) -> dict:
         "default_ttl": DEFAULT_TTL_SECONDS // 3600,
         "max_ttl": MAX_TTL_SECONDS // 3600,
         "approval_ttl_options": APPROVAL_TTL_OPTIONS,
+        "app_version": APP_VERSION,
     }
 
 
