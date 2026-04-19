@@ -113,6 +113,7 @@ def _open_shell(core_v1, pod: str, namespace: str, _attempt: int = 0):
                 command=[shell, '-c', 'echo ok'],
                 stderr=True, stdin=False, stdout=True, tty=False,
                 _preload_content=True,
+                _request_timeout=8,
             )
             if 'ok' not in (probe or ''):
                 logger.debug(f"🔍 Terminal: {shell} probe failed on {pod}")
@@ -397,9 +398,18 @@ async def terminal_websocket_handler(websocket: WebSocket, cluster: str, name: s
                         break
 
                 await websocket.send_text(f"\r\n\x1b[33mConnecting to {pod}…\x1b[0m\r\n")
-                new_resp, used_shell = await loop.run_in_executor(
-                    None, _open_shell, core_v1, pod, active_ns
-                )
+                try:
+                    new_resp, used_shell = await asyncio.wait_for(
+                        loop.run_in_executor(None, _open_shell, core_v1, pod, active_ns),
+                        timeout=20.0,
+                    )
+                except asyncio.TimeoutError:
+                    await websocket.send_text(
+                        f"\r\n\x1b[31m✗ Timed out connecting to {pod} (20s).\x1b[0m\r\n"
+                        "The exec API may be unreachable or the pod may not be responding.\r\n"
+                    )
+                    await websocket.send_text(json.dumps({"type": "pod_error", "pod": pod, "status": "timeout", "message": "exec timed out"}))
+                    continue
 
                 if new_resp is None:
                     if used_shell and used_shell.startswith("pod_error:"):
