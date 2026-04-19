@@ -558,19 +558,12 @@ const { clustersCount, approvalTtlOptions, userEmail, oidcEnabled } = window.PAG
       document.getElementById('audit-modal-backdrop').classList.remove('open');
     }
 
-    // ── Requests modal ──
-    function openRequestsModal() {
-      document.getElementById('req-modal-backdrop').style.display = 'flex';
-      applyFilters();
-      lucide.createIcons({ nodes: [document.getElementById('req-modal')] });
-    }
-
-    function closeRequestsModal() {
-      document.getElementById('req-modal-backdrop').style.display = 'none';
-    }
+    // Requests table is now inline — modal functions are no-ops
+    function openRequestsModal() {}
+    function closeRequestsModal() {}
 
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { closeAuditModal(); closeRequestsModal(); }
+      if (e.key === 'Escape') { closeAuditModal(); }
     });
 
     loadAuditLog();

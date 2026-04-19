@@ -272,7 +272,7 @@ const { cluster, requestName, namespaces, namespace: initialNs } = window.PAGE_D
       selectPod(podName) {
         this.currentPod = podName;
         this.tabBar.style.display = 'flex';
-        loadPodInfo(podName);
+        loadPodInfo(podName, this.id);
 
         const podData = (window._podData || []).find(p => p.name === podName);
         if (this.noShellPods.has(podName) || (podData && podData.hasShell === false)) {
@@ -326,7 +326,7 @@ const { cluster, requestName, namespaces, namespace: initialNs } = window.PAGE_D
         tabEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         const btn = tabEl.querySelector(`.tab[onclick*="'${this.id}','${name}'"]`);
         if (btn) btn.classList.add('active');
-        ['terminal','logs','events'].forEach(n => {
+        ['terminal','logs','events','info'].forEach(n => {
           const tc = document.getElementById(`pane-${this.id}-${n}-tab`);
           if (tc) tc.classList.toggle('active', n === name);
         });
@@ -885,39 +885,75 @@ const { cluster, requestName, namespaces, namespace: initialNs } = window.PAGE_D
       </div>`;
     }
 
-    async function loadPodInfo(podName) {
-      const panel   = document.getElementById('pod-info-panel');
-      const content = document.getElementById('pod-info-content');
-      const ns      = window.PAGE_DATA.namespace;
+    function _parseResource(val) {
+      if (!val) return null;
+      if (val.endsWith('m')) return parseFloat(val) / 1000;
+      return parseFloat(val);
+    }
+    function _parseMem(val) {
+      if (!val) return null;
+      if (val.endsWith('Ki')) return parseFloat(val) / 1024;
+      if (val.endsWith('Mi')) return parseFloat(val);
+      if (val.endsWith('Gi')) return parseFloat(val) * 1024;
+      return parseFloat(val) / (1024 * 1024);
+    }
+    function _bar(used, limit, label, unit) {
+      if (used == null && limit == null) return '';
+      const pct = (used != null && limit != null && limit > 0) ? Math.min(100, Math.round(used / limit * 100)) : null;
+      const color = pct == null ? 'var(--accent)' : pct > 85 ? 'var(--danger)' : pct > 60 ? 'var(--warning)' : 'var(--success)';
+      const barHtml = pct != null
+        ? `<div style="flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;min-width:60px;">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
+           </div>
+           <span style="font-size:0.68rem;color:${color};min-width:32px;text-align:right;">${pct}%</span>`
+        : `<span style="font-size:0.7rem;color:var(--text-dim);">—</span>`;
+      const reqStr  = used  != null ? (used  < 1 ? Math.round(used * 1000) + 'm' : used.toFixed(2)) + unit : '—';
+      const limStr  = limit != null ? (limit < 1 ? Math.round(limit * 1000) + 'm' : limit.toFixed(2)) + unit : '—';
+      return `<div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:var(--text-dim);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.04em;">${label}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);">req ${reqStr} / lim ${limStr}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${barHtml}</div>
+      </div>`;
+    }
+
+    async function loadPodInfo(podName, paneId) {
+      const content = document.getElementById(`pane-${paneId}-info-content`);
+      if (!content) return;
+      const ns = window.PAGE_DATA.namespace;
       const clusterVal = window.PAGE_DATA.cluster;
-      panel.style.display = '';
-      content.innerHTML   = '<span style="color:var(--text-dim);">Loading…</span>';
+      content.innerHTML = '<span style="color:var(--text-dim);">Loading…</span>';
       try {
         const r = await fetch(`/api/pod-info/${encodeURIComponent(clusterVal)}/${encodeURIComponent(ns)}/${encodeURIComponent(podName)}`);
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
-        let html = '';
-        html += _row('Age', _fmtAge(d.ageSeconds));
+        let html = `<div style="display:flex;flex-direction:column;gap:10px;">`;
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;color:var(--text);font-size:0.8rem;">${escapeHtml(d.name || podName)}</span>
+          <span style="font-size:0.7rem;color:var(--text-dim);">Age: ${_fmtAge(d.ageSeconds)}</span>
+        </div>`;
         (d.containers || []).forEach(c => {
           if (d.containers.length > 1) {
-            html += `<div style="color:var(--text-dim);font-weight:600;margin-top:4px;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(c.name)}</div>`;
+            html += `<div style="color:var(--accent);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;padding-top:4px;border-top:1px solid var(--border);">${escapeHtml(c.name)}</div>`;
           }
-          html += _row('Image', escapeHtml(c.image || '—'));
+          html += `<div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-muted);word-break:break-all;">${escapeHtml(c.image || '—')}</div>`;
           const req = c.requests || {}, lim = c.limits || {};
-          if (req.cpu || req.memory || lim.cpu || lim.memory) {
-            html += _row('CPU', `req ${req.cpu||'—'} / lim ${lim.cpu||'—'}`);
-            html += _row('Mem', `req ${req.memory||'—'} / lim ${lim.memory||'—'}`);
-          }
+          html += _bar(_parseResource(req.cpu), _parseResource(lim.cpu), 'CPU', ' cores');
+          html += _bar(_parseMem(req.memory), _parseMem(lim.memory), 'Memory', ' Mi');
           if (c.volumeMounts && c.volumeMounts.length) {
-            html += `<div style="color:var(--text-dim);margin-top:2px;font-size:0.68rem;">Volumes</div>`;
+            html += `<div style="color:var(--text-dim);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.04em;">Volumes</div>`;
+            html += `<div style="display:flex;flex-direction:column;gap:2px;">`;
             c.volumeMounts.forEach(v => {
-              html += `<div style="padding-left:4px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(v.name)}: ${escapeHtml(v.mountPath)}">${escapeHtml(v.name)} → ${escapeHtml(v.mountPath)}</div>`;
+              html += `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(v.name)}: ${escapeHtml(v.mountPath)}">${escapeHtml(v.name)} → ${escapeHtml(v.mountPath)}</div>`;
             });
+            html += `</div>`;
           }
         });
+        html += `</div>`;
         content.innerHTML = html;
       } catch(e) {
-        content.innerHTML = `<span style="color:var(--danger);">Failed to load</span>`;
+        content.innerHTML = `<span style="color:var(--danger);">Failed to load pod info</span>`;
       }
     }
 

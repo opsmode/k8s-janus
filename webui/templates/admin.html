@@ -383,69 +383,159 @@
     </div>
 
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" style="flex-wrap:wrap;gap:8px;">
         <div class="card-icon">
           <i data-lucide="shield" style="width:16px;height:16px;"></i>
         </div>
         <h2>All Access Requests</h2>
-
+        <div class="count-pill" id="visible-count" style="margin-left:0;">
+          <i data-lucide="layers" style="width:13px;height:13px;"></i>
+          <span id="count-text">{{ access_requests | length }} request{{ 's' if access_requests | length != 1 else '' }}</span>
+        </div>
+        <div class="filter-bar" style="margin-left:auto;flex-wrap:wrap;">
+          <input class="filter-input" id="filter-text" type="text" placeholder="Search requester, namespace…" oninput="applyFilters()">
+          <select class="filter-select" id="filter-cluster" onchange="applyFilters()">
+            <option value="">All clusters</option>
+            {% for c in clusters %}
+            <option value="{{ c.name }}">{{ c.displayName if c.displayName else c.name }}</option>
+            {% endfor %}
+          </select>
+          <select class="filter-select" id="filter-phase" onchange="applyFilters()">
+            <option value="">All phases</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Active">Active</option>
+            <option value="Denied">Denied</option>
+            <option value="Expired">Expired</option>
+            <option value="Revoked">Revoked</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Failed">Failed</option>
+          </select>
+        </div>
         <button id="refresh-btn" onclick="refreshPage()" style="
           display:inline-flex;align-items:center;gap:5px;
           background:var(--surface-2);border:1px solid var(--border);
           color:var(--text-muted);border-radius:6px;padding:5px 11px;
-          font-size:0.78rem;cursor:pointer;transition:color 0.15s,border-color 0.15s;margin-left:auto;">
+          font-size:0.78rem;cursor:pointer;transition:color 0.15s,border-color 0.15s;">
           <i data-lucide="refresh-cw" id="refresh-icon" style="width:13px;height:13px;"></i>
           Refresh
         </button>
       </div>
 
       {% if access_requests %}
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:38%">Requester</th>
-              <th style="width:18%">Cluster</th>
-              <th style="width:12%">Status</th>
-              <th style="width:18%">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for ar in access_requests[:5] %}
-            {% set spec = ar.get("spec", {}) %}
-            {% set st = ar.get("status", {}) %}
-            {% set phase = st.get("phase", "Pending") %}
-            {% set ar_cluster_display = ar.get("_clusterDisplay", ar.get("_cluster", "")) %}
-            {% set requester = spec.get("requester", "—") %}
-            <tr>
-              <td style="max-width:0;overflow:hidden;">
-                <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
-                  <div class="avatar" data-email="{{ requester | lower }}" style="width:26px;height:26px;font-size:0.6rem;flex-shrink:0;cursor:default;"></div>
-                  <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
-                    <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ requester }}">{{ requester }}</span>
+      <div id="requests-container">
+        <div class="table-wrap">
+          <table id="requests-table">
+            <thead>
+              <tr>
+                <th style="width:38%">Requester</th>
+                <th style="width:18%">Cluster</th>
+                <th style="width:10%">TTL</th>
+                <th style="width:10%">Status</th>
+                <th style="width:14%">Created</th>
+                <th style="width:10%"></th>
+              </tr>
+            </thead>
+            <tbody id="requests-tbody">
+              {% for ar in access_requests %}
+              {% set spec = ar.get("spec", {}) %}
+              {% set st = ar.get("status", {}) %}
+              {% set phase = st.get("phase", "Pending") %}
+              {% set ttl = spec.get("ttlSeconds", 3600) %}
+              {% set ar_cluster = ar.get("_cluster", "") %}
+              {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
+              {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
+              {% set requester = spec.get("requester", "—") %}
+              <tr class="req-row"
+                  data-name="{{ ar.metadata.name }}"
+                  data-requester="{{ requester | lower }}"
+                  data-namespace="{{ (nss | join(' ')) | lower }}"
+                  data-cluster="{{ ar_cluster }}"
+                  data-cluster-display="{{ ar_cluster_display }}"
+                  data-phase="{{ phase }}"
+                  data-ttl="{{ ttl }}"
+                  data-expires="{{ st.get('expiresAt','') }}"
+                  data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
+                  data-ts="{{ ar.metadata.creationTimestamp }}">
+                <script type="application/json" id="ns-{{ ar.metadata.name }}">{{ nss | tojson }}</script>
+                <script type="application/json" id="reason-{{ ar.metadata.name }}">{{ (spec.get('reason','') or '') | tojson }}</script>
+                <td style="max-width:0;overflow:hidden;">
+                  <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+                    <div class="avatar" data-email="{{ requester | lower }}" style="width:26px;height:26px;font-size:0.6rem;flex-shrink:0;cursor:default;"></div>
+                    <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
+                      <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ requester }}">{{ requester }}</span>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td style="white-space:nowrap;">
-                <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);" title="{{ ar_cluster_display }}">{{ ar_cluster_display }}</code>
-              </td>
-              <td>
-                <span class="badge badge-{{ phase | lower }}">
-                  <span class="badge-dot"></span>{{ phase }}
-                </span>
-              </td>
-              <td style="white-space:nowrap;font-size:0.78rem;">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div style="padding:12px 0 0;text-align:center;">
-        <button id="req-more-btn" onclick="openRequestsModal()"
-          style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:0.8rem;padding:6px 18px;cursor:pointer;transition:border-color 0.15s,color 0.15s;">
-          View all {{ access_requests | length }} request{{ 's' if access_requests | length != 1 else '' }} →
-        </button>
+                </td>
+                <td style="white-space:nowrap;">
+                  <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);" title="{{ ar_cluster_display }}">{{ ar_cluster_display }}</code>
+                </td>
+                <td style="white-space:nowrap;">
+                  {% if phase == "Active" and st.get("expiresAt") %}
+                    <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}" data-phase="Active">…</span>
+                  {% else %}
+                    {{ (ttl // 3600) }}h{% if (ttl % 3600) // 60 %} {{ (ttl % 3600) // 60 }}m{% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge badge-{{ phase | lower }}">
+                    <span class="badge-dot"></span>{{ phase }}
+                  </span>
+                </td>
+                <td style="white-space:nowrap;font-size:0.78rem;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
+                <td style="white-space:nowrap;">
+                  <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;">
+                    {% if phase == "Pending" %}
+                    <button class="action-btn approve-btn" style="padding:3px 8px;font-size:0.72rem;"
+                      onclick="quickApprove('{{ ar_cluster }}','{{ ar.metadata.name }}',this)">
+                      <i data-lucide="check" style="width:11px;height:11px;"></i> Approve
+                    </button>
+                    <button class="action-btn deny-btn" style="padding:3px 8px;font-size:0.72rem;"
+                      onclick="quickDeny('{{ ar_cluster }}','{{ ar.metadata.name }}',this)">
+                      <i data-lucide="x" style="width:11px;height:11px;"></i> Deny
+                    </button>
+                    {% elif phase in ("Active", "Approved") %}
+                    <button class="action-btn revoke-btn" style="padding:3px 8px;font-size:0.72rem;"
+                      onclick="quickRevoke('{{ ar_cluster }}','{{ ar.metadata.name }}','{{ spec.get('requester','') }}',this)">
+                      <i data-lucide="shield-off" style="width:11px;height:11px;"></i> Revoke
+                    </button>
+                    {% endif %}
+                    <button class="detail-btn" id="detail-btn-{{ ar.metadata.name }}"
+                      onclick="toggleDetailBtn(this)">
+                      <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
+                      Details
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <!-- detail row injected by JS -->
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination bar -->
+        <div class="pagination-bar" id="pagination-bar" style="padding:12px 24px 12px;">
+          <div class="pg-info">
+            <span id="pg-info-text"></span>
+          </div>
+          <div class="pg-pages" id="pg-pages"></div>
+          <div class="pg-per-page">
+            <span style="color:var(--text-dim);">Per page:</span>
+            <select class="filter-select" id="per-page-sel" onchange="setPerPage(this.value)" style="width:auto;padding:4px 8px;">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="no-results">
+          <i data-lucide="search-x" style="width:32px;height:32px;margin-bottom:8px;"></i><br>
+          No requests match your filters
+        </div>
       </div>
       {% else %}
       <div class="empty">
@@ -522,168 +612,8 @@
     </div>
   </div>
 
-  <!-- Requests Full Modal -->
-  <div id="req-modal-backdrop" onclick="if(event.target===this)closeRequestsModal()" style="display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:40px;">
-    <div id="req-modal" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:min(1100px,96vw);max-height:84vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.6);position:relative;">
-      <div style="display:flex;align-items:center;gap:10px;padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div class="card-icon" style="flex-shrink:0;">
-          <i data-lucide="shield" style="width:16px;height:16px;"></i>
-        </div>
-        <h2 style="font-size:0.95rem;font-weight:600;">All Access Requests</h2>
-        <div class="count-pill" id="visible-count" style="margin-left:0;">
-          <i data-lucide="layers" style="width:13px;height:13px;"></i>
-          <span id="count-text">{{ access_requests | length }} request{{ 's' if access_requests | length != 1 else '' }}</span>
-        </div>
-        <div class="filter-bar" style="margin-left:auto;">
-          <input class="filter-input" id="filter-text" type="text" placeholder="Search requester, namespace…" oninput="applyFilters()">
-          <select class="filter-select" id="filter-cluster" onchange="applyFilters()">
-            <option value="">All clusters</option>
-            {% for c in clusters %}
-            <option value="{{ c.name }}">{{ c.displayName if c.displayName else c.name }}</option>
-            {% endfor %}
-          </select>
-          <select class="filter-select" id="filter-phase" onchange="applyFilters()">
-            <option value="">All phases</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Active">Active</option>
-            <option value="Denied">Denied</option>
-            <option value="Expired">Expired</option>
-            <option value="Revoked">Revoked</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="Failed">Failed</option>
-          </select>
-        </div>
-        <button onclick="closeRequestsModal()" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;display:flex;padding:4px;border-radius:4px;">
-          <i data-lucide="x" style="width:16px;height:16px;"></i>
-        </button>
-      </div>
-      <div style="overflow-y:auto;flex:1;">
-        {% if access_requests %}
-        <div id="requests-container">
-          <div class="table-wrap">
-            <table id="requests-table">
-              <thead>
-                <tr>
-                  <th style="width:38%">Requester</th>
-                  <th style="width:18%">Cluster</th>
-                  <th style="width:10%">TTL</th>
-                  <th style="width:10%">Status</th>
-                  <th style="width:14%">Created</th>
-                  <th style="width:10%"></th>
-                </tr>
-              </thead>
-              <tbody id="requests-tbody">
-                {% for ar in access_requests %}
-                {% set spec = ar.get("spec", {}) %}
-                {% set st = ar.get("status", {}) %}
-                {% set phase = st.get("phase", "Pending") %}
-                {% set ttl = spec.get("ttlSeconds", 3600) %}
-                {% set ar_cluster = ar.get("_cluster", "") %}
-                {% set ar_cluster_display = ar.get("_clusterDisplay", ar_cluster) %}
-                {% set nss = spec.get("namespaces") or ([spec.get("namespace")] if spec.get("namespace") else []) %}
-                {% set requester = spec.get("requester", "—") %}
-                <tr class="req-row"
-                    data-name="{{ ar.metadata.name }}"
-                    data-requester="{{ requester | lower }}"
-                    data-namespace="{{ (nss | join(' ')) | lower }}"
-                    data-cluster="{{ ar_cluster }}"
-                    data-cluster-display="{{ ar_cluster_display }}"
-                    data-phase="{{ phase }}"
-                    data-ttl="{{ ttl }}"
-                    data-expires="{{ st.get('expiresAt','') }}"
-                    data-approved-by="{{ (st.get('approvedBy','') or '') | e }}"
-                    data-ts="{{ ar.metadata.creationTimestamp }}">
-                  {# Store namespaces as a script tag to avoid attribute quoting issues #}
-                  <script type="application/json" id="ns-{{ ar.metadata.name }}">{{ nss | tojson }}</script>
-                  <script type="application/json" id="reason-{{ ar.metadata.name }}">{{ (spec.get('reason','') or '') | tojson }}</script>
-                  <td style="max-width:0;overflow:hidden;">
-                    <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
-                      <div class="avatar" data-email="{{ requester | lower }}" style="width:26px;height:26px;font-size:0.6rem;flex-shrink:0;cursor:default;"></div>
-                      <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden;">
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ar.metadata.name }}">{{ ar.metadata.name }}</span>
-                        <span style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ requester }}">{{ requester }}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td style="white-space:nowrap;">
-                    <code style="color:#fb923c;font-weight:600;background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.25);" title="{{ ar_cluster_display }}">{{ ar_cluster_display }}</code>
-                  </td>
-                  <td style="white-space:nowrap;">
-                    {% if phase == "Active" and st.get("expiresAt") %}
-                      <span class="ttl-remaining" data-expires="{{ st.get('expiresAt') }}" data-phase="Active">…</span>
-                    {% else %}
-                      {{ (ttl // 3600) }}h{% if (ttl % 3600) // 60 %} {{ (ttl % 3600) // 60 }}m{% endif %}
-                    {% endif %}
-                  </td>
-                  <td>
-                    <span class="badge badge-{{ phase | lower }}">
-                      <span class="badge-dot"></span>{{ phase }}
-                    </span>
-                  </td>
-                  <td style="white-space:nowrap;font-size:0.78rem;" data-sort-ts="{{ ar.metadata.creationTimestamp }}">{{ ar.metadata.creationTimestamp | to_berlin }}</td>
-                  <td style="white-space:nowrap;">
-                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;">
-                      {% if phase == "Pending" %}
-                      <button class="action-btn approve-btn" style="padding:3px 8px;font-size:0.72rem;"
-                        onclick="quickApprove('{{ ar_cluster }}','{{ ar.metadata.name }}',this)">
-                        <i data-lucide="check" style="width:11px;height:11px;"></i> Approve
-                      </button>
-                      <button class="action-btn deny-btn" style="padding:3px 8px;font-size:0.72rem;"
-                        onclick="quickDeny('{{ ar_cluster }}','{{ ar.metadata.name }}',this)">
-                        <i data-lucide="x" style="width:11px;height:11px;"></i> Deny
-                      </button>
-                      {% elif phase in ("Active", "Approved") %}
-                      <button class="action-btn revoke-btn" style="padding:3px 8px;font-size:0.72rem;"
-                        onclick="quickRevoke('{{ ar_cluster }}','{{ ar.metadata.name }}','{{ spec.get('requester','') }}',this)">
-                        <i data-lucide="shield-off" style="width:11px;height:11px;"></i> Revoke
-                      </button>
-                      {% endif %}
-                      <button class="detail-btn" id="detail-btn-{{ ar.metadata.name }}"
-                        onclick="toggleDetailBtn(this)">
-                        <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
-                        Details
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <!-- detail row injected by JS -->
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination bar -->
-          <div class="pagination-bar" id="pagination-bar" style="padding:12px 24px 12px;">
-            <div class="pg-info">
-              <span id="pg-info-text"></span>
-            </div>
-            <div class="pg-pages" id="pg-pages"></div>
-            <div class="pg-per-page">
-              <span style="color:var(--text-dim);">Per page:</span>
-              <select class="filter-select" id="per-page-sel" onchange="setPerPage(this.value)" style="width:auto;padding:4px 8px;">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="no-results">
-            <i data-lucide="search-x" style="width:32px;height:32px;margin-bottom:8px;"></i><br>
-            No requests match your filters
-          </div>
-        </div>
-        {% else %}
-        <div class="empty">
-          <i data-lucide="inbox" style="width:40px;height:40px;"></i>
-          <span>No access requests yet</span>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+  <!-- Requests modal stub (kept for JS compatibility) -->
+  <div id="req-modal-backdrop" style="display:none;"><div id="req-modal"></div></div>
 
   {% include '_profile_modal.html' %}
 
@@ -695,6 +625,6 @@
       oidcEnabled:        {{ oidc_enabled | tojson }},
     };
   </script>
-  <script src="/static/admin.js?v=3"></script>
+  <script src="/static/admin.js?v=4"></script>
 </body>
 </html>

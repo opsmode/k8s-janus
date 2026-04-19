@@ -551,11 +551,6 @@
         </div>
       </div>
 
-      <!-- Pod info panel — shown when a pod is selected -->
-      <div id="pod-info-panel" style="display:none;border-top:1px solid var(--border);padding:12px;overflow-y:auto;max-height:280px;flex-shrink:0;">
-        <div style="font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:8px;">Pod Info</div>
-        <div id="pod-info-content" style="font-size:0.75rem;color:var(--text-muted);display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
 
     </div>
 
@@ -641,6 +636,9 @@
             <button class="tab" onclick="paneTab('a','events')">
               <i data-lucide="list" style="width:13px;height:13px;"></i>Events
             </button>
+            <button class="tab" onclick="paneTab('a','info')">
+              <i data-lucide="info" style="width:13px;height:13px;"></i>Info
+            </button>
           </div>
           <div class="tab-content active" id="pane-a-terminal-tab">
             <div class="term-el" id="pane-a-term">
@@ -658,6 +656,11 @@
           <div class="tab-content" id="pane-a-events-tab">
             <div class="event-view" id="pane-a-events">
               <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">🎭 Pod events will appear here (drama guaranteed)</p></div>
+            </div>
+          </div>
+          <div class="tab-content" id="pane-a-info-tab">
+            <div id="pane-a-info-content" style="padding:14px;overflow-y:auto;height:100%;font-size:0.75rem;color:var(--text-muted);display:flex;flex-direction:column;gap:8px;">
+              <div class="placeholder"><i data-lucide="info" style="width:40px;height:40px;opacity:0.2;"></i><p style="font-size:0.88rem;">Select a pod to view details</p></div>
             </div>
           </div>
         </div>
@@ -685,6 +688,9 @@
             <button class="tab" onclick="paneTab('b','events')">
               <i data-lucide="list" style="width:13px;height:13px;"></i>Events
             </button>
+            <button class="tab" onclick="paneTab('b','info')">
+              <i data-lucide="info" style="width:13px;height:13px;"></i>Info
+            </button>
           </div>
           <div class="tab-content active" id="pane-b-terminal-tab">
             <div class="term-el" id="pane-b-term">
@@ -704,6 +710,11 @@
               <div class="placeholder"><i data-lucide="list" style="width:56px;height:56px;opacity:0.2;"></i><p style="font-size:0.88rem;">🎭 Pod events will appear here (same drama, different pane)</p></div>
             </div>
           </div>
+          <div class="tab-content" id="pane-b-info-tab">
+            <div id="pane-b-info-content" style="padding:14px;overflow-y:auto;height:100%;font-size:0.75rem;color:var(--text-muted);display:flex;flex-direction:column;gap:8px;">
+              <div class="placeholder"><i data-lucide="info" style="width:40px;height:40px;opacity:0.2;"></i><p style="font-size:0.88rem;">Select a pod to view details</p></div>
+            </div>
+          </div>
         </div>
 
       </div><!-- /panes-wrapper -->
@@ -718,7 +729,7 @@
       namespace:   {{ namespace | tojson }},
     };
   </script>
-  <script src="/static/terminal.js?v=3"></script>
+  <script src="/static/terminal.js?v=4"></script>
   {% include '_profile_modal.html' %}
 </body>
 </html>
