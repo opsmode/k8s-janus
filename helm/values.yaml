@@ -68,7 +68,7 @@ janus:
     - 28800 # 8h
   crdRetentionSeconds: 86400 # Delete expired/denied/revoked CRDs after (24h)
   pendingExpirySeconds: 0 # Auto-deny Pending requests after this many seconds (0 = disabled)
-  idleTimeoutSeconds: 900 # Terminate idle web terminal sessions (15m)
+  idleTimeoutSeconds: 0 # Terminate idle web terminal sessions (0 = disabled)
   # IANA timezone for timestamps in the web UI (e.g. "Europe/Berlin",
   # "America/New_York"). Affects all displayed request times. Default: UTC.
   displayTimezone: "UTC"
