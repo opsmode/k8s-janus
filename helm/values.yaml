@@ -79,7 +79,6 @@ janus:
   # Namespaces hidden from the request form and blocked from access requests.
   # System and infrastructure namespaces should always be listed here.
   excludedNamespaces:
-    - k8s-janus
     - kube-system
     - kube-public
     - kube-node-lease
