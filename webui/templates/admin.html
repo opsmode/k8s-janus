@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus | Admin</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -125,7 +125,7 @@
     td code {
       background: var(--surface-3); border: 1px solid var(--border);
       border-radius: 4px; padding: 2px 6px;
-      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #a5b4fc;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #93C5FD;
     }
 
     /* ── BADGE ── */
@@ -140,15 +140,15 @@
     .badge-pending .badge-dot  { background: #fbbf24; animation: pulse 1.5s infinite; }
     .badge-approved { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
     .badge-approved .badge-dot { background: #34d399; }
-    .badge-active   { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
-    .badge-active .badge-dot   { background: #818cf8; animation: pulse 2s infinite; }
+    .badge-active   { background: rgba(50,108,229,0.15); color: #93C5FD; border: 1px solid rgba(50,108,229,0.3); }
+    .badge-active .badge-dot   { background: #60A5FA; animation: pulse 2s infinite; }
     .badge-denied   { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
     .badge-denied .badge-dot   { background: #f87171; }
     .badge-expired  { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
     .badge-expired .badge-dot  { background: #64748b; }
     .badge-revoked    { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
     .badge-revoked .badge-dot    { background: #f87171; }
-    .badge-cancelled  { background: rgba(161,140,209,0.1); color: #c4b5fd; border: 1px solid rgba(161,140,209,0.25); }
+    .badge-cancelled  { background: rgba(161,140,209,0.1); color: #BAE0FF; border: 1px solid rgba(161,140,209,0.25); }
     .badge-cancelled .badge-dot  { background: #a78bfa; }
     .badge-failed     { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
     .badge-failed .badge-dot     { background: #ef4444; }
@@ -174,9 +174,9 @@
     }
     .deny-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.5); color: #fca5a5; }
     .extend-btn {
-      border-color: rgba(99,102,241,0.35); color: #a5b4fc;
+      border-color: rgba(50,108,229,0.35); color: #93C5FD;
     }
-    .extend-btn:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.6); color: #c4b5fd; }
+    .extend-btn:hover { background: rgba(50,108,229,0.12); border-color: rgba(50,108,229,0.6); color: #BAE0FF; }
     .action-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .action-cell { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
     /* Extend dropdown */
@@ -243,7 +243,7 @@
       white-space: nowrap;
     }
     .detail-btn:hover { color: var(--text); border-color: var(--border-light); }
-    .detail-btn.open { color: var(--accent); border-color: rgba(99,102,241,0.4); }
+    .detail-btn.open { color: var(--accent); border-color: rgba(50,108,229,0.4); }
 
     /* ── PAGINATION ── */
     .pagination-bar {
@@ -372,7 +372,7 @@
             Add / Reconfigure Clusters
           </a>
           <a href="/setup?manage=1" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
-                                  background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);
+                                  background:rgba(50,108,229,0.08);border:1px solid rgba(50,108,229,0.25);
                                   color:var(--accent);border-radius:8px;font-size:0.875rem;font-weight:600;
                                   text-decoration:none;">
             <i data-lucide="settings-2" width="14" height="14"></i>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus | {{ "Approved" if action == "approve" else "Denied" }}</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,9 +20,9 @@
       --text:        #e2e8f0;
       --text-muted:  #94a3b8;
       --text-dim:    #64748b;
-      --accent:      #6366f1;
-      --accent-glow: rgba(99,102,241,0.35);
-      --accent-2:    #8b5cf6;
+      --accent:      #326CE5;
+      --accent-glow: rgba(50,108,229,0.35);
+      --accent-2:    #4A90D9;
       --success:     #10b981;
       --warning:     #f59e0b;
       --danger:      #ef4444;
@@ -37,7 +37,7 @@
       color: var(--text);
       min-height: 100vh;
       background-image:
-        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(50,108,229,0.12) 0%, transparent 70%);
     }
 
     /* ── HEADER ── */
@@ -45,7 +45,7 @@
       background: rgba(13,17,23,0.92);
       backdrop-filter: blur(20px) saturate(1.4);
       border-bottom: none;
-      box-shadow: 0 1px 0 rgba(99,102,241,0.2), 0 4px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 1px 0 rgba(50,108,229,0.2), 0 4px 24px rgba(0,0,0,0.4);
       padding: 0 32px;
       height: 64px;
       display: flex;
@@ -60,7 +60,7 @@
       position: absolute;
       bottom: 0; left: 0; right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.5) 30%, rgba(168,85,247,0.5) 60%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, rgba(50,108,229,0.5) 30%, rgba(74,144,217,0.5) 60%, transparent 100%);
     }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-logo {
@@ -68,7 +68,7 @@
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
       border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(99,102,241,0.15);
+      box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(50,108,229,0.15);
     }
     .header-logo svg { color: #fff; }
     .brand-text h1 {
@@ -81,8 +81,8 @@
     .hdr-icon-btn:hover { color:var(--text); background: rgba(255,255,255,0.05); }
     .nav-link { font-size:0.75rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;transition:color 0.15s,border-color 0.15s,background 0.15s; }
     .nav-link:hover { color:var(--text);border-color:var(--border-light);background:rgba(255,255,255,0.03); }
-    .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
-    .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
+    .nav-admin { color: rgba(50,108,229,0.7); border-color: rgba(50,108,229,0.2); }
+    .nav-admin:hover { color: var(--accent); border-color: rgba(50,108,229,0.5); background: rgba(50,108,229,0.06); }
     .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
     .hdr-user-dropdown { position:relative; }
     .hdr-dropdown-menu { display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;overflow:hidden; }
@@ -158,7 +158,7 @@
       background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
     }
     .card.state-info::before {
-      background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent);
+      background: linear-gradient(90deg, transparent, rgba(50,108,229,0.5), transparent);
     }
 
     /* ── ICON CIRCLE ── */
@@ -190,11 +190,11 @@
     .icon-wrap.danger::after { background: radial-gradient(circle, #ef4444, transparent); }
 
     .icon-wrap.info {
-      background: rgba(99,102,241,0.12);
-      border: 1px solid rgba(99,102,241,0.3);
-      color: #a5b4fc;
+      background: rgba(50,108,229,0.12);
+      border: 1px solid rgba(50,108,229,0.3);
+      color: #93C5FD;
     }
-    .icon-wrap.info::after { background: radial-gradient(circle, #6366f1, transparent); }
+    .icon-wrap.info::after { background: radial-gradient(circle, #326CE5, transparent); }
 
     /* ── TEXT ── */
     .card h2 {
@@ -241,7 +241,7 @@
       padding: 1px 7px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
-      color: #a5b4fc;
+      color: #93C5FD;
     }
 
     /* ── BUTTON ── */
@@ -259,12 +259,12 @@
       text-decoration: none;
       cursor: pointer;
       transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+      box-shadow: 0 4px 20px rgba(50,108,229,0.3);
     }
     .btn:hover {
       opacity: 0.92;
       transform: translateY(-1px);
-      box-shadow: 0 6px 28px rgba(99,102,241,0.45);
+      box-shadow: 0 6px 28px rgba(50,108,229,0.45);
     }
     .btn:active { transform: translateY(0); }
   </style>
@@ -317,7 +317,7 @@
           <i data-lucide="hash" style="width:11px;height:11px;"></i>
           Request ID
         </span>
-        <span class="fact-value" style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#a5b4fc;">{{ name }}</span>
+        <span class="fact-value" style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#93C5FD;">{{ name }}</span>
 
         <span class="fact-label">
           <i data-lucide="user" style="width:11px;height:11px;"></i>

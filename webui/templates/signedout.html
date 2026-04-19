@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus | Signed Out</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -17,9 +17,9 @@
       --text:        #e2e8f0;
       --text-muted:  #94a3b8;
       --text-dim:    #64748b;
-      --accent:      #6366f1;
-      --accent-glow: rgba(99,102,241,0.35);
-      --accent-2:    #8b5cf6;
+      --accent:      #326CE5;
+      --accent-glow: rgba(50,108,229,0.35);
+      --accent-2:    #4A90D9;
       --success:     #10b981;
       --radius:      12px;
     }
@@ -54,13 +54,10 @@
       margin-bottom: 28px; position: relative; z-index: 1;
     }
     .logo-icon {
-      width: 64px; height: 64px;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      border-radius: 16px;
+      width: 72px; height: 72px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 32px var(--accent-glow);
     }
-    .logo-icon img { width: 42px; height: 42px; object-fit: contain; }
+    .logo-icon img { width: 72px; height: 72px; object-fit: contain; }
     .logo-name {
       font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em;
       background: linear-gradient(135deg, #e2e8f0, #94a3b8);
@@ -74,7 +71,7 @@
       padding: 36px 40px 32px;
       width: 340px;
       text-align: center;
-      box-shadow: 0 0 0 1px rgba(99,102,241,0.06), 0 24px 64px rgba(0,0,0,0.6);
+      box-shadow: 0 0 0 1px rgba(50,108,229,0.06), 0 24px 64px rgba(0,0,0,0.6);
     }
     .card::before {
       content: '';
@@ -109,7 +106,7 @@
 <body>
   <div class="logo-above">
     <div class="logo-icon">
-      <img src="/static/k8s-janus-logo-white.png" alt="K8s-Janus">
+      <img src="/static/k8s-janus-logo.png" alt="K8s-Janus">
     </div>
     <div class="logo-name">K8s-Janus</div>
   </div>

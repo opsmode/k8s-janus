@@ -10,9 +10,9 @@
     --text:        #e2e8f0;
     --text-muted:  #94a3b8;
     --text-dim:    #64748b;
-    --accent:      #6366f1;
-    --accent-glow: rgba(99,102,241,0.35);
-    --accent-2:    #8b5cf6;
+    --accent:      #326CE5;
+    --accent-glow: rgba(50,108,229,0.35);
+    --accent-2:    #4A90D9;
     --success:     #10b981;
     --warning:     #f59e0b;
     --danger:      #ef4444;
@@ -28,7 +28,7 @@
     color: var(--text);
     display: flex;
     flex-direction: column;
-    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(50,108,229,0.12) 0%, transparent 70%);
   }
 
   /* ── HEADER ── */
@@ -36,7 +36,7 @@
     background: rgba(13,17,23,0.92);
     backdrop-filter: blur(20px) saturate(1.4);
     border-bottom: none;
-    box-shadow: 0 1px 0 rgba(99,102,241,0.2), 0 4px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 0 rgba(50,108,229,0.2), 0 4px 24px rgba(0,0,0,0.4);
     padding: 0 32px;
     height: 64px;
     display: flex;
@@ -51,17 +51,13 @@
     position: absolute;
     bottom: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.5) 30%, rgba(168,85,247,0.5) 60%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(50,108,229,0.5) 50%, transparent 100%);
   }
   .header-brand { display: flex; align-items: center; gap: 12px; }
   .header-logo {
     width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(99,102,241,0.15);
   }
-  .header-logo svg { color: #fff; }
   .brand-text h1 {
     font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em;
     background: linear-gradient(135deg, #f1f5f9, #94a3b8);
@@ -77,8 +73,8 @@
     transition: color 0.15s, border-color 0.15s, background 0.15s;
   }
   .nav-link:hover { color: var(--text); border-color: var(--border-light); background: rgba(255,255,255,0.03); }
-  .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
-  .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
+  .nav-admin { color: rgba(50,108,229,0.7); border-color: rgba(50,108,229,0.2); }
+  .nav-admin:hover { color: var(--accent); border-color: rgba(50,108,229,0.5); background: rgba(50,108,229,0.06); }
   .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
   .hdr-user-dropdown { position:relative; }
   .hdr-dropdown-menu { display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;overflow:hidden; }

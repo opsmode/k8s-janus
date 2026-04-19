@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus | Terminal</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -74,7 +74,7 @@
       padding: 1px 6px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.75rem;
-      color: #a5b4fc;
+      color: #93C5FD;
     }
 
     .pod-list {
@@ -99,7 +99,7 @@
       border-color: var(--accent);
     }
     .pod-item.selected {
-      background: rgba(99,102,241,0.1);
+      background: rgba(50,108,229,0.1);
       border-color: var(--accent);
     }
     .pod-item.pod-new {
@@ -272,7 +272,7 @@
       transition: color 0.15s, border-color 0.15s, background 0.15s;
     }
     .toolbar-btn:hover { background: var(--surface-3); border-color: var(--accent); color: var(--text); }
-    .toolbar-btn.active { background: rgba(99,102,241,0.12); border-color: var(--accent); color: var(--accent); }
+    .toolbar-btn.active { background: rgba(50,108,229,0.12); border-color: var(--accent); color: var(--accent); }
     /* Split button: green when 1 pane available, faded when already split */
     #split-btn { border-color: rgba(16,185,129,0.5); color: #10b981; }
     #split-btn:hover { background: rgba(16,185,129,0.08); border-color: #10b981; color: #10b981; }
@@ -348,8 +348,8 @@
       font-weight: 600;
       letter-spacing: 0.05em;
       color: var(--text-muted, #64748b);
-      background: rgba(99,102,241,0.08);
-      border-left: 3px solid rgba(99,102,241,0.4);
+      background: rgba(50,108,229,0.08);
+      border-left: 3px solid rgba(50,108,229,0.4);
       border-radius: 2px;
     }
     .event-item {
@@ -486,9 +486,9 @@
       color: #f87171;
     }
     .banner-info {
-      background: rgba(99,102,241,0.12);
-      border-color: rgba(99,102,241,0.4);
-      color: #a5b4fc;
+      background: rgba(50,108,229,0.12);
+      border-color: rgba(50,108,229,0.4);
+      color: #93C5FD;
     }
     .banner-close {
       margin-left: auto;
@@ -605,7 +605,7 @@
               onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
               onkeydown="if(event.key==='Enter')addQcmdFromManage()">
             <button onclick="addQcmdFromManage()"
-              style="align-self:flex-end;padding:6px 16px;background:var(--accent,#6366f1);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:600;">
+              style="align-self:flex-end;padding:6px 16px;background:var(--accent,#326CE5);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:600;">
               Add
             </button>
           </div>

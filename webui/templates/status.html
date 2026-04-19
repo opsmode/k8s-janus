@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus | {{ name }}</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <script>
     var _phase = {{ status.get("phase", "Pending") | tojson }};
     var _FINAL_PHASES = ['Denied', 'Expired', 'Revoked', 'Failed'];
@@ -41,9 +41,9 @@
       --text:        #e2e8f0;
       --text-muted:  #94a3b8;
       --text-dim:    #64748b;
-      --accent:      #6366f1;
-      --accent-glow: rgba(99,102,241,0.35);
-      --accent-2:    #8b5cf6;
+      --accent:      #326CE5;
+      --accent-glow: rgba(50,108,229,0.35);
+      --accent-2:    #4A90D9;
       --success:     #10b981;
       --warning:     #f59e0b;
       --danger:      #ef4444;
@@ -65,7 +65,7 @@
       display: flex;
       flex-direction: column;
       background-image:
-        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%);
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(50,108,229,0.12) 0%, transparent 70%);
     }
 
     /* ── HEADER ── */
@@ -73,7 +73,7 @@
       background: rgba(13,17,23,0.92);
       backdrop-filter: blur(20px) saturate(1.4);
       border-bottom: none;
-      box-shadow: 0 1px 0 rgba(99,102,241,0.2), 0 4px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 1px 0 rgba(50,108,229,0.2), 0 4px 24px rgba(0,0,0,0.4);
       padding: 0 32px;
       height: 64px;
       display: flex;
@@ -88,7 +88,7 @@
       position: absolute;
       bottom: 0; left: 0; right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.5) 30%, rgba(168,85,247,0.5) 60%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, rgba(50,108,229,0.5) 30%, rgba(74,144,217,0.5) 60%, transparent 100%);
     }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-logo {
@@ -96,7 +96,7 @@
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
       border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(99,102,241,0.15);
+      box-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(50,108,229,0.15);
     }
     .header-logo svg { color: #fff; }
     .brand-text h1 {
@@ -109,8 +109,8 @@
     .hdr-icon-btn:hover { color:var(--text); background: rgba(255,255,255,0.05); }
     .nav-link { font-size:0.75rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;transition:color 0.15s,border-color 0.15s,background 0.15s; }
     .nav-link:hover { color:var(--text);border-color:var(--border-light);background:rgba(255,255,255,0.03); }
-    .nav-admin { color: rgba(99,102,241,0.7); border-color: rgba(99,102,241,0.2); }
-    .nav-admin:hover { color: var(--accent); border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.06); }
+    .nav-admin { color: rgba(50,108,229,0.7); border-color: rgba(50,108,229,0.2); }
+    .nav-admin:hover { color: var(--accent); border-color: rgba(50,108,229,0.5); background: rgba(50,108,229,0.06); }
     .nav-signout:hover { color: var(--danger); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); }
     .hdr-user-dropdown { position:relative; }
     .hdr-dropdown-menu { display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:200;overflow:hidden; }
@@ -212,8 +212,8 @@
     .badge-pending .badge-dot  { background: #fbbf24; box-shadow: 0 0 6px #f59e0b; animation: pulse-anim 1.5s infinite; }
     .badge-approved { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
     .badge-approved .badge-dot { background: #34d399; }
-    .badge-active   { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
-    .badge-active .badge-dot   { background: #818cf8; box-shadow: 0 0 8px var(--accent); animation: pulse-anim 2s infinite; }
+    .badge-active   { background: rgba(50,108,229,0.15); color: #93C5FD; border: 1px solid rgba(50,108,229,0.3); }
+    .badge-active .badge-dot   { background: #60A5FA; box-shadow: 0 0 8px var(--accent); animation: pulse-anim 2s infinite; }
     .badge-denied   { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
     .badge-denied .badge-dot   { background: #f87171; }
     .badge-expired  { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
@@ -253,7 +253,7 @@
       padding: 2px 8px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.8rem;
-      color: #a5b4fc;
+      color: #93C5FD;
     }
 
     /* ── STATUS SPINNER ── */
@@ -301,7 +301,7 @@
     /* ── TOKEN SECTION ── */
     .token-card {
       background: var(--surface);
-      border: 1px solid rgba(99,102,241,0.3);
+      border: 1px solid rgba(50,108,229,0.3);
       border-radius: var(--radius);
       padding: 28px;
       margin-bottom: 20px;
@@ -311,14 +311,14 @@
     .token-card::before {
       content: '';
       position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(99,102,241,0.6), transparent);
+      background: linear-gradient(90deg, transparent, rgba(50,108,229,0.6), transparent);
     }
     .token-card::after {
       content: '';
       position: absolute;
       top: -60px; right: -60px;
       width: 160px; height: 160px;
-      background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(50,108,229,0.08) 0%, transparent 70%);
       pointer-events: none;
     }
     .token-heading {
@@ -334,7 +334,7 @@
     .token-sub code {
       background: var(--surface-3); border: 1px solid var(--border);
       border-radius: 4px; padding: 1px 6px;
-      font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #a5b4fc;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #93C5FD;
     }
 
     .token-block-label {
@@ -443,7 +443,7 @@
           Request ID
         </span>
         <span class="fact-value">
-          <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; color:#a5b4fc;">{{ name }}</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; color:#93C5FD;">{{ name }}</span>
         </span>
 
         <span class="fact-label">
@@ -597,7 +597,7 @@
     {% if status.get("phase") == "Active" and token %}
     <div class="token-card">
       <div class="token-heading">
-        <div class="card-icon" style="border-color:rgba(99,102,241,0.4);">
+        <div class="card-icon" style="border-color:rgba(50,108,229,0.4);">
           <i data-lucide="terminal" style="width:16px;height:16px;"></i>
         </div>
         <h2>Access Granted 🎉</h2>
@@ -605,7 +605,7 @@
 
       <div style="display:flex;align-items:center;gap:12px;margin-top:4px;flex-wrap:wrap;">
         <a href="/terminal/{{ cluster }}/{{ name }}"
-           style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;text-decoration:none;box-shadow:0 2px 16px rgba(99,102,241,0.35);">
+           style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;text-decoration:none;box-shadow:0 2px 16px rgba(50,108,229,0.35);">
           <i data-lucide="terminal" style="width:15px;height:15px;"></i>
           Open Web Terminal
         </a>

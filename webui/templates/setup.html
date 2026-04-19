@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8s-Janus · Setup Wizard</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,8 +20,8 @@
     /* Multi-colour ambient background override */
     body {
       background-image:
-        radial-gradient(ellipse 70% 35% at 20% -5%, rgba(99,102,241,0.18) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 30% at 80% 110%, rgba(139,92,246,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 35% at 20% -5%, rgba(50,108,229,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 80% 110%, rgba(74,144,217,0.12) 0%, transparent 55%),
         radial-gradient(ellipse 40% 25% at 50% 60%, rgba(6,182,212,0.05) 0%, transparent 50%);
     }
 
@@ -76,8 +76,8 @@
     .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
     .card-icon {
       width: 34px; height: 34px;
-      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
-      border: 1px solid rgba(99,102,241,0.3);
+      background: linear-gradient(135deg, rgba(50,108,229,0.15), rgba(74,144,217,0.15));
+      border: 1px solid rgba(50,108,229,0.3);
       border-radius: 9px; display: flex; align-items: center; justify-content: center;
       color: var(--accent);
     }
@@ -86,7 +86,7 @@
 
     /* ── INFO CALLOUT (no-kubectl section) ── */
     .info-callout {
-      background: linear-gradient(135deg, rgba(6,182,212,0.07), rgba(99,102,241,0.07));
+      background: linear-gradient(135deg, rgba(6,182,212,0.07), rgba(50,108,229,0.07));
       border: 1px solid rgba(6,182,212,0.25);
       border-radius: var(--radius-sm);
       padding: 16px 18px;
@@ -146,8 +146,8 @@
     }
     .drop-zone:hover, .drop-zone.dragover {
       border-color: var(--accent);
-      background: rgba(99,102,241,0.07);
-      box-shadow: 0 0 24px rgba(99,102,241,0.1);
+      background: rgba(50,108,229,0.07);
+      box-shadow: 0 0 24px rgba(50,108,229,0.1);
     }
     .drop-zone svg { color: var(--accent); opacity: 0.7; margin-bottom: 12px; }
     .drop-zone p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 4px; }
@@ -155,8 +155,8 @@
     .drop-zone-hint {
       margin-top: 14px;
       padding: 9px 14px;
-      background: rgba(99,102,241,0.07);
-      border: 1px solid rgba(99,102,241,0.18);
+      background: rgba(50,108,229,0.07);
+      border: 1px solid rgba(50,108,229,0.18);
       border-radius: 7px;
       font-size: 0.73rem;
       color: var(--text-muted);
@@ -179,8 +179,8 @@
       padding: 12px 16px;
     }
     .section-label.central {
-      background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.08));
-      border: 1px solid rgba(99,102,241,0.35);
+      background: linear-gradient(135deg, rgba(50,108,229,0.18), rgba(50,108,229,0.08));
+      border: 1px solid rgba(50,108,229,0.35);
       border-bottom: none;
       border-radius: 10px 10px 0 0;
     }
@@ -194,7 +194,7 @@
       display: flex; align-items: center; justify-content: center;
       width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
     }
-    .section-icon.central { background: rgba(99,102,241,0.25); color: #818cf8; }
+    .section-icon.central { background: rgba(50,108,229,0.25); color: #60A5FA; }
     .section-icon.remote  { background: rgba(16,185,129,0.2);  color: #34d399; }
     .section-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
     .section-hint  { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
@@ -205,7 +205,7 @@
       border-radius: 0 0 10px 10px;
       overflow: hidden;
     }
-    .cluster-section.central .context-list { border-color: rgba(99,102,241,0.25); }
+    .cluster-section.central .context-list { border-color: rgba(50,108,229,0.25); }
     .cluster-section.remote  .context-list { border-color: rgba(16,185,129,0.2); }
     .context-item {
       display: flex; align-items: center; gap: 14px;
@@ -218,7 +218,7 @@
     .context-item:last-child { border-bottom: none; }
     .context-item:hover { background: var(--surface-3); }
     .context-item.selected.central-sel {
-      background: rgba(99,102,241,0.1);
+      background: rgba(50,108,229,0.1);
       border-left: 3px solid var(--accent);
     }
     .context-item.selected.remote-sel {
@@ -235,7 +235,7 @@
       text-transform: uppercase; padding: 2px 7px; border-radius: 4px; margin-left: 8px;
       vertical-align: middle;
     }
-    .role-badge.central { background: rgba(99,102,241,0.15); color: var(--accent); }
+    .role-badge.central { background: rgba(50,108,229,0.15); color: var(--accent); }
     .role-badge.remote  { background: rgba(16,185,129,0.12); color: #10b981; }
 
     /* ── BUTTONS ── */
@@ -250,9 +250,9 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
       color: #fff;
-      box-shadow: 0 4px 18px rgba(99,102,241,0.35);
+      box-shadow: 0 4px 18px rgba(50,108,229,0.35);
     }
-    .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 24px rgba(99,102,241,0.55); }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 24px rgba(50,108,229,0.55); }
     .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
     .btn-ghost {
       background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);
@@ -487,7 +487,7 @@ choco install kubernetes-cli</span>
             </div>
 
             <!-- Port-forward reminder (install-method-agnostic) -->
-            <div style="margin-top:14px;padding:12px 14px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.2);border-radius:8px">
+            <div style="margin-top:14px;padding:12px 14px;background:rgba(50,108,229,0.07);border:1px solid rgba(50,108,229,0.2);border-radius:8px">
               <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">
                 <strong style="color:var(--accent)">Accessing this wizard?</strong>
                 You need a port-forward to reach it from your browser — run this on any machine with kubectl:
@@ -529,7 +529,7 @@ choco install kubernetes-cli</span>
             </div>
             <div class="context-list" id="central-list"></div>
             <div id="central-name-row" style="display:none;padding:12px 16px;background:var(--surface-2);
-                  border:1px solid rgba(99,102,241,0.2);border-top:1px solid var(--border);
+                  border:1px solid rgba(50,108,229,0.2);border-top:1px solid var(--border);
                   border-radius:0 0 10px 10px;display:none;flex-direction:column;gap:8px">
               <div>
                 <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Internal ID <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;used as secret name prefix</span></div>
@@ -622,7 +622,7 @@ choco install kubernetes-cli</span>
       <div id="panel-manage" class="hidden">
         <div class="card">
           <div class="card-header">
-            <div class="card-icon" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);color:var(--accent)">
+            <div class="card-icon" style="background:rgba(50,108,229,0.1);border-color:rgba(50,108,229,0.3);color:var(--accent)">
               <i data-lucide="settings-2" width="16" height="16"></i>
             </div>
             <div>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus</title>
-  <link rel="icon" type="image/png" href="/static/k8s-janus-logo-white.png">
+  <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -57,7 +57,7 @@
       user-select: none;
       position: relative;
     }
-    .ns-item:hover { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3); }
+    .ns-item:hover { background: rgba(50,108,229,0.08); border-color: rgba(50,108,229,0.3); }
     .ns-item.selected { background: rgba(16,185,129,0.08); border-color: var(--success); }
     .ns-check {
       width: 14px; height: 14px;
@@ -133,12 +133,12 @@
       align-items: center;
       gap: 8px;
       transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+      box-shadow: 0 4px 20px rgba(50,108,229,0.3);
     }
     .submit-btn:hover {
       opacity: 0.92;
       transform: translateY(-1px);
-      box-shadow: 0 6px 28px rgba(99,102,241,0.45);
+      box-shadow: 0 6px 28px rgba(50,108,229,0.45);
     }
     .submit-btn:active { transform: translateY(0); }
 
@@ -218,7 +218,7 @@
       padding: 2px 7px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
-      color: #a5b4fc;
+      color: #93C5FD;
     }
 
     /* ── BADGES ── */
@@ -240,8 +240,8 @@
     .badge-approved { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
     .badge-approved .badge-dot { background: #34d399; }
 
-    .badge-active   { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
-    .badge-active .badge-dot   { background: #818cf8; box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+    .badge-active   { background: rgba(50,108,229,0.15); color: #93C5FD; border: 1px solid rgba(50,108,229,0.3); }
+    .badge-active .badge-dot   { background: #60A5FA; box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
 
     .badge-denied   { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
     .badge-denied .badge-dot   { background: #f87171; }
@@ -251,7 +251,7 @@
 
     .badge-revoked    { background: rgba(239,68,68,0.1);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
     .badge-revoked .badge-dot    { background: #f87171; }
-    .badge-cancelled  { background: rgba(161,140,209,0.1); color: #c4b5fd; border: 1px solid rgba(161,140,209,0.25); }
+    .badge-cancelled  { background: rgba(161,140,209,0.1); color: #BAE0FF; border: 1px solid rgba(161,140,209,0.25); }
     .badge-cancelled .badge-dot  { background: #a78bfa; }
     .badge-failed     { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
     .badge-failed .badge-dot     { background: #ef4444; }
@@ -259,7 +259,7 @@
     /* ── CANCEL BUTTON ── */
     .cancel-btn {
       display: inline-flex; align-items: center; gap: 5px;
-      background: transparent; border: 1px solid rgba(167,139,250,0.3); color: #c4b5fd;
+      background: transparent; border: 1px solid rgba(167,139,250,0.3); color: #BAE0FF;
       border-radius: 5px; padding: 3px 9px; font-size: 0.72rem; cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
@@ -312,7 +312,7 @@
       font-size: 0.72rem; cursor: pointer; transition: color 0.15s, border-color 0.15s; white-space: nowrap;
     }
     .detail-btn:hover { color: var(--text); border-color: var(--border-light); }
-    .detail-btn.open { color: var(--accent); border-color: rgba(99,102,241,0.4); }
+    .detail-btn.open { color: var(--accent); border-color: rgba(50,108,229,0.4); }
     .terminal-btn { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
     .terminal-btn:hover { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
 
@@ -436,7 +436,7 @@
         </div>
         <h2>{{ 'All Requests' if is_admin else 'My Requests' }}</h2>
         {% if is_admin %}
-        <a href="/admin" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);color:var(--accent);border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;">
+        <a href="/admin" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(50,108,229,0.08);border:1px solid rgba(50,108,229,0.25);color:var(--accent);border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;">
           <i data-lucide="shield" style="width:13px;height:13px;"></i> Admin Panel
         </a>
         {% endif %}
