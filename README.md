@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="webui/static/k8s-janus-logo-readme.png" width="120" alt="K8s-Janus logo" />
+<img src="webui/static/k8s-janus-logo.svg" width="120" alt="K8s-Janus logo" />
 
 # K8S-Janus
 
@@ -14,42 +14,40 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue)
 
-**Engineers request temporary `kubectl exec` access through a web UI.**
-**Admins approve with one click. The token auto-expires.**
+**Engineers request temporary `kubectl exec` access through a web UI.**  
+**Admins approve with one click. The token auto-expires.**  
 **No permanent permissions. Ever.**
 
-> In Roman mythology, **Janus** was the god of doorways and transitions — watching every passage in both directions.
->
-> He did not block the gate. He *governed* it.
->
-> **⛩ The gate opens. Then it closes.**
-
+> *In Roman mythology, **Janus** was the god of doorways — watching every passage in both directions.*  
+> *He did not block the gate. He governed it.*
 
 </div>
 
 ---
 
-## 🎉 v1.0.5 — Bug Fixes
+## 🎉 What's new in v1.0.7
 
 | | |
 |-|-|
-| 🎨 | **Colored prompt fixed for bash** — `--norc --noprofile` prevents container rc files from overwriting the injected PS1 |
-| 🐛 | **Quick commands crash fixed** — `ReferenceError: Cannot access '_cmdsEnabled' before initialization` on pod click |
-| 📋 | **Status page improvements** — approved-by shown for Active/Expired/Revoked; cancel session grouped with terminal button |
+| 🎨 | **Kubernetes blue design** — Accent color matches K8s blue (#326CE5); vector SVG logo |
+| 🔌 | **WebSocket stability** — Pure ASGI middleware; terminal connections no longer silently dropped |
+| ⏱️ | **Terminal timeout** — 15s exec timeout; stuck connections recover automatically |
+| 🔧 | **Setup WebSocket** — `/ws/setup/*` correctly bypassed auth; setup wizard works with auth enabled |
+| 🗂️ | **Multi-namespace fix** — Pod info now resolves the correct namespace per pod |
 
 ---
 
 ## 🚨 The Problem
 
-In most Kubernetes environments, granting pod access means either:
+Most Kubernetes access patterns are broken:
 
 | Approach | Problem |
 |----------|---------|
 | 🔴 Permanent RoleBinding | Over-privileged, forgotten forever |
 | 🔴 Sharing cluster-admin | Dangerous, no audit trail |
-| 🔴 Manual token creation | Tedious, tokens never get revoked |
+| 🔴 Manual token creation | Tedious, tokens never revoked |
 
-**K8s-Janus solves this** with a structured, time-limited, fully auditable access workflow — no permanent permissions granted to anyone.
+**K8s-Janus** replaces all of these with a structured, time-limited, fully auditable workflow.
 
 ---
 
@@ -57,26 +55,22 @@ In most Kubernetes environments, granting pod access means either:
 
 | | Feature | Detail |
 |-|---------|--------|
-| 🌐 | **Web Terminal** | Browser-based `kubectl exec` shell — no local tools, no kubeconfig, no VPN |
-| 🖥️ | **Split-Pane Terminal** | Open two pods side-by-side in a single browser tab with independent A/B pane |
-| 📋 | **Pod Logs & Events** | View real-time pod logs and Kubernetes events directly in the terminal sidebar |
-| ⚡ | **Quick Commands** | Save and replay one-click shell commands per cluster — personal command palette in the terminal |
-| 🎨 | **Colored Prompt** | PS1 auto-injected on connect — cyan `user@host`, blue working directory, works with bash/sh/ash |
-| 📋 | **Copy Output** | One-click copy of full terminal buffer (all scrollback) to clipboard |
-| 🏢 | **Multi-Cluster** | One instance manages multiple clusters — any distribution (GKE, EKS, AKS, on-prem, vCluster) |
-| 📦 | **Multi-Namespace** | Request access to multiple namespaces in a single CRD — one approval, namespace tab strip in terminal |
-| ✅ | **One-Click Approval** | Admins see all pending requests in the dashboard — approve, deny, or override TTL without leaving the browser |
-| 🚪 | **Self-Service Withdraw** | Engineers can cancel their own Pending or Active requests from the dashboard or request status page |
-| ⏱️ | **Auto-Cleanup** | ServiceAccount + RoleBinding + token Secret deleted automatically on TTL expiry |
-| ⚡ | **Instant Revoke** | Terminate any active session immediately from the admin dashboard |
-| ⏰ | **Pending Auto-Expiry** | Auto-deny requests that go unapproved beyond a configurable time limit |
-| 🔐 | **Native OIDC/OAuth2** | Built-in SSO — Google, GitHub, Entra ID, Okta, GitLab, or any OIDC provider. No oauth2-proxy needed |
-| 👤 | **User Profiles** | Persistent avatars and display names with cross-user visibility |
-| 🛡️ | **Security Hardened** | Non-root, read-only FS, all capabilities dropped, NetworkPolicy enforced |
-| 🔒 | **No Token Leakage** | Per-namespace scoped tokens stored in K8s Secrets only — never in CRD status or logs |
-| 📋 | **Full Audit Log** | Every request lifecycle event, session open/close, command, idle timeout, and revocation logged |
-| 🗄️ | **PostgreSQL Backend** | Optional persistent DB for request history that survives pod restarts |
-| 🔏 | **Signed Helm Chart** | Chart signed with GPG — verify with `helm install --verify` |
+| 🌐 | **Web Terminal** | Browser-based `kubectl exec` — no local tools, no kubeconfig, no VPN |
+| 🖥️ | **Split-Pane** | Two pods side-by-side in one tab with independent shell sessions |
+| 📋 | **Pod Logs & Events** | Real-time logs and K8s events in the terminal sidebar |
+| ⚡ | **Quick Commands** | Save and replay one-click shell commands per cluster |
+| 🎨 | **Colored Prompt** | PS1 auto-injected on connect — cyan `user@host`, blue path |
+| 🏢 | **Multi-Cluster** | Manage any number of clusters from one install (GKE, EKS, AKS, vCluster…) |
+| 📦 | **Multi-Namespace** | One request covers multiple namespaces; namespace tab strip in terminal |
+| ✅ | **One-Click Approval** | Approve, deny, or override TTL from the admin dashboard |
+| 🚪 | **Self-Service Withdraw** | Engineers cancel their own Pending or Active requests |
+| ⚡ | **Instant Revoke** | Terminate any active session immediately |
+| ⏰ | **Auto-Cleanup** | SA + RoleBinding + token Secret deleted on TTL expiry |
+| ⏰ | **Pending Auto-Expiry** | Auto-deny requests that go unapproved beyond a configurable limit |
+| 🔐 | **Native OIDC/SSO** | Google, GitHub, Entra ID, Okta, GitLab, or any OIDC provider — no oauth2-proxy |
+| 📋 | **Full Audit Log** | Every request event, session open/close, command, and revocation logged |
+| 🗄️ | **PostgreSQL Backend** | Optional persistent DB — history survives pod restarts |
+| 🛡️ | **Security Hardened** | Non-root · read-only FS · all capabilities dropped · NetworkPolicy |
 
 ---
 
@@ -93,7 +87,7 @@ Engineer             Web UI              Controller           Approver
    │                   │  per-NS: SA + RoleBinding + token Secret │
    │◀── terminal ──────│                     │                   │
    │  (namespace tabs) │                     │                   │
-   │   (TTL expires)   │  delete all SA + RoleBinding + Secrets   │
+   │   (TTL expires)   │    delete SA + RoleBinding + Secrets    │
 ```
 
 ### Access Lifecycle
@@ -126,7 +120,7 @@ Pending ──▶ Approved ──▶ Active ──▶ Expired
     └──────────────┘       └──────────────┘
 ```
 
-Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret in the `k8s-janus` namespace. Works with any Kubernetes distribution — GKE, EKS, AKS, on-prem, kind, vCluster.
+Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret in the `k8s-janus` namespace. Works with any distribution — GKE, EKS, AKS, on-prem, kind, vCluster.
 
 ---
 
@@ -146,8 +140,6 @@ Each target cluster is represented by a kubeconfig stored in a Kubernetes Secret
 
 **Prerequisites:** `kubectl` and `helm`.
 
-### Install via Helm
-
 ```bash
 helm repo add k8s-janus https://infroware.github.io/k8s-janus
 helm repo update
@@ -157,90 +149,23 @@ helm upgrade --install k8s-janus k8s-janus/k8s-janus \
 
 ### Register remote clusters
 
-Run the setup script — it walks you through everything interactively:
-
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/setup-upload.sh)
 ```
 
-Choose **CLI mode** (terminal only) or **Browser mode** (opens the web wizard). The script:
-1. Picks up your local kubeconfig — resolves exec-based auth (GKE, EKS, AKS) to static tokens automatically
-2. Asks which cluster is central (where Janus runs) and which are remote targets
-3. Applies `janus-remote` RBAC to each remote cluster
-4. Issues a scoped 1-year token and creates the `<cluster>-kubeconfig` Secret on the central cluster
-5. Restarts the controller and web UI so they pick up the new clusters immediately
+Choose **CLI mode** or **Browser mode**. The script:
+1. Resolves exec-based auth (GKE, EKS, AKS) to static tokens automatically
+2. Applies `janus-remote` RBAC to each remote cluster
+3. Issues a scoped 1-year token and stores it as a `<cluster>-kubeconfig` Secret on the central cluster
+4. Restarts the controller and web UI so they pick up the new clusters immediately
 
 No cloud-specific setup, no IAM bindings, no repo clone needed.
 
 ---
 
-## 🖥️ Terminal Features
-
-The browser terminal is a full-featured shell environment, not just a log viewer.
-
-### Split-Pane View
-Open two pods simultaneously side-by-side — useful for comparing logs or running commands across replicas. Toggle with the split-pane button in the toolbar. Each pane is independent with its own pod selection and shell session.
-
-### Namespace Tab Strip
-When a request covers multiple namespaces, the terminal shows a tab strip. Click to switch namespace context without leaving the page. Each tab has its own pod list.
-
-### Pod Logs & Events
-Click the **Logs** or **Events** tab in the pod sidebar to view the last 500 log lines or recent Kubernetes events for any pod — no `kubectl` needed, no local access required.
-
-### Quick Commands
-Save and replay shell commands per cluster from the terminal sidebar. Commands are personal to your user account and stored persistently. Click a saved command to send it instantly to the active pane — useful for recurring debug commands, health checks, or log tails.
-
-### Colored Prompt
-Every shell session automatically gets a colored PS1 — username and hostname in cyan, working directory in blue. Works with bash, sh, and ash.
-
-### Copy Output
-Click **Copy** in the terminal toolbar to copy the full terminal buffer (all scrollback) to your clipboard as plain text.
-
-### Idle Timeout
-Sessions idle longer than the configured threshold (`idleTimeoutSeconds`, default 15m) are automatically closed and logged in the audit trail.
-
----
-
-## 👤 User Profiles
-
-Every user gets a persistent profile — display name and avatar — visible to other users across the dashboard. Avatars are sourced from [Gravatar](https://gravatar.com) using the email address from the OIDC token or `X-Forwarded-Email` header. No manual setup required.
-
----
-
-## 🔁 Request Lifecycle — Full Detail
-
-### Submitting a request (engineer)
-
-Engineers fill in:
-- **Cluster** — target cluster from the dropdown
-- **Namespaces** — one or more (multi-select)
-- **Duration** — up to the configured `maxTtlSeconds` (default 8h)
-- **Reason** — free-text justification shown to the approver
-
-### Cancelling / withdrawing a request (engineer)
-
-Engineers can withdraw their own **Pending** or **Active** requests in two places:
-- **Dashboard** — Cancel button on each row
-- **Request Status page** — "Withdraw request" (Pending) or "Cancel session" (Active) button
-
-Cancellation triggers immediate cleanup if credentials were already provisioned.
-
-### Approving with TTL override (admin)
-
-When approving, admins can override the requested TTL from a dropdown of preset options (`approvalTtlOptions` in values). This lets admins grant shorter access than requested — the controller enforces the overridden value.
-
-### Revoking an active session (admin)
-
-Admins can instantly revoke any **Active** session from the dashboard. Revocation:
-1. Triggers immediate cleanup — SA, RoleBinding, and token Secrets deleted
-2. Sends a close signal to any open WebSocket terminal sessions
-3. The engineer's terminal disconnects within seconds
-
----
-
 ## 🔐 Authentication
 
-By default Janus trusts the `X-Forwarded-Email` header injected by an upstream oauth2-proxy or ingress. For a self-contained setup, enable native OIDC:
+By default Janus trusts the `X-Forwarded-Email` header from an upstream proxy. For a self-contained setup, enable native OIDC:
 
 ```yaml
 oidc:
@@ -248,10 +173,8 @@ oidc:
   provider: google          # google | github | entra | okta | gitlab | custom
   clientId: "your-client-id"
   clientSecret: "your-client-secret"
-  allowedDomains: ["your-org.com"]   # leave empty to allow any domain
+  allowedDomains: ["your-org.com"]
 ```
-
-Supported providers and required config:
 
 | Provider | `provider` value | Extra config |
 |----------|-----------------|--------------|
@@ -262,29 +185,23 @@ Supported providers and required config:
 | GitLab | `gitlab` | — |
 | Any OIDC provider | `custom` | `issuerUrl: "https://idp.example.com"` |
 
-**Secret handling** — `clientSecret` and `sessionSecret` can be supplied three ways (in priority order):
-1. `existingSecret` — point to a pre-existing Secret you manage externally
-2. `externalSecrets.enabled: true` — ExternalSecret syncs from GCP/AWS/Vault/etc.
-3. Inline values in `oidc.clientSecret` / `oidc.sessionSecret` (auto-generated session secret if blank)
-
-Backwards-compatible: when `oidc.enabled: false`, the `X-Forwarded-Email` path is unchanged.
+`clientSecret` can be supplied inline, via `existingSecret`, or synced from a secret store via `externalSecrets.enabled: true`.
 
 ---
 
 ## 🗄️ PostgreSQL Backend
 
-By default Janus uses SQLite (ephemeral — data lost on pod restart). For persistent request history, enable PostgreSQL:
+By default Janus uses SQLite (ephemeral — data lost on pod restart). For persistent history:
 
 ```yaml
 postgresql:
   enabled: true
   host: "postgres-host"
-  port: 5432
   database: "k8s-janus"
   username: "k8s-janus"
 ```
 
-The password must exist in a Secret named `k8s-janus-postgresql` with key `password`. Create it manually:
+The password must exist in a Secret named `k8s-janus-postgresql` with key `password`:
 
 ```bash
 kubectl create secret generic k8s-janus-postgresql \
@@ -298,84 +215,31 @@ Or sync it automatically via External Secrets Operator:
 externalSecrets:
   enabled: true
   secretStore: "my-cluster-secret-store"
-
 postgresql:
-  enabled: true
-  host: "postgres-host"
-  database: "k8s-janus"
-  username: "k8s-janus"
-  secretKey: "K8S-JANUS-DB-PASSWORD"   # key name in your secret store
+  secretKey: "K8S-JANUS-DB-PASSWORD"
 ```
-
----
-
-## 🌐 Registering Remote Clusters (GitOps / Manual)
-
-The `scripts/setup.sh` wizard handles cluster registration automatically. For GitOps environments, use the Helm `remote.enabled` mode instead:
-
-**Step 1 — Deploy RBAC-only on the target cluster:**
-
-```bash
-helm upgrade --install janus-remote k8s-janus/k8s-janus \
-  --namespace k8s-janus --create-namespace \
-  --set remote.enabled=true \
-  --set remote.serviceAccountName=janus-remote
-```
-
-This creates only the `janus-remote` ServiceAccount, ClusterRole, and ClusterRoleBinding — no controller or web UI.
-
-**Step 2 — Extract the token and create the kubeconfig Secret on the central cluster:**
-
-```bash
-# On the target cluster — issue a static token
-kubectl create token janus-remote \
-  --namespace k8s-janus \
-  --duration 8760h \
-  > /tmp/janus-remote-token
-
-# On the central cluster — store as a kubeconfig Secret
-kubectl create secret generic my-cluster-kubeconfig \
-  --namespace k8s-janus \
-  --from-literal=kubeconfig="$(cat /tmp/janus-remote-token)"
-```
-
-The controller and web UI auto-discover all `*-kubeconfig` Secrets in the `k8s-janus` namespace — no restart required.
 
 ---
 
 ## ⚙️ Configuration Reference
-
-Key `values.yaml` settings:
 
 | Field | Default | Description |
 |-------|---------|-------------|
 | `janus.defaultTtlSeconds` | `3600` | Default access duration in the request form (1h) |
 | `janus.maxTtlSeconds` | `28800` | Hard cap engineers cannot exceed (8h) |
 | `janus.approvalTtlOptions` | `[3600,7200,14400,28800]` | TTL override choices in the admin approval dropdown |
-| `janus.crdRetentionSeconds` | `86400` | Delete Expired/Denied/Revoked CRDs after this many seconds |
+| `janus.crdRetentionSeconds` | `86400` | Delete Expired/Denied/Revoked CRDs after N seconds |
 | `janus.pendingExpirySeconds` | `0` | Auto-deny Pending requests after N seconds (0 = disabled) |
-| `janus.idleTimeoutSeconds` | `900` | Terminate idle web terminal sessions (15m) |
+| `janus.idleTimeoutSeconds` | `0` | Terminate idle terminal sessions after N seconds (0 = disabled) |
 | `janus.displayTimezone` | `UTC` | IANA timezone for timestamps in the UI |
 | `janus.adminEmails` | `[]` | Emails with approve/deny/revoke privileges |
-| `janus.excludedNamespaces` | system namespaces | Namespaces hidden from the request form |
+| `janus.excludedNamespaces` | `[k8s-janus, kube-system, …]` | Namespaces hidden from the request form |
 | `postgresql.enabled` | `false` | Persistent DB — survives pod restarts |
 | `networkPolicy.enabled` | `true` | Restrict egress to K8s API + DNS only |
 | `remote.enabled` | `false` | Deploy only RBAC on a target cluster (no controller/webui) |
 | `oidc.enabled` | `false` | Enable native OIDC/OAuth2 SSO |
 | `webui.authEnabled` | `false` | Trust `X-Forwarded-Email` header from upstream proxy |
 | `replicaCount` | `1` | >1 also creates a PodDisruptionBudget |
-
-**Optional — exclude additional namespaces from the request form:**
-
-```yaml
-janus:
-  excludedNamespaces:
-    - k8s-janus
-    - kube-system
-    - argocd
-    - cert-manager
-    - monitoring
-```
 
 ---
 
@@ -390,59 +254,24 @@ janus:
 | 🚫 No capabilities | `capabilities.drop: [ALL]` |
 | 🌐 Network isolation | NetworkPolicy: egress restricted to K8s API (443/6443) and DNS only |
 | ⏰ TTL enforcement | Min 10 min · Max 8 hours · Enforced server-side |
-| 🔏 Signed images | Helm chart signed with GPG — verify with `helm install --verify` |
+| 🔏 Signed chart | Helm chart signed with GPG — verify with `helm install --verify` |
 | 📋 Full audit trail | Every session open, close, command, idle timeout, and revocation logged |
-| 🛡️ RBAC scoped | Controller ClusterRole restricted to `janus-pod-exec` by `resourceNames` — can't create arbitrary ClusterRoles |
+| 🛡️ RBAC scoped | Controller ClusterRole restricted to `janus-pod-exec` by `resourceNames` |
 | 🔒 Pod Security Standards | `pod-security.kubernetes.io/enforce: restricted` on the `k8s-janus` namespace |
 
 ---
 
 ## 📋 Observability
 
-Janus logs everything — startup, every access request lifecycle event, cleanup, and WebSocket sessions. No black boxes.
-
-### Controller
+Janus logs every lifecycle event — startup, request state transitions, credential provisioning, cleanup, and WebSocket sessions.
 
 ```
-[INFO] 🚀 k8s-janus controller starting up on cluster=gke_project_region_cluster
-[INFO] DB initialised (SQLite (ephemeral))
-[INFO] 🧹 periodic CRD cleanup started (retention=86400s, phases={'Expired', 'Denied', 'Revoked'})
-[INFO] ⏰ pending auto-expiry started (limit=4h)
-[INFO] ✅ k8s-janus controller ready on cluster=gke_project_region_cluster
-
-# Engineer submits a request for two namespaces
+[INFO] ✅ k8s-janus controller ready on cluster=prod
 [INFO] 📥 New AccessRequest [alice-debug-api] from alice@example.com → cluster=prod ns=['default','payments']
-
-# Admin approves → credentials provisioned per namespace automatically
-[INFO] 🔄 [alice-debug-api] phase transition: Pending → Approved  (cluster=prod ns=['default','payments'])
-[INFO] 🔑 [alice-debug-api] granting access for alice@example.com on cluster=prod ns=default
-[INFO] 👤 [alice-debug-api] created ServiceAccount=janus-alice-debug-api in cluster=prod ns=default
-[INFO] 🎟️  [alice-debug-api] issued token for SA=janus-alice-debug-api in cluster=prod, ttl=3600s
+[INFO] 🔄 [alice-debug-api] phase transition: Pending → Approved
 [INFO] ✅ [alice-debug-api] access GRANTED — requester=alice@example.com cluster=prod ns=['default','payments']
-
-# TTL expires → automatic cleanup of all namespaces
 [INFO] 🧹 [alice-debug-api] starting cleanup (TTL expired) on cluster=prod ns=['default','payments']
-[INFO] 🗑️  [alice-debug-api] deleted RoleBinding=janus-alice-debug-api from cluster=prod ns=default
-[INFO] 🗑️  [alice-debug-api] deleted token Secret=janus-token-alice-debug-api-default-3a1f9c from ns=k8s-janus
 [INFO] 💀 [alice-debug-api] marked as Expired — all credentials removed
-
-# Admin revokes an active session
-[INFO] 🚫 [alice-debug-api] revoked by admin — triggering immediate cleanup
-[INFO] 🔒 Revoke signal sent to 1 terminal session(s) for alice-debug-api
-
-# Pending request auto-denied after limit
-[INFO] ⏰ [alice-debug-api] auto-denied — pending for 4.1h (limit=4h)
-```
-
-### Web UI
-
-```
-[INFO] DB initialised (SQLite (ephemeral))
-[WARNING] 🔓 K8s-Janus WebUI started in OPEN MODE — AUTH_ENABLED=false
-INFO:     Uvicorn running on http://0.0.0.0:8000
-
-INFO:     10.0.0.1:54321 - "GET /terminal/prod/alice-debug-api HTTP/1.1" 200 OK
-[INFO] 🔒 Revoke signal sent to 1 terminal session(s) for alice-debug-api
 ```
 
 ---

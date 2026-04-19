@@ -1,4 +1,6 @@
-<img src="https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png" width="80" alt="K8s-Janus" />
+<img src="https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo.svg" width="80" alt="K8s-Janus" />
+
+> **v1.0.7** — Kubernetes blue design, vector SVG logo, WebSocket stability fixes
 
 ## K8s-Janus — Just-in-Time Kubernetes Pod Access
 

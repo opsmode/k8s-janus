@@ -2,16 +2,22 @@ apiVersion: v2
 name: k8s-janus
 description: "K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with approval workflow."
 type: application
-version: 1.0.6
-appVersion: "1.0.6"
+version: 1.0.7
+appVersion: "1.0.7"
 annotations:
   artifacthub.io/changes: |
-    - kind: added
-      description: "MFA/TOTP support — optional 2FA before terminal access with QR code setup, backup codes, and encrypted storage"
-    - kind: added
-      description: "Native HA support — multi-replica deployments with sticky sessions, leader election, and DB-backed profiles (no Redis required)"
     - kind: changed
-      description: "User profiles now stored in PostgreSQL when enabled (fallback to memory) for HA compatibility"
+      description: "Kubernetes blue design (#326CE5) — accent color and SVG logo now match K8s/CNCF branding"
+    - kind: fixed
+      description: "WebSocket terminal connections no longer silently dropped — replaced BaseHTTPMiddleware with pure ASGI middleware"
+    - kind: fixed
+      description: "Terminal exec stream now has 15s timeout — stuck connections recover automatically"
+    - kind: fixed
+      description: "Setup WebSocket (/ws/setup/*) correctly bypassed auth middleware"
+    - kind: fixed
+      description: "Pod info resolves correct namespace per pod in multi-namespace requests"
+    - kind: changed
+      description: "Idle timeout disabled by default (idleTimeoutSeconds: 0)"
   artifacthub.io/links: |
     - name: GitHub
       url: https://github.com/infroware/k8s-janus
@@ -33,7 +39,7 @@ keywords:
   - audit
   - terminal
   - pod-access
-icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
+icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo.svg
 home: https://infroware.github.io/k8s-janus
 sources:
   - https://github.com/infroware/k8s-janus
