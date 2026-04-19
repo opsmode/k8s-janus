@@ -3,6 +3,156 @@ entries:
   k8s-janus:
   - annotations:
       artifacthub.io/changes: |
+        - kind: changed
+          description: "v1.0.7 release notes, concise README, SVG logo in all docs"
+        - kind: fixed
+          description: "hide nav items and user menu on setup page; allow /ws/setup/* through auth middleware"
+        - kind: added
+          description: "switch to vector SVG logo (blue rounded rect + white Janus faces)"
+        - kind: fixed
+          description: "add missing logo PNG + clip white corners; include static assets"
+        - kind: added
+          description: "K8s/CNCF design — swap indigo/purple accent for K8s blue (#326CE5)"
+        - kind: fixed
+          description: "add missing blank lines for E302 lint"
+        - kind: fixed
+          description: "proper K8s SVG icon for cluster setup + bust terminal.js cache for pod-info namespace fix"
+        - kind: added
+          description: "UI fixes — version in header, terminal btn highlight, K8s icon, pod-info namespace, user list refresh"
+        - kind: fixed
+          description: "remove unused imports + blank lines for lint"
+        - kind: fixed
+          description: "replace BaseHTTPMiddleware with pure ASGI for auth — fixes WebSocket being silently dropped"
+        - kind: fixed
+          description: "raise memory limit to 256Mi (100Mi caused OOMKill)"
+        - kind: fixed
+          description: "resource limits 100m/100Mi + terminal exec debug logging"
+        - kind: fixed
+          description: "disable idle terminal timeout by default"
+        - kind: changed
+          description: "ignore .claude/ directory"
+        - kind: fixed
+          description: "add exec timeout to prevent terminal stuck on Connecting"
+        - kind: added
+          description: "inline access requests table + Info tab with CPU/mem bars in terminal"
+        - kind: fixed
+          description: "stale db_enabled snapshots causing all local-auth logins to fail"
+        - kind: fixed
+          description: "remove unused imports (lint) + fix tests after module refactor"
+        - kind: changed
+          description: "split main.py, db.py, and templates into focused modules"
+        - kind: changed
+          description: "Removed janus from excludedNamespaces"
+        - kind: fixed
+          description: "replace table-check init container with pg_isready to unblock fresh DB startup"
+        - kind: fixed
+          description: "create DB tables at startup for PostgreSQL (ArgoCD skips Helm hooks)"
+        - kind: added
+          description: "pod info panel in terminal sidebar (age, image, resources, volumes)"
+        - kind: fixed
+          description: "admin page is landing page for admins; remove My Requests nav"
+        - kind: changed
+          description: "deduplicate CSS across templates via _base_styles.html"
+        - kind: added
+          description: "MFA key in K8s Secret + fix audit timezone + louder MFA warning"
+        - kind: fixed
+          description: "admin page is landing page for admins; remove My Requests nav"
+        - kind: fixed
+          description: "audit log preview (5 rows + view-all modal), server icon, clean logging"
+        - kind: fixed
+          description: "cache-bust command-palette CSS/JS to clear broken cached version"
+        - kind: fixed
+          description: "admin button missing; command palette blocks clicks; UX improvements"
+        - kind: fixed
+          description: "admin 500 (Jinja2 backslash), Reset→Cancel, remove spacer div, admin panel btn, no central cluster required"
+        - kind: changed
+          description: "fix known_hosts for non-root runner; always scan github.com"
+        - kind: fixed
+          description: "allow setup wizard to proceed without selecting central cluster (defaults to in-cluster)"
+        - kind: added
+          description: "inline approve/deny in admin; users nav in admin header; sign-out for local auth; GitHub link admin-only; remove health dot; admin_users toasts + toggle confirm + random reset pw + Escape key"
+        - kind: fixed
+          description: "extract shared CSS to _base_styles.html; fix admin_users header"
+        - kind: added
+          description: "separate /admin/users page; self-service password change in profile modal"
+        - kind: fixed
+          description: "use SQLAlchemy IntegrityError instead of psycopg2.errors.UniqueViolation"
+        - kind: fixed
+          description: "silence UniqueViolation in ensure_admin_user on concurrent pod startup"
+        - kind: added
+          description: "store admin bootstrap password in K8s Secret; runner docker-only"
+        - kind: fixed
+          description: "yellow dot on log stream reconnect; suppress fsnotify noise; remove light mode; create-user random password"
+        - kind: fixed
+          description: "use db.db_enabled by reference in local_auth; add wait-for-migrations initContainer to webui"
+        - kind: fixed
+          description: "create PostgreSQL Secret via pre-install Job instead of Helm lookup (ArgoCD-compatible)"
+        - kind: added
+          description: "colorful logs, login attempt logging, retry admin bootstrap, switch to python:3.13-alpine"
+        - kind: fixed
+          description: "run admin bootstrap in background so startup probe passes immediately"
+        - kind: fixed
+          description: "retry ensure_admin_user on cold start; log login attempts with IP"
+        - kind: fixed
+          description: "add restricted PodSecurity context to bundled PostgreSQL StatefulSet"
+        - kind: fixed
+          description: "change init-db hook to post-install/post-upgrade so StatefulSet deploys first"
+        - kind: added
+          description: "add bundled in-cluster PostgreSQL (postgresql.bundled.enabled)"
+        - kind: fixed
+          description: "flake8 — remove bare f-string and unused walrus operator assignments"
+        - kind: fixed
+          description: "bump Actions runner to v2.333.1 for node24 action support"
+        - kind: fixed
+          description: "add libicu74 to runner image for .NET/Actions runner dependency"
+        - kind: fixed
+          description: "runner entrypoint accepts RUNNER_TOKEN directly, skips re-config if already registered"
+        - kind: changed
+          description: "make runner install.sh work on both macOS and WSL2"
+        - kind: changed
+          description: "Revert \"chore: replace Docker runner image with native WSL2 install script\""
+        - kind: changed
+          description: "bump the github-actions group with 2 updates (#22)"
+        - kind: changed
+          description: "replace Docker runner image with native WSL2 install script"
+        - kind: added
+          description: "add local auth as default when OIDC/proxy not configured"
+    apiVersion: v2
+    appVersion: 1.0.7
+    created: "2026-04-19T17:39:15.787603074Z"
+    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
+      approval workflow.
+    digest: fedbacc2391df81056136d2735c490deffc7e9ba0ff86c2d0dcb3080105d182e
+    home: https://infroware.github.io/k8s-janus
+    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo.svg
+    keywords:
+    - kubernetes
+    - k8s-janus
+    - rbac
+    - access-control
+    - security
+    - jit
+    - zero-trust
+    - kubectl
+    - operator
+    - multi-cluster
+    - devops
+    - platform-engineering
+    - audit
+    - terminal
+    - pod-access
+    maintainers:
+    - email: devops@infroware.com
+      name: infroware
+    name: k8s-janus
+    sources:
+    - https://github.com/infroware/k8s-janus
+    type: application
+    urls:
+    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.7.tgz
+    version: 1.0.7
+  - annotations:
+      artifacthub.io/changes: |
         - kind: added
           description: "add Gateway API HTTPRoute support (httproute.enabled)"
         - kind: changed
@@ -91,7 +241,7 @@ entries:
           description: "remove video and screenshots from README"
     apiVersion: v2
     appVersion: 1.0.6
-    created: "2026-04-14T02:35:53.056920769Z"
+    created: "2026-04-19T17:39:15.78651308Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: b07996b9b9c64b9c57361cc14b5c631fe53609b13479d02791f7f3752de30e26
@@ -139,7 +289,7 @@ entries:
           description: "use printf to inject PS1 escape bytes — works in bash/sh/ash"
     apiVersion: v2
     appVersion: 1.0.5
-    created: "2026-04-14T02:35:53.055939892Z"
+    created: "2026-04-19T17:39:15.785506903Z"
     description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
       approval workflow.
     digest: ef240104cafbae50a6de0a480af7bd2c0d70eda657153cee8c76d94d896f6841
@@ -171,54 +321,4 @@ entries:
     urls:
     - https://infroware.github.io/k8s-janus/k8s-janus-1.0.5.tgz
     version: 1.0.5
-  - annotations:
-      artifacthub.io/changes: |
-        - kind: changed
-          description: "bump to v1.0.4 — colored prompt, copy output, avatar fixes"
-        - kind: fixed
-          description: "remove screenshot button (xterm 5 OffscreenCanvas blocks pixel reads); keep Copy"
-        - kind: fixed
-          description: "use ANSI-C quoting for PS1 so escape sequences render correctly"
-        - kind: fixed
-          description: "screenshot uses xterm canvas layers directly instead of html2canvas"
-        - kind: added
-          description: "inject colored PS1 (cyan user@host, blue path) on shell connect"
-        - kind: added
-          description: "add Copy Output and Screenshot buttons to terminal toolbar"
-        - kind: fixed
-          description: "seed initials immediately for all avatar elements; populate own-email avatars in peer rows"
-    apiVersion: v2
-    appVersion: 1.0.4
-    created: "2026-04-14T02:35:53.055134652Z"
-    description: K8s-Janus — God of Gateways. Just-in-Time Kubernetes pod access with
-      approval workflow.
-    digest: e8e45014a59c3dd7c8b96c78e7740f4902c9d0e30d0cccfdd3cb9d46407c9151
-    home: https://infroware.github.io/k8s-janus
-    icon: https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/static/k8s-janus-logo-readme.png
-    keywords:
-    - kubernetes
-    - k8s-janus
-    - rbac
-    - access-control
-    - security
-    - jit
-    - zero-trust
-    - kubectl
-    - operator
-    - multi-cluster
-    - devops
-    - platform-engineering
-    - audit
-    - terminal
-    - pod-access
-    maintainers:
-    - email: devops@infroware.com
-      name: infroware
-    name: k8s-janus
-    sources:
-    - https://github.com/infroware/k8s-janus
-    type: application
-    urls:
-    - https://infroware.github.io/k8s-janus/k8s-janus-1.0.4.tgz
-    version: 1.0.4
-generated: "2026-04-14T02:35:53.053983407Z"
+generated: "2026-04-19T17:39:15.78457799Z"
