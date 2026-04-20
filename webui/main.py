@@ -84,7 +84,18 @@ class _OIDCAuthMiddleware:
         # Read session populated by SessionMiddleware (already ran as outer layer)
         from starlette.requests import HTTPConnection
         conn = HTTPConnection(scope)
-        if not conn.session.get("user_email"):
+        user_email = conn.session.get("user_email")
+
+        # For local auth, verify the user still exists and is active on every request.
+        # This ensures deleted or deactivated users are immediately locked out even
+        # if they still hold a valid session cookie.
+        if user_email and LOCAL_AUTH_ENABLED and not OIDC_ENABLED:
+            u = local_auth.get_user(user_email)
+            if not u or not u.get("is_active", False):
+                conn.session.clear()
+                user_email = None
+
+        if not user_email:
             if scope["type"] == "websocket":
                 # Close WebSocket with policy violation code
                 await send({"type": "websocket.close", "code": 4401, "reason": "unauthenticated"})
