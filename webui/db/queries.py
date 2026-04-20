@@ -5,6 +5,8 @@ Query functions for K8s-Janus persistence layer.
 import logging
 import os
 
+from sqlalchemy.exc import IntegrityError
+
 from db.models import (
     AccessRequestRecord, AuditLog, TerminalCommand,
     UserQuickCommand, UserMFA, UserProfile,
@@ -64,8 +66,18 @@ def upsert_request(name: str, **fields) -> None:
                 return
             rec = session.query(AccessRequestRecord).filter_by(name=name).first()
             if rec is None:
-                rec = AccessRequestRecord(name=name, **fields)
-                session.add(rec)
+                try:
+                    rec = AccessRequestRecord(name=name, **fields)
+                    session.add(rec)
+                    session.flush()
+                except IntegrityError:
+                    # Concurrent insert raced us — fall back to update
+                    session.rollback()
+                    rec = session.query(AccessRequestRecord).filter_by(name=name).first()
+                    if rec:
+                        for k, v in fields.items():
+                            if k != "created_at":
+                                setattr(rec, k, v)
             else:
                 for k, v in fields.items():
                     if k == "created_at":
