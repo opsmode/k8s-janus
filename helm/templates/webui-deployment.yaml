@@ -105,17 +105,17 @@ spec:
                   name: {{ include "janus.fullname" . }}-postgresql
                   key: password
             {{- end }}
+            - name: OIDC_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "janus.session.secretName" . }}
+                  key: sessionSecret
             {{- if and .Values.oidc .Values.oidc.enabled }}
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "janus.oidc.secretName" . }}
                   key: clientSecret
-            - name: OIDC_SESSION_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "janus.oidc.secretName" . }}
-                  key: sessionSecret
             {{- end }}
           resources:
             {{- toYaml .Values.webui.resources | nindent 12 }}

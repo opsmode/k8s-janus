@@ -11,6 +11,7 @@ from core.config import (
 from core.auth import _is_admin
 from core.templates import templates
 import local_auth
+from main import _login_allowed, _record_login_failure, _clear_login_failures
 
 logger = logging.getLogger("k8s-janus-webui")
 
@@ -53,15 +54,26 @@ async def local_login(request: Request):
     email    = str(form.get("email", "")).strip().lower()
     password = str(form.get("password", ""))
     next_url = str(form.get("next", "/")) or "/"
-    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
+
+    if not _login_allowed(client_ip):
+        logger.warning(f"Login blocked (rate limit): {email} from {client_ip}")
+        return templates.TemplateResponse(request, "login.html", {
+            "mode": "local",
+            "next": next_url,
+            "error": "Too many failed attempts. Try again in 15 minutes.",
+        }, status_code=429)
+
     user = local_auth.verify_user(email, password)
     if not user:
+        _record_login_failure(client_ip)
         logger.warning(f"Login failed: {email} from {client_ip}")
         return templates.TemplateResponse(request, "login.html", {
             "mode": "local",
             "next": next_url,
             "error": "Invalid email or password.",
         })
+    _clear_login_failures(client_ip)
     request.session["user_email"] = user["email"]
     request.session["user_name"]  = user["name"]
     logger.info(f"Login success: {email} from {client_ip}")

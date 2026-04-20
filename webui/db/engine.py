@@ -64,6 +64,11 @@ def init_db() -> None:
         backend = "PostgreSQL" if is_pg else "SQLite (ephemeral)"
         logger.info(f"DB initialised ({backend})")
     except Exception as e:
+        if is_pg:
+            # PostgreSQL was explicitly configured — fail hard rather than silently
+            # falling back to SQLite, which would cause data loss without any warning.
+            logger.error(f"PostgreSQL init failed: {e}")
+            raise RuntimeError(f"Cannot connect to PostgreSQL: {e}") from e
         logger.error(f"DB init failed — persistence disabled: {e}")
         db_enabled = False
 
