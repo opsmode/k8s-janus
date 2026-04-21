@@ -383,7 +383,7 @@
           </div>
           <div class="form-group">
             <label for="cluster">Target cluster</label>
-            <select id="cluster" name="cluster" required onchange="onClusterChange(this.value)">
+            <select id="cluster" name="cluster" required>
               <option value="" disabled selected>Select a cluster…</option>
               {% for c in clusters %}
               <option value="{{ c.name }}">{{ c.displayName if c.displayName else c.name }}</option>
@@ -398,7 +398,7 @@
             </label>
             <input id="ns-filter" type="text" placeholder="Filter namespaces…"
               style="display:none;width:100%;margin-bottom:8px;padding:6px 10px;background:var(--surface-3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.82rem;outline:none;"
-              oninput="filterNs(this.value)" autocomplete="off" spellcheck="false" />
+              autocomplete="off" spellcheck="false" />
             <div id="ns-loading" style="font-size:0.8rem;color:var(--text-dim);padding:6px 0;">Loading…</div>
             <div class="ns-grid" id="ns-grid" style="display:none;"></div>
           </div>
@@ -419,8 +419,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
           <button type="button" id="submit-btn" class="submit-btn" disabled
-            title="Select a cluster and at least one namespace"
-            onclick="submitMultiRequest()">
+            title="Select a cluster and at least one namespace">
             <i data-lucide="send" style="width:15px;height:15px;"></i>
             <span id="submit-label">Submit Request</span>
           </button>
@@ -525,7 +524,7 @@
                 </a>
                 {% endif %}
                 <button class="detail-btn" id="my-detail-btn-{{ ar.metadata.name }}"
-                  onclick="toggleMyDetailBtn(this)">
+                  data-action="my-detail">
                   <i data-lucide="chevron-down" style="width:11px;height:11px;transition:transform 0.2s;"></i>
                   Details
                 </button>
@@ -543,7 +542,7 @@
         <div class="pg-pages" id="my-pg-pages"></div>
         <div class="pg-per-page">
           <span style="color:var(--text-dim);">Per page:</span>
-          <select class="filter-select" id="my-per-page-sel" onchange="mySetPerPage(this.value)"
+          <select class="filter-select" id="my-per-page-sel"
             style="width:auto;padding:4px 8px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:0.8rem;outline:none;">
             <option value="10">10</option>
             <option value="25" selected>25</option>
@@ -567,9 +566,7 @@
         </div>
         <h2>Request History</h2>
         <div class="section-meta" style="margin-left:auto;">
-          <button onclick="clearHistory()" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:0.72rem;padding:3px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:color 0.15s,border-color 0.15s;"
-            onmouseover="this.style.color='var(--danger)';this.style.borderColor='rgba(239,68,68,0.4)'"
-            onmouseout="this.style.color='var(--text-dim)';this.style.borderColor='var(--border)'">
+          <button id="clear-history-btn" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:0.72rem;padding:3px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:color 0.15s,border-color 0.15s;">
             <i data-lucide="trash-2" style="width:11px;height:11px;"></i>
             Clear
           </button>

@@ -377,7 +377,7 @@
 
           <div id="error-upload" class="error-banner"></div>
 
-          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="drop-zone" id="drop-zone">
             <i data-lucide="file-key" width="44" height="44"></i>
             <p>Drop your kubeconfig here</p>
             <span class="dz-sub">~/.kube/config · .yaml · .yml · any filename</span>
@@ -385,7 +385,7 @@
               🍎 <strong>macOS:</strong> press <kbd style="background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.7rem">⇧⌘.</kbd> in the file picker to show hidden folders like <code>.kube</code><br><br>
               ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — starts port-forward, resolves auth &amp; uploads automatically:
               <div class="cmd-block" style="margin-top:6px;white-space:normal">
-                <button class="copy-btn" onclick="copyCmd('cmd-upload-helper');event.stopPropagation()">copy</button>
+                <button class="copy-btn" data-cmd-id="cmd-upload-helper">copy</button>
                 <span id="cmd-upload-helper">curl -fsSL https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/setup-upload.sh | bash</span>
               </div>
             </div>
@@ -407,10 +407,9 @@
 
         <!-- ── Manage existing clusters ── -->
       <div style="margin-top:4px">
-        <button onclick="loadManagePanel()" style="background:none;border:none;cursor:pointer;
+        <button id="btn-manage-clusters" style="background:none;border:none;cursor:pointer;
           display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--text-dim);padding:6px 0;
-          text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted"
-          onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-dim)'">
+          text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted">
           <i data-lucide="trash-2" width="13" height="13"></i>
           Remove / manage existing remote clusters
         </button>
@@ -418,7 +417,7 @@
 
       <!-- ── No kubectl? Here's how ── -->
         <div class="card" style="padding:20px 28px">
-          <div class="info-callout-header" onclick="toggleNoKubectl()" style="margin-bottom:0">
+          <div class="info-callout-header" id="no-kubectl-header" style="margin-bottom:0">
             <i data-lucide="terminal" width="15" height="15" style="color:var(--cyan)"></i>
             <span style="color:var(--cyan);font-size:0.78rem;font-weight:600">Don't have kubectl or direct cluster access?</span>
             <i data-lucide="chevron-down" width="14" height="14" id="kubectl-chevron" class="chevron" style="margin-left:auto;color:var(--text-dim)"></i>
@@ -426,9 +425,9 @@
 
           <div id="no-kubectl-body" class="hidden" style="margin-top:14px">
             <div class="os-tabs">
-              <button class="os-tab active" onclick="showOs('linux')">Linux / macOS</button>
-              <button class="os-tab" onclick="showOs('win')">Windows</button>
-              <button class="os-tab" onclick="showOs('cloud')">Cloud Shell</button>
+              <button class="os-tab active" data-os="linux">Linux / macOS</button>
+              <button class="os-tab" data-os="win">Windows</button>
+              <button class="os-tab" data-os="cloud">Cloud Shell</button>
             </div>
 
             <!-- Linux / macOS -->
@@ -437,7 +436,7 @@
                 Install <strong>kubectl</strong> and export your kubeconfig — then upload the file above.
               </p>
               <div class="cmd-block">
-<button class="copy-btn" onclick="copyCmd('cmd-linux-install')">copy</button
+<button class="copy-btn" data-cmd-id="cmd-linux-install">copy</button
 ><span id="cmd-linux-install"><span class="cmt"># macOS (Homebrew)</span>
 brew install kubectl
 
@@ -447,7 +446,7 @@ chmod +x kubectl && sudo mv kubectl /usr/local/bin/</span>
               </div>
               <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">Then export a flattened kubeconfig:</p>
               <div class="cmd-block">
-<button class="copy-btn" onclick="copyCmd('cmd-linux-export')">copy</button
+<button class="copy-btn" data-cmd-id="cmd-linux-export">copy</button
 ><span id="cmd-linux-export">kubectl config view --flatten --minify > flat-kube.yaml</span>
               </div>
               <p style="font-size:0.78rem;color:var(--text-muted)">Upload <code style="font-family:monospace;color:var(--accent)">flat-kube.yaml</code> above.</p>
@@ -457,7 +456,7 @@ chmod +x kubectl && sudo mv kubectl /usr/local/bin/</span>
             <div id="os-win" class="hidden">
               <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px">Install kubectl via winget or scoop:</p>
               <div class="cmd-block">
-<button class="copy-btn" onclick="copyCmd('cmd-win-install')">copy</button
+<button class="copy-btn" data-cmd-id="cmd-win-install">copy</button
 ><span id="cmd-win-install"><span class="cmt"># winget (Windows 10/11)</span>
 winget install Kubernetes.kubectl
 
@@ -466,7 +465,7 @@ choco install kubernetes-cli</span>
               </div>
               <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">Export kubeconfig (PowerShell):</p>
               <div class="cmd-block">
-<button class="copy-btn" onclick="copyCmd('cmd-win-export')">copy</button
+<button class="copy-btn" data-cmd-id="cmd-win-export">copy</button
 ><span id="cmd-win-export">kubectl config view --flatten --minify | Out-File -Encoding utf8 flat-kube.yaml</span>
               </div>
             </div>
@@ -478,7 +477,7 @@ choco install kubernetes-cli</span>
                 Just run the export command and download the file.
               </p>
               <div class="cmd-block">
-<button class="copy-btn" onclick="copyCmd('cmd-cloud-export')">copy</button
+<button class="copy-btn" data-cmd-id="cmd-cloud-export">copy</button
 ><span id="cmd-cloud-export">kubectl config view --flatten --minify > flat-kube.yaml
 <span class="cmt"># Then click "Download file" in your cloud shell to save flat-kube.yaml locally</span></span>
               </div>
@@ -494,7 +493,7 @@ choco install kubernetes-cli</span>
                 You need a port-forward to reach it from your browser — run this on any machine with kubectl:
               </p>
               <div class="cmd-block" style="margin:0">
-<button class="copy-btn" onclick="copyCmd('cmd-pf')">copy</button
+<button class="copy-btn" data-cmd-id="cmd-pf">copy</button
 ><span id="cmd-pf">kubectl port-forward svc/janus-webui -n k8s-janus 8080:80
 <span class="cmt"># then open http://localhost:8080/setup</span></span>
               </div>
@@ -538,7 +537,7 @@ choco install kubernetes-cli</span>
                   style="width:100%;background:var(--surface);border:1px solid var(--accent);
                          color:var(--text);border-radius:6px;padding:7px 10px;font-size:0.82rem;
                          font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box"
-                  oninput="this._userEdited=true;this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+                  >
               </div>
               <div>
                 <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Display name <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;shown in the UI</span></div>
@@ -546,7 +545,7 @@ choco install kubernetes-cli</span>
                   style="width:100%;background:var(--surface);border:1px solid var(--border-light);
                          color:var(--text);border-radius:6px;padding:7px 10px;font-size:0.82rem;
                          font-family:'Inter',sans-serif;outline:none;box-sizing:border-box"
-                  oninput="this._userEdited=true;this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+                  >
               </div>
             </div>
           </div>
@@ -568,10 +567,10 @@ choco install kubernetes-cli</span>
           </div>
 
           <div class="btn-row">
-            <button class="btn btn-ghost" onclick="showPanel('upload')">
+            <button class="btn btn-ghost" id="btn-back-upload">
               <i data-lucide="arrow-left" width="14" height="14"></i> Back
             </button>
-            <button class="btn btn-primary" id="btn-start" disabled onclick="startSetup()">
+            <button class="btn btn-primary" id="btn-start" disabled>
               <i data-lucide="play" width="14" height="14"></i> Start Setup
             </button>
           </div>
@@ -596,7 +595,7 @@ choco install kubernetes-cli</span>
           <div id="error-progress" class="error-banner" style="margin-top:14px"></div>
           <div id="progress-actions" style="display:none;margin-top:18px;display:none;gap:10px;justify-content:flex-end;align-items:center">
             <span id="progress-actions-hint" style="font-size:0.78rem;color:var(--text-dim)"></span>
-            <button class="btn btn-secondary hidden" id="btn-restart-deployments" onclick="restartDeployments()">
+            <button class="btn btn-secondary hidden" id="btn-restart-deployments">
               <i data-lucide="refresh-cw" width="14" height="14"></i> Restart Deployments
             </button>
           </div>
@@ -638,7 +637,7 @@ choco install kubernetes-cli</span>
             <div class="log-container" id="manage-log-output" style="height:160px"></div>
           </div>
           <div class="btn-row" style="margin-top:14px">
-            <button class="btn btn-ghost" onclick="location.href='/admin'">
+            <button class="btn btn-ghost" id="btn-back-admin">
               <i data-lucide="arrow-left" width="14" height="14"></i> Back to Admin
             </button>
           </div>
@@ -649,6 +648,54 @@ choco install kubernetes-cli</span>
   </div>
 
   <script src="/static/setup.js?v=3"></script>
+  <script nonce="{{ csp_nonce(request) }}">
+    // Drop zone opens file picker on click
+    document.getElementById('drop-zone').addEventListener('click', function() {
+      document.getElementById('file-input').click();
+    });
+
+    // Copy buttons via event delegation — stopPropagation prevents drop zone from firing
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.copy-btn[data-cmd-id]');
+      if (!btn) return;
+      e.stopPropagation();
+      copyCmd(btn.dataset.cmdId);
+    });
+
+    // Manage clusters button with hover effect
+    var _manageBtn = document.getElementById('btn-manage-clusters');
+    _manageBtn.addEventListener('click', loadManagePanel);
+    _manageBtn.addEventListener('mouseover', function() { this.style.color = 'var(--danger)'; });
+    _manageBtn.addEventListener('mouseout',  function() { this.style.color = 'var(--text-dim)'; });
+
+    // No-kubectl collapsible toggle
+    document.getElementById('no-kubectl-header').addEventListener('click', toggleNoKubectl);
+
+    // OS tabs
+    document.querySelectorAll('.os-tab[data-os]').forEach(function(tab) {
+      tab.addEventListener('click', function() { showOs(this.dataset.os); });
+    });
+
+    // Panel 2 navigation buttons
+    document.getElementById('btn-back-upload').addEventListener('click', function() { showPanel('upload'); });
+    document.getElementById('btn-start').addEventListener('click', startSetup);
+
+    // Panel 3 restart button
+    document.getElementById('btn-restart-deployments').addEventListener('click', restartDeployments);
+
+    // Manage panel back button
+    document.getElementById('btn-back-admin').addEventListener('click', function() { location.href = '/admin'; });
+
+    // Central cluster name inputs
+    document.getElementById('central-cluster-name').addEventListener('input', function() {
+      this._userEdited = true;
+      this.style.borderColor = this.value.trim() ? 'var(--accent)' : 'var(--border-light)';
+    });
+    document.getElementById('central-display-name').addEventListener('input', function() {
+      this._userEdited = true;
+      this.style.borderColor = this.value.trim() ? 'var(--accent)' : 'var(--border-light)';
+    });
+  </script>
   {% include '_profile_modal.html' %}
 </body>
 </html>

@@ -124,7 +124,7 @@ function resetDropZone() {
       🍎 <strong>macOS:</strong> press <kbd style="background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.7rem">⇧⌘.</kbd> in the file picker to show hidden folders like <code>.kube</code><br><br>
       ⚠️ <strong>GKE / EKS / AKS?</strong> Use the upload helper — starts port-forward, resolves auth &amp; uploads automatically:
       <div class="cmd-block" style="margin-top:6px;white-space:normal">
-        <button class="copy-btn" onclick="copyCmd('cmd-upload-helper-r');event.stopPropagation()">copy</button>
+        <button class="copy-btn" data-cmd-id="cmd-upload-helper-r">copy</button>
         <span id="cmd-upload-helper-r">curl -fsSL https://raw.githubusercontent.com/infroware/k8s-janus/main/webui/setup-upload.sh | bash</span>
       </div>
     </div>
@@ -209,7 +209,7 @@ function onCentralChange() {
                        color:var(--text);border-radius:6px;padding:6px 10px;font-size:0.82rem;
                        font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box;
                        border-color:var(--accent)"
-                oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+                >
             </div>
             <div>
               <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Display name <span style="color:var(--text-dim);font-weight:400;text-transform:none">&nbsp;·&nbsp;shown in the UI</span></div>
@@ -219,7 +219,7 @@ function onCentralChange() {
                 style="width:100%;background:var(--surface);border:1px solid var(--border-light);
                        color:var(--text);border-radius:6px;padding:6px 10px;font-size:0.82rem;
                        font-family:'Inter',sans-serif;outline:none;box-sizing:border-box"
-                oninput="this.style.borderColor=this.value.trim()?'var(--accent)':'var(--border-light)'">
+                >
             </div>
           </div>
         </div>
@@ -228,6 +228,13 @@ function onCentralChange() {
       const cb           = rItem.querySelector('input[type="checkbox"]');
       const nameField    = rItem.querySelector('.cluster-name-field');
       const nameInput    = rItem.querySelector('input[name="remote-cluster-name"]');
+      const displayInput = rItem.querySelector('input[name="remote-display-name"]');
+      nameInput.addEventListener('input', function() {
+        this.style.borderColor = this.value.trim() ? 'var(--accent)' : 'var(--border-light)';
+      });
+      displayInput.addEventListener('input', function() {
+        this.style.borderColor = this.value.trim() ? 'var(--accent)' : 'var(--border-light)';
+      });
       cb.addEventListener('change', e => {
         rItem.classList.toggle('selected', e.target.checked);
         nameField.style.display = e.target.checked ? 'flex' : 'none';
@@ -414,24 +421,33 @@ async function loadManagePanel() {
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <input type="text" class="rename-input" value="${escHtml(c.displayName || c.name)}"
+                data-cluster="${escHtml(c.name)}"
                 style="background:var(--surface);border:1px solid var(--border-light);color:var(--text);
                        border-radius:6px;padding:5px 9px;font-size:0.85rem;font-family:'Inter',sans-serif;
                        outline:none;width:220px"
-                oninput="this.style.borderColor='var(--accent)'"
-                onkeydown="if(event.key==='Enter')this.closest('[data-cluster-name]').querySelector('.btn-rename').click()">
-              <button class="btn btn-rename" style="padding:5px 12px;font-size:0.78rem;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);color:var(--accent);border-radius:6px;cursor:pointer;white-space:nowrap"
-                onclick="renameCluster('${escHtml(c.name)}', this)">
+                >
+              <button class="btn btn-rename" data-action="rename" data-cluster="${escHtml(c.name)}" style="padding:5px 12px;font-size:0.78rem;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);color:var(--accent);border-radius:6px;cursor:pointer;white-space:nowrap">
                 <i data-lucide="check" width="13" height="13"></i> Save
               </button>
             </div>
           </div>
           ${isCentral ? '' : `
-          <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0"
-            onclick="removeCluster('${escHtml(c.name)}', this)">
+          <button class="btn" data-action="remove" data-cluster="${escHtml(c.name)}" style="padding:6px 14px;font-size:0.78rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0">
             <i data-lucide="trash-2" width="13" height="13"></i> Remove
           </button>`}
         </div>
       `;
+      const renameInput = row.querySelector('.rename-input');
+      const renameBtn   = row.querySelector('[data-action="rename"]');
+      const removeBtn   = row.querySelector('[data-action="remove"]');
+      if (renameInput) {
+        renameInput.addEventListener('input', function() { this.style.borderColor = 'var(--accent)'; });
+        renameInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && renameBtn) renameBtn.click();
+        });
+      }
+      if (renameBtn) renameBtn.addEventListener('click', function() { renameCluster(c.name, this); });
+      if (removeBtn) removeBtn.addEventListener('click', function() { removeCluster(c.name, this); });
       listEl.appendChild(row);
     });
     lucide.createIcons();

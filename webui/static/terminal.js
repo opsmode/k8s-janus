@@ -1051,3 +1051,35 @@ const { cluster, requestName, namespaces, namespace: initialNs } = window.PAGE_D
       paneA.destroy();
       if (paneB) paneB.destroy();
     });
+
+// ── Event listeners (replaces inline onclick for CSP compliance) ──
+document.getElementById('split-btn').addEventListener('click', toggleSplit);
+document.getElementById('copy-output-btn').addEventListener('click', copyTerminalOutput);
+document.getElementById('qcmd-manage-btn').addEventListener('click', openQcmdManage);
+document.getElementById('qcmd-close-btn').addEventListener('click', closeQcmdManage);
+document.getElementById('qcmd-modal-backdrop').addEventListener('click', closeQcmdManage);
+document.getElementById('qcmd-add-btn').addEventListener('click', addQcmdFromManage);
+document.getElementById('qcmd-new-cmd').addEventListener('keydown', function(e) { if (e.key === 'Enter') addQcmdFromManage(); });
+// Focus/blur styling for quick command inputs
+['qcmd-new-label', 'qcmd-new-cmd'].forEach(function(id) {
+  var el = document.getElementById(id);
+  el.addEventListener('focus', function() { this.style.borderColor = 'var(--accent)'; });
+  el.addEventListener('blur', function() { this.style.borderColor = 'var(--border,#2a3448)'; });
+});
+document.getElementById('pane-a-disconnect').addEventListener('click', function() { disconnectPod('a'); });
+document.getElementById('pane-a-close').addEventListener('click', closeSplit);
+document.getElementById('pane-b-disconnect').addEventListener('click', function() { disconnectPod('b'); });
+document.getElementById('pane-b-close').addEventListener('click', closeSplit);
+// Event delegation for namespace tabs
+document.getElementById('ns-tabs') && document.getElementById('ns-tabs').addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-ns]');
+  if (btn) switchNamespace(btn.dataset.ns);
+});
+// Event delegation for pane tabs (both A and B)
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.tabs [data-tab]');
+  if (!btn) return;
+  var tabs = btn.closest('.tabs');
+  var pane = tabs.id === 'pane-a-tabs' ? 'a' : 'b';
+  paneTab(pane, btn.dataset.tab);
+});

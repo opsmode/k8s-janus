@@ -706,3 +706,26 @@ const { clustersCount, approvalTtlOptions, userEmail, oidcEnabled } = window.PAG
       }
       setTimeout(pollRequests, 6000);
     })();
+
+// ── Event listeners (replaces inline onclick/onchange for CSP compliance) ──
+document.getElementById('setup-card-header').addEventListener('click', toggleSetupCard);
+document.getElementById('filter-text').addEventListener('input', applyFilters);
+document.getElementById('filter-cluster').addEventListener('change', applyFilters);
+document.getElementById('filter-phase').addEventListener('change', applyFilters);
+document.getElementById('refresh-btn').addEventListener('click', refreshPage);
+document.getElementById('per-page-sel').addEventListener('change', function() { setPerPage(this.value); });
+document.getElementById('audit-more-btn').addEventListener('click', openAuditModal);
+document.getElementById('audit-modal-close').addEventListener('click', closeAuditModal);
+document.getElementById('audit-modal-backdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeAuditModal();
+});
+// Event delegation for action buttons in requests table (approve / deny / revoke / detail)
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  var action = btn.dataset.action;
+  if (action === 'approve') quickApprove(btn.dataset.cluster, btn.dataset.name, btn);
+  else if (action === 'deny') quickDeny(btn.dataset.cluster, btn.dataset.name, btn);
+  else if (action === 'revoke') quickRevoke(btn.dataset.cluster, btn.dataset.name, btn.dataset.requester, btn);
+  else if (action === 'detail') toggleDetailBtn(btn);
+});

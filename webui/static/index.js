@@ -577,3 +577,20 @@ const { userEmail, isAdmin, oidcEnabled, accessRequests } = window.PAGE_DATA;
         setInterval(checkExpiry, 60000);
       })();
     }
+
+// ── Event listeners (replaces inline onclick/onchange for CSP compliance) ──
+document.getElementById('cluster').addEventListener('change', function() { onClusterChange(this.value); });
+document.getElementById('ns-filter').addEventListener('input', function() { filterNs(this.value); });
+document.getElementById('submit-btn').addEventListener('click', submitMultiRequest);
+document.getElementById('my-per-page-sel').addEventListener('change', function() { mySetPerPage(this.value); });
+var _clearHistBtn = document.getElementById('clear-history-btn');
+if (_clearHistBtn) {
+  _clearHistBtn.addEventListener('click', clearHistory);
+  _clearHistBtn.addEventListener('mouseover', function() { this.style.color = 'var(--danger)'; this.style.borderColor = 'rgba(239,68,68,0.4)'; });
+  _clearHistBtn.addEventListener('mouseout', function() { this.style.color = 'var(--text-dim)'; this.style.borderColor = 'var(--border)'; });
+}
+// Event delegation for detail buttons in requests table
+document.getElementById('my-requests-tbody').addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-action="my-detail"]');
+  if (btn) toggleMyDetailBtn(btn);
+});

@@ -186,11 +186,11 @@
         </span>
         <span class="log-count" id="count-controller">0 lines</span>
         <div class="pane-actions">
-          <button class="pane-btn" onclick="clearPane('controller')">
+          <button class="pane-btn" id="clear-controller">
             <i data-lucide="eraser" style="width:11px;height:11px;"></i>
             Clear
           </button>
-          <button class="pane-btn" id="pause-controller" onclick="togglePause('controller')">
+          <button class="pane-btn" id="pause-controller">
             <i data-lucide="pause" style="width:11px;height:11px;" id="pause-icon-controller"></i>
             Pause
           </button>
@@ -211,11 +211,11 @@
         </span>
         <span class="log-count" id="count-webui">0 lines</span>
         <div class="pane-actions">
-          <button class="pane-btn" onclick="clearPane('webui')">
+          <button class="pane-btn" id="clear-webui">
             <i data-lucide="eraser" style="width:11px;height:11px;"></i>
             Clear
           </button>
-          <button class="pane-btn" id="pause-webui" onclick="togglePause('webui')">
+          <button class="pane-btn" id="pause-webui">
             <i data-lucide="pause" style="width:11px;height:11px;" id="pause-icon-webui"></i>
             Pause
           </button>
@@ -458,6 +458,12 @@
         document.body.style.userSelect = '';
       });
     })();
+
+    // ── Event listeners (replaces inline onclick for CSP compliance) ──
+    document.getElementById('clear-controller').addEventListener('click', function() { clearPane('controller'); });
+    document.getElementById('pause-controller').addEventListener('click', function() { togglePause('controller'); });
+    document.getElementById('clear-webui').addEventListener('click', function() { clearPane('webui'); });
+    document.getElementById('pause-webui').addEventListener('click', function() { togglePause('webui'); });
   </script>
   {% include '_profile_modal.html' %}
 </body>

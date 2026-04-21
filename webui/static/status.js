@@ -86,3 +86,22 @@ function copyCmd(id, btn) {
     onSuccess();
   }
 }
+
+// ── Event listeners (replaces inline onclick for CSP compliance) ──
+document.querySelectorAll('#withdraw-btn').forEach(function(btn) {
+  btn.addEventListener('click', doWithdraw);
+});
+
+var _backLink = document.getElementById('back-link');
+if (_backLink) {
+  _backLink.addEventListener('mouseover', function() {
+    this.style.color = 'var(--text)';
+    this.style.borderColor = 'var(--border-light)';
+    this.style.background = 'var(--surface-3)';
+  });
+  _backLink.addEventListener('mouseout', function() {
+    this.style.color = 'var(--text-muted)';
+    this.style.borderColor = 'var(--border)';
+    this.style.background = 'var(--surface-2)';
+  });
+}

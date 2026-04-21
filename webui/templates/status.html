@@ -412,7 +412,7 @@
 
   <div class="page-scroll">
   <div class="container">
-    <a href="/" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:7px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-size:0.82rem;font-weight:500;text-decoration:none;transition:color 0.15s,border-color 0.15s,background 0.15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-light)';this.style.background='var(--surface-3)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';this.style.background='var(--surface-2)';">
+    <a href="/" id="back-link" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:7px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-size:0.82rem;font-weight:500;text-decoration:none;transition:color 0.15s,border-color 0.15s,background 0.15s;">
       <i data-lucide="arrow-left" style="width:14px;height:14px;"></i>
       Back to all requests
     </a>
@@ -585,7 +585,7 @@
     <!-- ── WITHDRAW BUTTON (Pending only) ── -->
     {% if can_withdraw and status.get("phase") != "Active" %}
     <div style="margin-top:8px;margin-bottom:4px;">
-      <button id="withdraw-btn" onclick="doWithdraw()"
+      <button id="withdraw-btn"
         style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:var(--radius-sm);font-size:0.83rem;font-weight:500;cursor:pointer;transition:background 0.15s,border-color 0.15s;">
         <i data-lucide="undo-2" style="width:14px;height:14px;"></i>
         Withdraw request
@@ -610,7 +610,7 @@
           Open Web Terminal
         </a>
         {% if can_withdraw %}
-        <button id="withdraw-btn" onclick="doWithdraw()"
+        <button id="withdraw-btn"
           style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:var(--radius-sm);font-size:0.83rem;font-weight:500;cursor:pointer;transition:background 0.15s,border-color 0.15s;">
           <i data-lucide="x" style="width:13px;height:13px;"></i>
           Cancel session

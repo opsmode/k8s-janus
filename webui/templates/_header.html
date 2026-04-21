@@ -69,13 +69,13 @@
 
     {% if not hide_user_menu %}
     <div class="hdr-user-dropdown" id="hdr-user-dropdown">
-      <div class="header-pill" onclick="toggleUserDropdown(event)" title="Account">
+      <div class="header-pill" id="hdr-user-pill" title="Account">
         <div class="avatar" id="user-avatar" data-email="{{ user_email | lower }}"></div>
         <span id="profile-display-name">{{ user_name or user_email or 'You' }}</span>
         <i data-lucide="chevron-down" style="width:11px;height:11px;opacity:0.5;margin-left:2px;" id="hdr-chevron"></i>
       </div>
       <div class="hdr-dropdown-menu" id="hdr-dropdown-menu">
-        <button class="hdr-dropdown-item" onclick="openProfileModal();closeUserDropdown()">
+        <button class="hdr-dropdown-item" id="hdr-edit-profile">
           <i data-lucide="user-circle" style="width:13px;height:13px;"></i>
           Edit profile
         </button>
@@ -114,6 +114,12 @@
   });
   window.toggleUserDropdown = toggleUserDropdown;
   window.closeUserDropdown = closeUserDropdown;
+
+  // ── Event listeners (replaces inline onclick for CSP compliance) ──
+  var _pill = document.getElementById('hdr-user-pill');
+  if (_pill) _pill.addEventListener('click', function(e) { toggleUserDropdown(e); });
+  var _editProfile = document.getElementById('hdr-edit-profile');
+  if (_editProfile) _editProfile.addEventListener('click', function() { openProfileModal(); closeUserDropdown(); });
 
   /* ---- health indicator ---- */
   var _dot = document.getElementById('hdr-health-dot');

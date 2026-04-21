@@ -64,10 +64,10 @@
           <i data-lucide="users" style="width:16px;height:16px;"></i>
         </div>
         <h2>Users</h2>
-        <button class="btn-sm" onclick="loadUsers()" style="margin-left:auto;">
+        <button class="btn-sm" id="btn-refresh-users" style="margin-left:auto;">
           <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh
         </button>
-        <button class="btn-sm btn-primary" id="btn-new-user" onclick="openCreateUserModal()" style="margin-left:8px;">
+        <button class="btn-sm btn-primary" id="btn-new-user" style="margin-left:8px;">
           <i data-lucide="plus" style="width:13px;height:13px;"></i> New user
         </button>
       </div>
@@ -93,7 +93,7 @@
   </div>
 
   <!-- Create user modal -->
-  <div id="create-user-modal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeCreateUserModal()">
+  <div id="create-user-modal" class="modal-backdrop" style="display:none;">
     <div class="modal-box">
       <h3><i data-lucide="user-plus" style="width:16px;height:16px;color:var(--accent);"></i> Create user</h3>
       <div class="field">
@@ -109,13 +109,13 @@
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
             <label class="lbl" style="margin-bottom:0;">Password</label>
             <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
-              <input id="cu-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);" onchange="toggleRandomPassword()">
+              <input id="cu-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);">
               Generate random
             </label>
           </div>
           <div style="position:relative;">
             <input class="inp" id="cu-password" type="password" placeholder="Min 8 characters" style="padding-right:36px;">
-            <button type="button" onclick="toggleCuPasswordVisibility()" title="Show/hide"
+            <button type="button" id="cu-pw-toggle" title="Show/hide"
               style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px;display:flex;">
               <i id="cu-pw-eye" data-lucide="eye" style="width:14px;height:14px;"></i>
             </button>
@@ -129,14 +129,14 @@
         <div id="cu-error" class="err"></div>
       </div>
       <div class="modal-actions">
-        <button class="btn-sm" onclick="closeCreateUserModal()">Cancel</button>
-        <button class="btn-sm btn-primary" onclick="submitCreateUser()">Create</button>
+        <button class="btn-sm" id="cu-cancel">Cancel</button>
+        <button class="btn-sm btn-primary" id="cu-submit">Create</button>
       </div>
     </div>
   </div>
 
   <!-- Reset password modal -->
-  <div id="reset-pw-modal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeResetPwModal()">
+  <div id="reset-pw-modal" class="modal-backdrop" style="display:none;">
     <div class="modal-box">
       <h3><i data-lucide="key" style="width:16px;height:16px;color:var(--accent);"></i> Reset password</h3>
       <p id="rp-label" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;"></p>
@@ -144,7 +144,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
           <label class="lbl" style="margin-bottom:0;">New password</label>
           <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
-            <input id="rp-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);" onchange="toggleRpRandom()">
+            <input id="rp-random" type="checkbox" style="width:13px;height:13px;accent-color:var(--accent);">
             Generate random
           </label>
         </div>
@@ -153,8 +153,8 @@
       </div>
       <div id="rp-error" class="err" style="margin-top:4px;"></div>
       <div class="modal-actions" style="margin-top:14px;">
-        <button class="btn-sm" onclick="closeResetPwModal()">Cancel</button>
-        <button class="btn-sm btn-primary" onclick="submitResetPw()">Reset</button>
+        <button class="btn-sm" id="rp-cancel">Cancel</button>
+        <button class="btn-sm btn-primary" id="rp-submit">Reset</button>
       </div>
     </div>
   </div>
@@ -207,9 +207,9 @@
           </td>
           <td style="color:var(--text-dim);font-size:0.8rem;">${fmt(u.created_at)}</td>
           <td style="text-align:right;">
-            <button class="btn-sm" style="font-size:0.72rem;" onclick="openResetPw('${u.email}')">Reset pw</button>
-            <button class="btn-sm" style="font-size:0.72rem;margin-left:4px;" onclick="toggleAdmin('${u.email}', ${u.is_admin})">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>
-            <button class="btn-sm" style="font-size:0.72rem;margin-left:4px;color:#fca5a5;" onclick="deleteUser('${u.email}')">Delete</button>
+            <button class="btn-sm" style="font-size:0.72rem;" data-action="reset-pw" data-email="${u.email}">Reset pw</button>
+            <button class="btn-sm" style="font-size:0.72rem;margin-left:4px;" data-action="toggle-admin" data-email="${u.email}" data-is-admin="${u.is_admin}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>
+            <button class="btn-sm" style="font-size:0.72rem;margin-left:4px;color:#fca5a5;" data-action="delete-user" data-email="${u.email}">Delete</button>
           </td>
         </tr>`).join('');
     }
@@ -371,6 +371,33 @@
     }
 
     loadUsers();
+
+    // ── Event listeners (replaces inline onclick/onchange for CSP compliance) ──
+    document.getElementById('btn-refresh-users').addEventListener('click', loadUsers);
+    document.getElementById('btn-new-user').addEventListener('click', openCreateUserModal);
+    document.getElementById('cu-cancel').addEventListener('click', closeCreateUserModal);
+    document.getElementById('cu-submit').addEventListener('click', submitCreateUser);
+    document.getElementById('cu-pw-toggle').addEventListener('click', toggleCuPasswordVisibility);
+    document.getElementById('cu-random').addEventListener('change', toggleRandomPassword);
+    document.getElementById('create-user-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeCreateUserModal();
+    });
+    document.getElementById('rp-cancel').addEventListener('click', closeResetPwModal);
+    document.getElementById('rp-submit').addEventListener('click', submitResetPw);
+    document.getElementById('rp-random').addEventListener('change', toggleRpRandom);
+    document.getElementById('reset-pw-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeResetPwModal();
+    });
+    // Event delegation for dynamically-rendered user table rows
+    document.getElementById('users-tbody').addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var email = btn.dataset.email;
+      var action = btn.dataset.action;
+      if (action === 'reset-pw') openResetPw(email);
+      else if (action === 'toggle-admin') toggleAdmin(email, btn.dataset.isAdmin === 'true');
+      else if (action === 'delete-user') deleteUser(email);
+    });
   </script>
 </body>
 </html>

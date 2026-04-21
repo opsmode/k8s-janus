@@ -528,8 +528,7 @@
           </div>
           <div id="ns-tabs" style="display:flex;gap:4px;flex-wrap:wrap;">
             {% for ns in namespaces %}
-            <button onclick="switchNamespace('{{ ns }}')"
-                    class="ns-tab{% if loop.first %} active{% endif %}"
+            <button class="ns-tab{% if loop.first %} active{% endif %}"
                     data-ns="{{ ns }}"
                     title="Switch to namespace: {{ ns }}"
                     style="padding:4px 10px;font-size:0.73rem;font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;color:var(--text-dim);cursor:pointer;transition:color 0.15s,border-color 0.15s,background 0.15s;word-break:break-all;">{{ ns }}</button>
@@ -557,12 +556,12 @@
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
       <!-- Global toolbar -->
       <div class="terminal-toolbar">
-        <button class="toolbar-btn" id="split-btn" onclick="toggleSplit()">
+        <button class="toolbar-btn" id="split-btn">
           <i data-lucide="columns-2" style="width:13px;height:13px;"></i>
           Split
         </button>
         <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
-        <button class="toolbar-btn" id="copy-output-btn" onclick="copyTerminalOutput()" title="Copy terminal output as text">
+        <button class="toolbar-btn" id="copy-output-btn" title="Copy terminal output as text">
           <i data-lucide="copy" style="width:13px;height:13px;"></i>
           Copy
         </button>
@@ -572,22 +571,20 @@
           Quick Commands
         </span>
         <div id="quick-cmd-toolbar"><!-- populated by renderQuickCmds() --></div>
-        <button onclick="openQcmdManage()" title="Manage quick commands"
-          style="background:none;border:none;padding:4px 5px;border-radius:4px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;flex-shrink:0;transition:color 0.15s,background 0.15s;"
-          onmouseover="this.style.color='var(--text)';this.style.background='rgba(255,255,255,0.06)'"
-          onmouseout="this.style.color='var(--text-dim)';this.style.background='none'">
+        <button id="qcmd-manage-btn" title="Manage quick commands"
+          style="background:none;border:none;padding:4px 5px;border-radius:4px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;flex-shrink:0;transition:color 0.15s,background 0.15s;">
           <i data-lucide="settings-2" style="width:13px;height:13px;"></i>
         </button>
         <span id="active-pane-label" style="font-size:0.72rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-left:4px;"></span>
       </div>
 
       <!-- Quick commands manage modal -->
-      <div id="qcmd-modal-backdrop" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.55);" onclick="closeQcmdManage()"></div>
+      <div id="qcmd-modal-backdrop" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.55);"></div>
       <div id="qcmd-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9001;background:var(--surface,#0d1117);border:1px solid var(--border,#2a3448);border-radius:12px;width:min(480px,94vw);max-height:80vh;display:none;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.6);">
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border,#2a3448);flex-shrink:0;">
           <span style="font-weight:600;font-size:0.92rem;">⚡ Manage Quick Commands</span>
-          <button onclick="closeQcmdManage()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;border-radius:4px;display:flex;"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+          <button id="qcmd-close-btn" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;border-radius:4px;display:flex;"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
         </div>
         <!-- Command list -->
         <div id="qcmd-manage-list" style="overflow-y:auto;flex:1;padding:12px 20px;display:flex;flex-direction:column;gap:6px;">
@@ -598,13 +595,10 @@
           <div style="font-size:0.72rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Add command</div>
           <div style="display:flex;flex-direction:column;gap:7px;">
             <input id="qcmd-new-label" type="text" placeholder="Label (e.g. list pods)" maxlength="100"
-              style="width:100%;box-sizing:border-box;background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:6px;padding:7px 10px;color:var(--text);font-size:0.83rem;outline:none;"
-              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+              style="width:100%;box-sizing:border-box;background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:6px;padding:7px 10px;color:var(--text);font-size:0.83rem;outline:none;">
             <input id="qcmd-new-cmd" type="text" placeholder="Command (e.g. kubectl get pods)"
-              style="width:100%;box-sizing:border-box;background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:6px;padding:7px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;outline:none;"
-              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
-              onkeydown="if(event.key==='Enter')addQcmdFromManage()">
-            <button onclick="addQcmdFromManage()"
+              style="width:100%;box-sizing:border-box;background:var(--surface-2,#161b27);border:1px solid var(--border,#2a3448);border-radius:6px;padding:7px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;outline:none;">
+            <button id="qcmd-add-btn"
               style="align-self:flex-end;padding:6px 16px;background:var(--accent,#326CE5);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:0.82rem;font-weight:600;">
               Add
             </button>
@@ -623,20 +617,20 @@
               <span class="status-dot" id="pane-a-dot"></span>
               <span id="pane-a-status">Disconnected</span>
             </div>
-            <button id="pane-a-disconnect" onclick="disconnectPod('a')" style="display:none;background:none;border:none;color:var(--warning);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.75rem;" title="Disconnect from pod">⏏ Disconnect</button>
-            <button id="pane-a-close" onclick="closeSplit()" style="display:none;background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
+            <button id="pane-a-disconnect" style="display:none;background:none;border:none;color:var(--warning);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.75rem;" title="Disconnect from pod">⏏ Disconnect</button>
+            <button id="pane-a-close" style="display:none;background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
           </div>
           <div class="tabs" id="pane-a-tabs" style="display:none;">
-            <button class="tab active" onclick="paneTab('a','terminal')">
+            <button class="tab active" data-tab="terminal">
               <i data-lucide="terminal" style="width:13px;height:13px;"></i>Terminal
             </button>
-            <button class="tab" onclick="paneTab('a','logs')">
+            <button class="tab" data-tab="logs">
               <i data-lucide="scroll-text" style="width:13px;height:13px;"></i>Logs
             </button>
-            <button class="tab" onclick="paneTab('a','events')">
+            <button class="tab" data-tab="events">
               <i data-lucide="list" style="width:13px;height:13px;"></i>Events
             </button>
-            <button class="tab" onclick="paneTab('a','info')">
+            <button class="tab" data-tab="info">
               <i data-lucide="info" style="width:13px;height:13px;"></i>Info
             </button>
           </div>
@@ -675,20 +669,20 @@
               <span class="status-dot" id="pane-b-dot"></span>
               <span id="pane-b-status">Disconnected</span>
             </div>
-            <button id="pane-b-disconnect" onclick="disconnectPod('b')" style="display:none;background:none;border:none;color:var(--warning);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.75rem;" title="Disconnect from pod">⏏ Disconnect</button>
-            <button onclick="closeSplit()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
+            <button id="pane-b-disconnect" style="display:none;background:none;border:none;color:var(--warning);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.75rem;" title="Disconnect from pod">⏏ Disconnect</button>
+            <button id="pane-b-close" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:0.8rem;" title="Close split">✕</button>
           </div>
           <div class="tabs" id="pane-b-tabs" style="display:none;">
-            <button class="tab active" onclick="paneTab('b','terminal')">
+            <button class="tab active" data-tab="terminal">
               <i data-lucide="terminal" style="width:13px;height:13px;"></i>Terminal
             </button>
-            <button class="tab" onclick="paneTab('b','logs')">
+            <button class="tab" data-tab="logs">
               <i data-lucide="scroll-text" style="width:13px;height:13px;"></i>Logs
             </button>
-            <button class="tab" onclick="paneTab('b','events')">
+            <button class="tab" data-tab="events">
               <i data-lucide="list" style="width:13px;height:13px;"></i>Events
             </button>
-            <button class="tab" onclick="paneTab('b','info')">
+            <button class="tab" data-tab="info">
               <i data-lucide="info" style="width:13px;height:13px;"></i>Info
             </button>
           </div>
