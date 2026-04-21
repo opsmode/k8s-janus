@@ -11,7 +11,7 @@ from db import get_user_profile, save_user_profile
 import db as _db
 from k8s import JANUS_NAMESPACE, list_access_requests
 import local_auth
-from main import invalidate_user_cache
+from core.security import invalidate_user_cache
 
 logger = logging.getLogger("k8s-janus-webui")
 

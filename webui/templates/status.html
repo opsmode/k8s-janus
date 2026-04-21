@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>K8S-Janus | {{ name }}</title>
   <link rel="icon" type="image/png" href="/static/k8s-janus-logo.png">
-  <script>
+  <script nonce="{{ csp_nonce(request) }}">
     var _phase = {{ status.get("phase", "Pending") | tojson }};
     var _FINAL_PHASES = ['Denied', 'Expired', 'Revoked', 'Failed'];
     // Poll only for non-final phases
@@ -636,7 +636,7 @@
   </div>
   </div><!-- /page-scroll -->
 
-  <script>
+  <script nonce="{{ csp_nonce(request) }}">
     window.PAGE_DATA = {
       canWithdraw: {{ can_withdraw | tojson }},
       cluster:     {{ cluster | tojson }},

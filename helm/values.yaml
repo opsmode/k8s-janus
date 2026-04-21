@@ -109,22 +109,10 @@ controller:
 #              password is printed to the application log.
 # containerPort: internal port the webui process listens on (do not change
 #                unless you build a custom image that uses a different port).
-# mfa.encryptionKey:   Fernet key for encrypting TOTP secrets at rest.
-#                      Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-#                      Set this in ArgoCD via helm.valuesObject or a dedicated Secret.
-#                      IMPORTANT: losing this key invalidates all enrolled MFA tokens.
-#                      Leave unset to use an ephemeral key (secrets lost on pod restart).
-# mfa.existingSecret:  Name of an existing Secret with key 'encryptionKey' — use this
-#                      instead of mfa.encryptionKey when the key is managed externally
-#                      (e.g. Sealed Secrets, External Secrets Operator).
-# → templates: webui-deployment.yaml, mfa-secret.yaml
 webui:
   baseUrl: ""
   authEnabled: false
   containerPort: 8000
-  mfa:
-    encryptionKey: ""
-    existingSecret: ""
   resources:
     requests:
       cpu: 50m

@@ -158,7 +158,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce(request) }}">
   // ── Profile (localStorage + server sync) ──
   const _PROFILE_KEY = 'janus_profile_' + ({{ user_email | tojson }} || '').toLowerCase();
   const _USER_EMAIL  = ({{ user_email | tojson }} || '').toLowerCase();

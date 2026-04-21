@@ -721,7 +721,7 @@
     </div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce(request) }}">
     window.PAGE_DATA = {
       cluster:     {{ cluster | tojson }},
       requestName: {{ request_name | tojson }},

@@ -98,14 +98,6 @@ ESO and plain Secret both target the same name, so the reference is always the s
 {{- end }}
 
 {{/*
-Name of the Secret holding the MFA encryption key.
-Priority: existingSecret > plain Secret (janus-mfa)
-*/}}
-{{- define "janus.mfa.secretName" -}}
-{{- (.Values.webui.mfa).existingSecret | default (printf "%s-mfa" (include "janus.fullname" .)) }}
-{{- end }}
-
-{{/*
 Name of the Secret holding the session secret.
 Always mounted regardless of OIDC mode — prevents session invalidation on pod restart.
 Priority: existingSecret > plain Secret (janus-session)

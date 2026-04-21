@@ -617,7 +617,7 @@
 
   {% include '_profile_modal.html' %}
 
-  <script>
+  <script nonce="{{ csp_nonce(request) }}">
     window.PAGE_DATA = {
       clustersCount:      {{ clusters | length }},
       approvalTtlOptions: {{ approval_ttl_options | tojson }},

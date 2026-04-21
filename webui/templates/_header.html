@@ -92,7 +92,7 @@
   </div>
 </header>
 
-<script>
+<script nonce="{{ csp_nonce(request) }}">
 (function() {
   /* ---- user dropdown ---- */
   function toggleUserDropdown(e) {

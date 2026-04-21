@@ -6,10 +6,9 @@ from fastapi import APIRouter, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from kubernetes.client.rest import ApiException
 
-from core.auth import _base_context, _get_user, _mfa_verified_recently, _require_active_request
+from core.auth import _base_context, _get_user, _require_active_request
 from core.k8s_helpers import Phase, _valid_name, _valid_ns, _valid_cluster, _token_client
 from core.templates import templates
-from db import get_user_mfa
 from k8s import get_api_clients, get_access_request, get_cluster_config
 from terminal_ws import terminal_websocket_handler
 
@@ -30,11 +29,6 @@ async def terminal(request: Request, cluster: str, name: str):
     requester = ar.get("spec", {}).get("requester", "")
     if caller.lower() != requester.lower():
         return templates.TemplateResponse(request, "403.html", {"reason": "You can only access your own terminal."}, status_code=403)
-
-    mfa_data = get_user_mfa(caller)
-    if mfa_data and mfa_data["enabled"]:
-        if not _mfa_verified_recently(request):
-            return RedirectResponse(f"/mfa-verify?next=/terminal/{cluster}/{name}", status_code=303)
 
     cluster_cfg     = get_cluster_config(cluster)
     cluster_display = cluster_cfg.get("displayName", cluster) if cluster_cfg else cluster

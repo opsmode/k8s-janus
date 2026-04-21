@@ -161,7 +161,7 @@
 
   {% include '_profile_modal.html' %}
 
-  <script>
+  <script nonce="{{ csp_nonce(request) }}">
     lucide.createIcons();
 
     // ── Toast ──

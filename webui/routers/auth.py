@@ -11,17 +11,11 @@ from core.config import (
 from core.auth import _is_admin
 from core.templates import templates
 import local_auth
-from main import _login_allowed, _record_login_failure, _clear_login_failures
+from core.security import login_allowed, record_login_failure, clear_login_failures
 
 logger = logging.getLogger("k8s-janus-webui")
 
 router = APIRouter()
-
-
-@router.get("/mfa-verify", include_in_schema=False, response_class=HTMLResponse)
-async def mfa_verify_page(request: Request):
-    """MFA verification page."""
-    return templates.TemplateResponse(request, "mfa-verify.html")
 
 
 @router.get("/login", include_in_schema=False)
@@ -56,7 +50,7 @@ async def local_login(request: Request):
     next_url = str(form.get("next", "/")) or "/"
     client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
 
-    if not _login_allowed(client_ip):
+    if not login_allowed(client_ip):
         logger.warning(f"Login blocked (rate limit): {email} from {client_ip}")
         return templates.TemplateResponse(request, "login.html", {
             "mode": "local",
@@ -66,14 +60,14 @@ async def local_login(request: Request):
 
     user = local_auth.verify_user(email, password)
     if not user:
-        _record_login_failure(client_ip)
+        record_login_failure(client_ip)
         logger.warning(f"Login failed: {email} from {client_ip}")
         return templates.TemplateResponse(request, "login.html", {
             "mode": "local",
             "next": next_url,
             "error": "Invalid email or password.",
         })
-    _clear_login_failures(client_ip)
+    clear_login_failures(client_ip)
     request.session["user_email"] = user["email"]
     request.session["user_name"]  = user["name"]
     logger.info(f"Login success: {email} from {client_ip}")

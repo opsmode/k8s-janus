@@ -2,14 +2,11 @@
 Authentication and authorization helpers for K8s-Janus WebUI.
 """
 
-from datetime import datetime, timezone
-
 from fastapi import Request
 
 import local_auth
 from core.config import (
     OIDC_ENABLED, LOCAL_AUTH_ENABLED, ADMIN_EMAILS,
-    MFA_VERIFICATION_TIMEOUT,
     DEFAULT_TTL_SECONDS, MAX_TTL_SECONDS, APPROVAL_TTL_OPTIONS,
     APP_VERSION,
 )
@@ -65,19 +62,6 @@ def _require_admin(request: Request):
     if not _is_admin(user_email):
         return templates.TemplateResponse(request, "403.html", {"user_email": user_email}, status_code=403)
     return None
-
-
-def _mfa_verified_recently(request: Request) -> bool:
-    """Check if MFA was verified recently (within timeout window)."""
-    if not OIDC_ENABLED:
-        return True  # MFA only applies when OIDC is enabled
-    last_verified = request.session.get("mfa_verified_at", 0)
-    return (datetime.now(timezone.utc).timestamp() - last_verified) < MFA_VERIFICATION_TIMEOUT
-
-
-def _set_mfa_verified(request: Request) -> None:
-    """Mark MFA as verified in session."""
-    request.session["mfa_verified_at"] = datetime.now(timezone.utc).timestamp()
 
 
 def _require_active_request(request: Request, cluster: str, namespace: str) -> bool:

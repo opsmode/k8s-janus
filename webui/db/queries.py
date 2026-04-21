@@ -3,13 +3,12 @@ Query functions for K8s-Janus persistence layer.
 """
 
 import logging
-import os
 
 from sqlalchemy.exc import IntegrityError
 
 from db.models import (
     AccessRequestRecord, AuditLog, TerminalCommand,
-    UserQuickCommand, UserMFA, UserProfile,
+    UserQuickCommand, UserProfile,
 )
 import db.engine as _db_engine
 from db.engine import get_session, _now
@@ -18,34 +17,8 @@ from db.engine import get_session, _now
 def _db_enabled() -> bool:
     return _db_engine.db_enabled
 
-from cryptography.fernet import Fernet
 
 logger = logging.getLogger("k8s-janus.db")
-
-# ---------------------------------------------------------------------------
-# MFA encryption
-# ---------------------------------------------------------------------------
-
-_MFA_ENCRYPTION_KEY = os.environ.get("MFA_ENCRYPTION_KEY", "")
-if not _MFA_ENCRYPTION_KEY:
-    _MFA_ENCRYPTION_KEY = Fernet.generate_key().decode()
-    logger.error(
-        "MFA_ENCRYPTION_KEY not set — TOTP secrets will be lost on pod restart. "
-        "Generate a stable key with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\" "
-        "and set it as a Kubernetes Secret mounted as MFA_ENCRYPTION_KEY env var."
-    )
-
-_fernet = Fernet(_MFA_ENCRYPTION_KEY.encode())
-
-
-def _encrypt(plaintext: str) -> str:
-    """Encrypt a string using Fernet."""
-    return _fernet.encrypt(plaintext.encode()).decode()
-
-
-def _decrypt(ciphertext: str) -> str:
-    """Decrypt a Fernet-encrypted string."""
-    return _fernet.decrypt(ciphertext.encode()).decode()
 
 
 # ---------------------------------------------------------------------------
@@ -314,101 +287,6 @@ def delete_user_quick_command(user_email: str, cmd_id: int) -> bool:
     except Exception as e:
         logger.error(f"delete_user_quick_command({user_email}, {cmd_id}) failed: {e}")
         return False
-
-
-# ---------------------------------------------------------------------------
-# MFA (Multi-Factor Authentication)
-# ---------------------------------------------------------------------------
-
-def get_user_mfa(user_email: str) -> dict | None:
-    """Returns {enabled, totp_secret, backup_codes, created_at, last_used_at} or None."""
-    if not _db_enabled():
-        return None
-    try:
-        with get_session() as session:
-            if session is None:
-                return None
-            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
-            if rec is None:
-                return None
-            import json
-            totp_secret = _decrypt(rec.totp_secret) if rec.totp_secret else None
-            backup_codes = json.loads(_decrypt(rec.backup_codes)) if rec.backup_codes else []
-            return {
-                "enabled": rec.enabled,
-                "totp_secret": totp_secret,
-                "backup_codes": backup_codes,
-                "created_at": rec.created_at.isoformat() if rec.created_at else "",
-                "last_used_at": rec.last_used_at.isoformat() if rec.last_used_at else "",
-            }
-    except Exception as e:
-        logger.error(f"get_user_mfa({user_email}) failed: {e}")
-        return None
-
-
-def enable_user_mfa(user_email: str, totp_secret: str, backup_codes: list[str]) -> bool:
-    """Enable MFA for user with TOTP secret and backup codes."""
-    if not _db_enabled():
-        return False
-    try:
-        with get_session() as session:
-            if session is None:
-                return False
-            import json
-            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
-            if rec is None:
-                rec = UserMFA(
-                    user_email=user_email,
-                    enabled=True,
-                    totp_secret=_encrypt(totp_secret),
-                    backup_codes=_encrypt(json.dumps(backup_codes)),
-                    created_at=_now(),
-                )
-                session.add(rec)
-            else:
-                rec.enabled = True
-                rec.totp_secret = _encrypt(totp_secret)
-                rec.backup_codes = _encrypt(json.dumps(backup_codes))
-                rec.created_at = _now()
-            return True
-    except Exception as e:
-        logger.error(f"enable_user_mfa({user_email}) failed: {e}")
-        return False
-
-
-def disable_user_mfa(user_email: str) -> bool:
-    """Disable MFA for user (clears secrets)."""
-    if not _db_enabled():
-        return False
-    try:
-        with get_session() as session:
-            if session is None:
-                return False
-            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
-            if rec is None:
-                return True  # Already disabled
-            rec.enabled = False
-            rec.totp_secret = None
-            rec.backup_codes = None
-            return True
-    except Exception as e:
-        logger.error(f"disable_user_mfa({user_email}) failed: {e}")
-        return False
-
-
-def update_mfa_last_used(user_email: str) -> None:
-    """Update last_used_at timestamp for MFA."""
-    if not _db_enabled():
-        return
-    try:
-        with get_session() as session:
-            if session is None:
-                return
-            rec = session.query(UserMFA).filter_by(user_email=user_email).first()
-            if rec:
-                rec.last_used_at = _now()
-    except Exception as e:
-        logger.error(f"update_mfa_last_used({user_email}) failed: {e}")
 
 
 # ---------------------------------------------------------------------------

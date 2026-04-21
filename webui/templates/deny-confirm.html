@@ -347,7 +347,7 @@
     </div>
   </div>
 
-  <script>lucide.createIcons();</script>
+  <script nonce="{{ csp_nonce(request) }}">lucide.createIcons();</script>
   {% include '_profile_modal.html' %}
 </body>
 </html>

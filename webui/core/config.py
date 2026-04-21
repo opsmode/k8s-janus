@@ -82,8 +82,6 @@ _PROVIDER_DISPLAY: dict[str, str] = {
     "gitlab": "GitLab",
 }
 
-MFA_VERIFICATION_TIMEOUT = int(os.environ.get("MFA_VERIFICATION_TIMEOUT", "300"))  # 5 minutes
-
 # ---------------------------------------------------------------------------
 # OAuth client (authlib) — registered at module load when OIDC_ENABLED
 # ---------------------------------------------------------------------------

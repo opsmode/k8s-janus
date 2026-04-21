@@ -5,6 +5,7 @@ Route implementations live in routers/; shared logic in core/; DB in db/.
 """
 import asyncio
 import os
+import secrets
 
 from fastapi import FastAPI, Request
 
@@ -23,7 +24,7 @@ from db import init_db
 from k8s import JANUS_NAMESPACE, EXCLUDED_NAMESPACES
 import local_auth
 
-from routers import auth, mfa
+from routers import auth
 from routers import setup as setup_router
 from routers import admin, access_requests, terminal, audit, misc
 
@@ -34,55 +35,7 @@ _APP_DIR = os.environ.get("APP_DIR", "/app")
 app = FastAPI(title="K8s-Janus", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=f"{_APP_DIR}/static"), name="static")
 
-# ---------------------------------------------------------------------------
-# User existence cache — avoids a DB hit on every authenticated request.
-# Each entry is (is_active: bool, expires_at: float).  TTL = 30s.
-# ---------------------------------------------------------------------------
-import time as _time
-_USER_CACHE: dict[str, tuple[bool, float]] = {}
-_USER_CACHE_TTL = 30  # seconds
-
-
-def _check_user_active(email: str) -> bool:
-    """Return True if user exists and is active. Cached for 30s."""
-    now = _time.monotonic()
-    entry = _USER_CACHE.get(email)
-    if entry and entry[1] > now:
-        return entry[0]
-    u = local_auth.get_user(email)
-    active = bool(u and u.get("is_active", False))
-    _USER_CACHE[email] = (active, now + _USER_CACHE_TTL)
-    return active
-
-
-def invalidate_user_cache(email: str) -> None:
-    """Call after user deletion or deactivation so the next request re-checks."""
-    _USER_CACHE.pop(email, None)
-
-
-# ---------------------------------------------------------------------------
-# Login rate limiting — 10 failures per IP within 15 minutes triggers a lockout.
-# ---------------------------------------------------------------------------
-_LOGIN_ATTEMPTS: dict[str, list[float]] = {}
-_LOGIN_MAX_ATTEMPTS = 10
-_LOGIN_WINDOW = 900   # 15 minutes
-_LOGIN_LOCKOUT = 900  # 15 minutes
-
-
-def _login_allowed(ip: str) -> bool:
-    now = _time.monotonic()
-    attempts = [t for t in _LOGIN_ATTEMPTS.get(ip, []) if now - t < _LOGIN_WINDOW]
-    _LOGIN_ATTEMPTS[ip] = attempts
-    return len(attempts) < _LOGIN_MAX_ATTEMPTS
-
-
-def _record_login_failure(ip: str) -> None:
-    _LOGIN_ATTEMPTS.setdefault(ip, []).append(_time.monotonic())
-
-
-def _clear_login_failures(ip: str) -> None:
-    _LOGIN_ATTEMPTS.pop(ip, None)
-
+from core.security import check_user_active, invalidate_user_cache  # noqa: F401 (re-exported)
 
 # ---------------------------------------------------------------------------
 # Middleware
@@ -92,24 +45,26 @@ _AUTH_PUBLIC_PATHS = {"/login", "/login/redirect", "/auth/callback", "/healthz",
 
 
 class _SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    _HEADERS = [
+    _STATIC_HEADERS = [
         ("x-content-type-options", "nosniff"),
         ("x-frame-options", "DENY"),
         ("referrer-policy", "strict-origin-when-cross-origin"),
-        ("content-security-policy", (
+    ]
+
+    async def dispatch(self, request: Request, call_next):
+        nonce = secrets.token_urlsafe(16)
+        request.state.csp_nonce = nonce
+        response = await call_next(request)
+        for name, value in self._STATIC_HEADERS:
+            response.headers[name] = value
+        response.headers["content-security-policy"] = (
             "default-src 'self'; "
-            "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; "
+            f"script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'nonce-{nonce}'; "
             "style-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com 'unsafe-inline'; "
             "font-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.gstatic.com; "
             "img-src 'self' data:; "
             "connect-src 'self' wss: ws:;"
-        )),
-    ]
-
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        for name, value in self._HEADERS:
-            response.headers[name] = value
+        )
         return response
 
 
@@ -139,7 +94,7 @@ class _OIDCAuthMiddleware:
         # For local auth, verify the user still exists and is active (cached 30s).
         # Ensures deleted/deactivated users are locked out without a DB hit every request.
         if user_email and LOCAL_AUTH_ENABLED and not OIDC_ENABLED:
-            if not _check_user_active(user_email):
+            if not check_user_active(user_email):
                 conn.session.clear()
                 user_email = None
 
@@ -266,11 +221,20 @@ async def on_startup():
                 logger.error(f"💥 DB cleanup failed: {e}")
     asyncio.ensure_future(_db_cleanup_loop())
 
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    """Broadcast a graceful close message to all active WebSocket terminal sessions."""
+    from terminal_ws import broadcast_to_all
+    count = await broadcast_to_all("Server is restarting — reconnect in a moment.", sender="server")
+    if count:
+        logger.info(f"🛑 Shutdown: sent close signal to {count} active terminal session(s)")
+    await asyncio.sleep(0.5)  # brief pause so messages are flushed before connections drop
+
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(auth.router)
-app.include_router(mfa.router)
 app.include_router(setup_router.router)
 app.include_router(admin.router)
 app.include_router(access_requests.router)

@@ -26,3 +26,4 @@ secrets.yaml
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+webui/static/*.Identifier

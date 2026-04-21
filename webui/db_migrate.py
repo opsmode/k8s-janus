@@ -96,18 +96,6 @@ CREATE TABLE IF NOT EXISTS user_quick_commands (
 
 CREATE INDEX IF NOT EXISTS ix_user_quick_commands_user_email ON user_quick_commands (user_email);
 
-CREATE TABLE IF NOT EXISTS user_mfa (
-    id           SERIAL PRIMARY KEY,
-    user_email   VARCHAR(255) NOT NULL UNIQUE,
-    enabled      BOOLEAN NOT NULL DEFAULT FALSE,
-    totp_secret  TEXT,
-    backup_codes TEXT,
-    created_at   TIMESTAMPTZ NOT NULL,
-    last_used_at TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS ix_user_mfa_user_email ON user_mfa (user_email);
-
 CREATE TABLE IF NOT EXISTS user_profiles (
     id         SERIAL PRIMARY KEY,
     user_email VARCHAR(255) NOT NULL UNIQUE,

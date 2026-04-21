@@ -83,13 +83,6 @@ spec:
           env:
             - name: APP_DIR
               value: /app/webui
-            {{- if or (.Values.webui.mfa).encryptionKey (.Values.webui.mfa).existingSecret }}
-            - name: MFA_ENCRYPTION_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "janus.mfa.secretName" . }}
-                  key: encryptionKey
-            {{- end }}
             {{- if include "janus.postgresql.enabled" . }}
             - name: DB_HOST
               value: {{ include "janus.postgresql.host" . | quote }}

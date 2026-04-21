@@ -5,6 +5,7 @@ SQLAlchemy ORM models for K8s-Janus.
 from sqlalchemy import (
     Column, Integer, String, DateTime, Text, Boolean,
 )
+
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -65,18 +66,6 @@ class UserQuickCommand(Base):
     label      = Column(String(100), nullable=False)
     command    = Column(Text, nullable=False)
     position   = Column(Integer, nullable=False, default=0)
-
-
-class UserMFA(Base):
-    __tablename__ = "user_mfa"
-
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    user_email   = Column(String(255), unique=True, nullable=False, index=True)
-    enabled      = Column(Boolean, nullable=False, default=False)
-    totp_secret  = Column(Text, nullable=True)  # Encrypted with Fernet
-    backup_codes = Column(Text, nullable=True)  # Encrypted JSON array
-    created_at   = Column(DateTime(timezone=True), nullable=False)
-    last_used_at = Column(DateTime(timezone=True))
 
 
 class UserProfile(Base):

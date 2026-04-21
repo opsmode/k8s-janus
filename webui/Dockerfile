@@ -31,4 +31,5 @@ COPY . .
 RUN adduser -D -H -s /sbin/nologin appuser
 USER appuser
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run Alembic migrations then start the app
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]

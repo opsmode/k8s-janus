@@ -32,10 +32,6 @@ from db.queries import (
     create_user_quick_command,
     update_user_quick_command,
     delete_user_quick_command,
-    get_user_mfa,
-    enable_user_mfa,
-    disable_user_mfa,
-    update_mfa_last_used,
     get_user_profile,
     save_user_profile,
 )
@@ -46,7 +42,6 @@ from db.models import (
     AuditLog,
     TerminalCommand,
     UserQuickCommand,
-    UserMFA,
     UserProfile,
     LocalUser,
 )
@@ -69,10 +64,6 @@ __all__ = [
     "create_user_quick_command",
     "update_user_quick_command",
     "delete_user_quick_command",
-    "get_user_mfa",
-    "enable_user_mfa",
-    "disable_user_mfa",
-    "update_mfa_last_used",
     "get_user_profile",
     "save_user_profile",
     # models
@@ -81,7 +72,6 @@ __all__ = [
     "AuditLog",
     "TerminalCommand",
     "UserQuickCommand",
-    "UserMFA",
     "UserProfile",
     "LocalUser",
 ]
