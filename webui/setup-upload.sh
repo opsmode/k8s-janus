@@ -321,7 +321,7 @@ def slugify(name):
 
 def build_clients(ctx):
     import tempfile
-    tmp = tempfile.NamedTemporaryFile(suffix=".yaml", delete=False)
+    tmp = tempfile.NamedTemporaryFile(suffix=".yaml", mode='w', delete=False)
     yaml.dump(kc, tmp)
     tmp.close()
     cfg = client.Configuration()
@@ -387,7 +387,7 @@ try:
     config.load_incluster_config()
 except config.ConfigException:
     import tempfile
-    tmp = tempfile.NamedTemporaryFile(suffix=".yaml", delete=False)
+    tmp = tempfile.NamedTemporaryFile(suffix=".yaml", mode='w', delete=False)
     yaml.dump(kc, tmp)
     tmp.close()
     config.load_kube_config(config_file=tmp.name, context=central_ctx)
