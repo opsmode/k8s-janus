@@ -1,8 +1,6 @@
 """Tests for core/security.py — user cache, login rate limiting, CSP nonce, MFA removal."""
 import time
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 
 # ---------------------------------------------------------------------------
@@ -10,7 +8,6 @@ import pytest
 # ---------------------------------------------------------------------------
 def _fresh_module():
     """Import a fresh copy of core.security with empty module-level state."""
-    import importlib
     import core.security as mod
     mod._USER_CACHE.clear()
     mod._LOGIN_ATTEMPTS.clear()
