@@ -17,333 +17,352 @@
 </style>
 </head>
 <body>
-<svg viewBox="0 0 960 620" width="960" height="620" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1060 680" width="1060" height="680" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Background gradient -->
     <radialGradient id="bg" cx="50%" cy="45%" r="65%">
-      <stop offset="0%"   stop-color="#0f1929"/>
+      <stop offset="0%"  stop-color="#0f1929"/>
       <stop offset="100%" stop-color="#080d17"/>
     </radialGradient>
 
-    <!-- Node gradients -->
-    <linearGradient id="g-user"   x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g-user"    x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1e2d4a"/><stop offset="100%" stop-color="#131e35"/>
     </linearGradient>
-    <linearGradient id="g-webui"  x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g-webui"   x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a2a52"/><stop offset="100%" stop-color="#0f1b3a"/>
     </linearGradient>
-    <linearGradient id="g-db"     x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g-db"      x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a1f40"/><stop offset="100%" stop-color="#10152e"/>
     </linearGradient>
     <linearGradient id="g-central" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0f2a1f"/><stop offset="100%" stop-color="#081a12"/>
     </linearGradient>
-    <linearGradient id="g-remote" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g-remote"  x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#2a1a0a"/><stop offset="100%" stop-color="#1a100a"/>
     </linearGradient>
-    <linearGradient id="g-ctrl"   x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0e2218"/><stop offset="100%" stop-color="#0a1a10"/>
+
+    <!-- Top-edge accent gradients -->
+    <linearGradient id="acc-blue"   x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </linearGradient>
+    <linearGradient id="acc-green"  x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </linearGradient>
+    <linearGradient id="acc-orange" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </linearGradient>
+    <linearGradient id="acc-purple" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="transparent"/>
     </linearGradient>
 
-    <!-- Glow filters -->
-    <filter id="glow-blue" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <!-- Glow -->
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="glow-green" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="glow-soft" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="glow-sm" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
 
     <!-- Arrow markers -->
-    <marker id="arr-blue"   markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+    <marker id="a-blue"   markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#3b82f6"/>
     </marker>
-    <marker id="arr-green"  markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#10b981"/>
+    <marker id="a-green"  markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#10b981"/>
     </marker>
-    <marker id="arr-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+    <marker id="a-orange" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#f59e0b"/>
     </marker>
-    <marker id="arr-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#8b5cf6"/>
+    <marker id="a-purple" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#8b5cf6"/>
     </marker>
-    <marker id="arr-dim"    markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#4b6082"/>
+    <marker id="a-purple-r" markerWidth="9" markerHeight="9" refX="2" refY="3.5" orient="auto">
+      <path d="M9,0 L9,7 L0,3.5 z" fill="#8b5cf6"/>
     </marker>
-    <marker id="arr-blue-r" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
-      <path d="M8,0 L8,6 L0,3 z" fill="#3b82f6"/>
+    <marker id="a-green-sm" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L7,3.5 z" fill="#10b981"/>
     </marker>
   </defs>
 
   <!-- Background -->
-  <rect width="960" height="620" fill="url(#bg)"/>
+  <rect width="1060" height="680" fill="url(#bg)"/>
 
-  <!-- Ambient glow blobs -->
-  <ellipse cx="200" cy="300" rx="180" ry="140" fill="#1a3a8f" opacity="0.06"/>
-  <ellipse cx="700" cy="200" rx="200" ry="130" fill="#10b981" opacity="0.05"/>
-  <ellipse cx="750" cy="480" rx="160" ry="100" fill="#f59e0b" opacity="0.05"/>
+  <!-- Ambient blobs -->
+  <ellipse cx="210"  cy="330" rx="200" ry="160" fill="#1a3a8f" opacity="0.055"/>
+  <ellipse cx="690"  cy="220" rx="220" ry="150" fill="#10b981" opacity="0.045"/>
+  <ellipse cx="880"  cy="390" rx="160" ry="110" fill="#f59e0b" opacity="0.045"/>
+  <ellipse cx="480"  cy="580" rx="300" ry="60"  fill="#3b82f6" opacity="0.025"/>
 
   <!-- ── TITLE ── -->
-  <text x="480" y="38" text-anchor="middle" font-size="15" font-weight="700"
-        fill="#e2e8f0" letter-spacing="3" font-family="'JetBrains Mono',monospace">K8S-JANUS  ARCHITECTURE</text>
-  <text x="480" y="56" text-anchor="middle" font-size="11" fill="#4b6082" letter-spacing="1">kubectl exec · with approval</text>
+  <text x="530" y="38" text-anchor="middle" font-size="16" font-weight="700"
+        fill="#e2e8f0" letter-spacing="4" font-family="'JetBrains Mono',monospace">K8S-JANUS  ARCHITECTURE</text>
+  <text x="530" y="57" text-anchor="middle" font-size="11" fill="#4b6082" letter-spacing="1.5">kubectl exec · with approval</text>
 
-  <!-- ══════════════════════════════════════════════════════
-       NODE 1 — USERS  (top-left)
-  ══════════════════════════════════════════════════════ -->
-  <g filter="url(#glow-soft)">
-    <rect x="60" y="80" width="160" height="90" rx="14" fill="url(#g-user)"
-          stroke="#2a4a7f" stroke-width="1.2"/>
+  <!-- ══════════════════════════
+       USERS
+  ══════════════════════════════ -->
+  <g filter="url(#glow)">
+    <rect x="62" y="82" width="170" height="96" rx="14"
+          fill="url(#g-user)" stroke="#2a4a7f" stroke-width="1.3"/>
+    <line x1="84" y1="82" x2="210" y2="82" stroke="url(#acc-blue)" stroke-width="1.5"/>
   </g>
+
   <!-- person icon -->
-  <circle cx="105" cy="112" r="11" fill="none" stroke="#60a5fa" stroke-width="1.5"/>
-  <path d="M85 142 Q105 126 125 142" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="98"  cy="112" r="12" fill="none" stroke="#60a5fa" stroke-width="1.6"/>
+  <path d="M76 146 Q98 130 120 146" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round"/>
   <!-- admin badge -->
-  <circle cx="133" cy="107" r="10" fill="#1e3a5f" stroke="#f59e0b" stroke-width="1.2"/>
-  <text x="133" y="111" text-anchor="middle" font-size="8" font-weight="700" fill="#f59e0b">ADM</text>
+  <circle cx="128" cy="108" r="11" fill="#1c3660" stroke="#f59e0b" stroke-width="1.3"/>
+  <text x="128" y="112" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fbbf24">ADM</text>
 
-  <text x="140" y="115" font-size="11.5" font-weight="600" fill="#93c5fd">Users</text>
-  <text x="100" y="152" text-anchor="middle" font-size="9.5" fill="#64748b">Requester · Admin</text>
-  <text x="100" y="165" text-anchor="middle" font-size="9.5" fill="#64748b">Browser (HTTPS)</text>
+  <text x="145" y="116" font-size="12" font-weight="600" fill="#93c5fd">Users</text>
+  <text x="147" y="152" text-anchor="middle" font-size="9.5" fill="#64748b">Requester · Admin</text>
+  <text x="147" y="167" text-anchor="middle" font-size="9.5" fill="#64748b">Browser (HTTPS)</text>
 
-  <!-- ══════════════════════════════════════════════════════
-       NODE 2 — WEB UI  (center, big)
-  ══════════════════════════════════════════════════════ -->
-  <g filter="url(#glow-soft)">
-    <rect x="55" y="220" width="290" height="200" rx="16" fill="url(#g-webui)"
-          stroke="#2d4fa3" stroke-width="1.5"/>
-    <!-- top accent line -->
-    <line x1="80" y1="220" x2="320" y2="220" stroke="url(#g-accent-blue)" stroke-width="1.5" opacity="0.6"/>
+  <!-- ══════════════════════════
+       WEBUI
+  ══════════════════════════════ -->
+  <g filter="url(#glow)">
+    <rect x="55" y="228" width="300" height="210" rx="16"
+          fill="url(#g-webui)" stroke="#2d4fa3" stroke-width="1.6"/>
+    <line x1="82" y1="228" x2="328" y2="228" stroke="url(#acc-blue)" stroke-width="1.8"/>
   </g>
-  <defs>
-    <linearGradient id="g-accent-blue" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="transparent"/>
-      <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="transparent"/>
-    </linearGradient>
-    <linearGradient id="g-accent-green" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="transparent"/>
-      <stop offset="50%" stop-color="#10b981" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="transparent"/>
-    </linearGradient>
-    <linearGradient id="g-accent-orange" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="transparent"/>
-      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="transparent"/>
-    </linearGradient>
-  </defs>
 
-  <!-- WebUI label -->
-  <text x="200" y="250" text-anchor="middle" font-size="14" font-weight="700" fill="#93c5fd" letter-spacing="1">WebUI</text>
-  <text x="200" y="266" text-anchor="middle" font-size="9.5" fill="#4b6082">FastAPI · Python</text>
+  <text x="205" y="260" text-anchor="middle" font-size="15" font-weight="700"
+        fill="#93c5fd" letter-spacing="1.5">WebUI</text>
+  <text x="205" y="276" text-anchor="middle" font-size="10" fill="#4b6082">FastAPI · Python</text>
 
-  <!-- Sub-chips inside WebUI -->
-  <!-- Auth chip -->
-  <rect x="75" y="278" width="74" height="30" rx="8" fill="#0f1e40" stroke="#2d4fa3" stroke-width="1"/>
-  <text x="112" y="298" text-anchor="middle" font-size="10" fill="#60a5fa">Auth</text>
+  <!-- Chips row -->
+  <rect x="73"  y="288" width="80" height="32" rx="8" fill="#0c1d42" stroke="#2d4fa3" stroke-width="1"/>
+  <text x="113" y="309" text-anchor="middle" font-size="10.5" fill="#60a5fa">Auth</text>
 
-  <!-- REST API chip -->
-  <rect x="163" y="278" width="74" height="30" rx="8" fill="#0f1e40" stroke="#2d4fa3" stroke-width="1"/>
-  <text x="200" y="298" text-anchor="middle" font-size="10" fill="#60a5fa">REST API</text>
+  <rect x="165" y="288" width="80" height="32" rx="8" fill="#0c1d42" stroke="#2d4fa3" stroke-width="1"/>
+  <text x="205" y="309" text-anchor="middle" font-size="10.5" fill="#60a5fa">REST API</text>
 
-  <!-- Terminal WS chip -->
-  <rect x="251" y="278" width="78" height="30" rx="8" fill="#0f1e40" stroke="#2d4fa3" stroke-width="1"/>
-  <text x="290" y="298" text-anchor="middle" font-size="10" fill="#60a5fa">Terminal WS</text>
+  <rect x="257" y="288" width="84" height="32" rx="8" fill="#0c1d42" stroke="#2d4fa3" stroke-width="1"/>
+  <text x="299" y="309" text-anchor="middle" font-size="10.5" fill="#60a5fa">Terminal WS</text>
 
-  <!-- Divider -->
-  <line x1="80" y1="325" x2="320" y2="325" stroke="#1e2d50" stroke-width="1"/>
+  <line x1="78" y1="337" x2="332" y2="337" stroke="#1e2d50" stroke-width="1"/>
 
-  <!-- Session DB / CSP / Middleware labels -->
-  <text x="200" y="344" text-anchor="middle" font-size="9" fill="#334155">Session · Rate-limiting · CSP Nonces · OIDC / Local Auth</text>
+  <text x="205" y="356" text-anchor="middle" font-size="9.5" fill="#334d6e">Session · Rate-limiting · CSP · OIDC / Local Auth</text>
 
-  <!-- Alembic migrations note -->
-  <rect x="75" y="355" width="250" height="28" rx="7" fill="#0c1528" stroke="#1a2d50" stroke-width="1"/>
-  <text x="200" y="374" text-anchor="middle" font-size="9.5" fill="#4b6082">Alembic migrations · Async SQLAlchemy</text>
+  <rect x="73"  y="367" width="268" height="28" rx="7" fill="#0a1628" stroke="#1a2d50" stroke-width="1"/>
+  <text x="207" y="386" text-anchor="middle" font-size="9.5" fill="#4b6082">Alembic migrations · Async SQLAlchemy</text>
 
-  <!-- Approval flow label -->
-  <rect x="75" y="392" width="250" height="22" rx="6" fill="#091628" stroke="#1a2d50" stroke-width="1"/>
-  <text x="200" y="407" text-anchor="middle" font-size="9" fill="#3b5a8a">Access Requests · Approval Workflow</text>
+  <rect x="73"  y="403" width="268" height="24" rx="6" fill="#091628" stroke="#1a2d50" stroke-width="1"/>
+  <text x="207" y="420" text-anchor="middle" font-size="9.5" fill="#3b5a8a">Access Requests · Approval Workflow</text>
 
-  <!-- ══════════════════════════════════════════════════════
-       NODE 3 — POSTGRESQL  (left, bottom)
-  ══════════════════════════════════════════════════════ -->
-  <g filter="url(#glow-soft)">
-    <rect x="60" y="466" width="158" height="86" rx="14" fill="url(#g-db)"
-          stroke="#312e7a" stroke-width="1.2"/>
+  <!-- ══════════════════════════
+       POSTGRESQL
+  ══════════════════════════════ -->
+  <g filter="url(#glow)">
+    <rect x="62" y="490" width="170" height="96" rx="14"
+          fill="url(#g-db)" stroke="#312e7a" stroke-width="1.3"/>
+    <line x1="84" y1="490" x2="210" y2="490" stroke="url(#acc-purple)" stroke-width="1.5"/>
   </g>
-  <!-- cylinder icon -->
-  <ellipse cx="93" cy="500" rx="14" ry="5" fill="none" stroke="#7c3aed" stroke-width="1.3"/>
-  <line x1="79" y1="500" x2="79" y2="516" stroke="#7c3aed" stroke-width="1.3"/>
-  <line x1="107" y1="500" x2="107" y2="516" stroke="#7c3aed" stroke-width="1.3"/>
-  <ellipse cx="93" cy="516" rx="14" ry="5" fill="none" stroke="#7c3aed" stroke-width="1.3"/>
-  <text x="113" y="503" font-size="11.5" font-weight="600" fill="#a78bfa">PostgreSQL</text>
-  <text x="139" y="517" text-anchor="middle" font-size="9" fill="#64748b">Users · Sessions</text>
-  <text x="139" y="530" text-anchor="middle" font-size="9" fill="#64748b">Access Requests</text>
-  <text x="139" y="543" text-anchor="middle" font-size="9" fill="#64748b">Audit Log</text>
 
-  <!-- ══════════════════════════════════════════════════════
-       NODE 4 — CENTRAL K8S CLUSTER  (center-right)
-  ══════════════════════════════════════════════════════ -->
-  <g filter="url(#glow-soft)">
-    <rect x="400" y="80" width="270" height="280" rx="16" fill="url(#g-central)"
-          stroke="#166534" stroke-width="1.5"/>
-    <line x1="425" y1="80" x2="645" y2="80" stroke="url(#g-accent-green)" stroke-width="1.5" opacity="0.7"/>
+  <!-- cylinder -->
+  <ellipse cx="100" cy="520" rx="15" ry="6" fill="none" stroke="#7c3aed" stroke-width="1.4"/>
+  <line x1="85" y1="520" x2="85" y2="540" stroke="#7c3aed" stroke-width="1.4"/>
+  <line x1="115" y1="520" x2="115" y2="540" stroke="#7c3aed" stroke-width="1.4"/>
+  <ellipse cx="100" cy="540" rx="15" ry="6" fill="none" stroke="#7c3aed" stroke-width="1.4"/>
+
+  <text x="122" y="520" font-size="12" font-weight="600" fill="#a78bfa">PostgreSQL</text>
+  <text x="147" y="536" text-anchor="middle" font-size="9.5" fill="#64748b">Users · Sessions</text>
+  <text x="147" y="550" text-anchor="middle" font-size="9.5" fill="#64748b">Access Requests</text>
+  <text x="147" y="564" text-anchor="middle" font-size="9.5" fill="#64748b">Audit Log</text>
+
+  <!-- ══════════════════════════
+       CENTRAL CLUSTER
+  ══════════════════════════════ -->
+  <g filter="url(#glow)">
+    <rect x="415" y="78" width="280" height="330" rx="16"
+          fill="url(#g-central)" stroke="#166534" stroke-width="1.6"/>
+    <line x1="440" y1="78" x2="668" y2="78" stroke="url(#acc-green)" stroke-width="1.8"/>
   </g>
-  <text x="535" y="112" text-anchor="middle" font-size="13" font-weight="700" fill="#34d399" letter-spacing="1">Central Cluster</text>
-  <text x="535" y="128" text-anchor="middle" font-size="9.5" fill="#4b6082">Management · Controller Host</text>
 
-  <!-- K8s API Server chip -->
-  <rect x="420" y="142" width="230" height="34" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1"/>
-  <!-- k8s wheel icon (simplified) -->
-  <circle cx="442" cy="159" r="9" fill="none" stroke="#34d399" stroke-width="1.2"/>
-  <line x1="442" y1="151" x2="442" y2="167" stroke="#34d399" stroke-width="1.1"/>
-  <line x1="434" y1="155" x2="450" y2="163" stroke="#34d399" stroke-width="1.1"/>
-  <line x1="434" y1="163" x2="450" y2="155" stroke="#34d399" stroke-width="1.1"/>
-  <text x="535" y="163" text-anchor="middle" font-size="10.5" fill="#6ee7b7">Kubernetes API Server</text>
+  <text x="555" y="112" text-anchor="middle" font-size="14" font-weight="700"
+        fill="#34d399" letter-spacing="1.5">Central Cluster</text>
+  <text x="555" y="130" text-anchor="middle" font-size="10" fill="#4b6082">Management · Controller Host</text>
 
-  <!-- AccessRequest CRD chip -->
-  <rect x="420" y="188" width="230" height="50" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1"/>
-  <text x="535" y="208" text-anchor="middle" font-size="10" font-weight="600" fill="#6ee7b7">AccessRequest CRD</text>
-  <text x="535" y="224" text-anchor="middle" font-size="8.5" fill="#4b6082">cluster · namespace · pod · user</text>
-  <text x="535" y="234" text-anchor="middle" font-size="8.5" fill="#4b6082">phase: Pending → Active → Done</text>
+  <!-- K8s API Server -->
+  <rect x="433" y="144" width="244" height="40" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1.1"/>
+  <!-- k8s wheel -->
+  <circle cx="456" cy="164" r="10" fill="none" stroke="#34d399" stroke-width="1.3"/>
+  <line x1="456" y1="155" x2="456" y2="173" stroke="#34d399" stroke-width="1.2"/>
+  <line x1="447" y1="159" x2="465" y2="169" stroke="#34d399" stroke-width="1.2"/>
+  <line x1="447" y1="169" x2="465" y2="159" stroke="#34d399" stroke-width="1.2"/>
+  <text x="555" y="168" text-anchor="middle" font-size="11" fill="#6ee7b7">Kubernetes API Server</text>
 
-  <!-- Secrets chip -->
-  <rect x="420" y="250" width="108" height="40" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1"/>
-  <text x="474" y="268" text-anchor="middle" font-size="10" fill="#6ee7b7">Kubeconfig</text>
-  <text x="474" y="282" text-anchor="middle" font-size="8.5" fill="#4b6082">Secrets</text>
+  <!-- AccessRequest CRD -->
+  <rect x="433" y="196" width="244" height="58" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1.1"/>
+  <text x="555" y="217" text-anchor="middle" font-size="11" font-weight="600" fill="#6ee7b7">AccessRequest CRD</text>
+  <text x="555" y="233" text-anchor="middle" font-size="9"   fill="#4b6082">cluster · namespace · pod · user</text>
+  <text x="555" y="246" text-anchor="middle" font-size="9"   fill="#4b6082">Pending → Active → Done</text>
 
-  <!-- RBAC chip -->
-  <rect x="542" y="250" width="108" height="40" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1"/>
-  <text x="596" y="268" text-anchor="middle" font-size="10" fill="#6ee7b7">RBAC</text>
-  <text x="596" y="282" text-anchor="middle" font-size="8.5" fill="#4b6082">Roles · Bindings</text>
+  <!-- Kubeconfig Secrets + RBAC -->
+  <rect x="433" y="266" width="116" height="46" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1.1"/>
+  <text x="491" y="286" text-anchor="middle" font-size="10.5" fill="#6ee7b7">Kubeconfig</text>
+  <text x="491" y="302" text-anchor="middle" font-size="9"   fill="#4b6082">Secrets</text>
 
-  <!-- Janus Controller chip -->
-  <rect x="420" y="302" width="230" height="42" rx="9" fill="#0a2218" stroke="#10b981" stroke-width="1.2"/>
-  <text x="535" y="321" text-anchor="middle" font-size="10.5" font-weight="600" fill="#10b981">Janus Controller</text>
-  <text x="535" y="336" text-anchor="middle" font-size="8.5" fill="#4b6082">Watches CRD · provisions tokens</text>
+  <rect x="561" y="266" width="116" height="46" rx="9" fill="#061a0e" stroke="#166534" stroke-width="1.1"/>
+  <text x="619" y="286" text-anchor="middle" font-size="10.5" fill="#6ee7b7">RBAC</text>
+  <text x="619" y="302" text-anchor="middle" font-size="9"   fill="#4b6082">Roles · Bindings</text>
 
-  <!-- ══════════════════════════════════════════════════════
-       NODE 5 — REMOTE CLUSTERS  (right)
-  ══════════════════════════════════════════════════════ -->
-  <g filter="url(#glow-soft)">
-    <rect x="730" y="140" width="190" height="290" rx="16" fill="url(#g-remote)"
-          stroke="#7c3910" stroke-width="1.5"/>
-    <line x1="755" y1="140" x2="895" y2="140" stroke="url(#g-accent-orange)" stroke-width="1.5" opacity="0.7"/>
+  <!-- "watches" arrow: CRD → Controller (inside) -->
+  <line x1="555" y1="254" x2="555" y2="316"
+        stroke="#10b981" stroke-width="1.6" stroke-dasharray="4,3"
+        marker-end="url(#a-green-sm)"/>
+  <rect x="563" y="271" width="52" height="16" rx="4" fill="#061a0e"/>
+  <text x="589" y="283" text-anchor="middle" font-size="9" fill="#10b981">watches</text>
+
+  <!-- Janus Controller -->
+  <rect x="433" y="320" width="244" height="72" rx="9" fill="#0a2218" stroke="#10b981" stroke-width="1.4"/>
+  <text x="555" y="346" text-anchor="middle" font-size="12" font-weight="700" fill="#10b981">Janus Controller</text>
+  <text x="555" y="362" text-anchor="middle" font-size="9.5" fill="#4b6082">Watches CRD · provisions tokens</text>
+  <text x="555" y="378" text-anchor="middle" font-size="9.5" fill="#4b6082">writes kubeconfig Secrets</text>
+
+  <!-- ══════════════════════════
+       REMOTE CLUSTERS
+  ══════════════════════════════ -->
+  <g filter="url(#glow)">
+    <rect x="760" y="120" width="258" height="330" rx="16"
+          fill="url(#g-remote)" stroke="#7c3910" stroke-width="1.6"/>
+    <line x1="784" y1="120" x2="992" y2="120" stroke="url(#acc-orange)" stroke-width="1.8"/>
   </g>
-  <text x="825" y="170" text-anchor="middle" font-size="13" font-weight="700" fill="#fbbf24" letter-spacing="1">Remote Clusters</text>
-  <text x="825" y="186" text-anchor="middle" font-size="9.5" fill="#4b6082">exec targets</text>
+
+  <text x="889" y="154" text-anchor="middle" font-size="14" font-weight="700"
+        fill="#fbbf24" letter-spacing="1.5">Remote Clusters</text>
+  <text x="889" y="172" text-anchor="middle" font-size="10" fill="#4b6082">exec targets</text>
 
   <!-- Cluster cards -->
-  <rect x="748" y="200" width="154" height="52" rx="9" fill="#1a0f06" stroke="#7c3910" stroke-width="1"/>
-  <text x="825" y="221" text-anchor="middle" font-size="10" fill="#fbbf24">cluster-1</text>
-  <text x="825" y="236" text-anchor="middle" font-size="8.5" fill="#4b6082">Pods · Namespaces</text>
-  <text x="825" y="248" text-anchor="middle" font-size="8.5" fill="#4b6082">janus-remote SA</text>
+  <rect x="778" y="187" width="222" height="62" rx="10" fill="#1a0f06" stroke="#7c3910" stroke-width="1.1"/>
+  <text x="889" y="210" text-anchor="middle" font-size="11"   font-weight="600" fill="#fbbf24">cluster-1</text>
+  <text x="889" y="226" text-anchor="middle" font-size="9.5" fill="#4b6082">Pods · Namespaces</text>
+  <text x="889" y="241" text-anchor="middle" font-size="9.5" fill="#4b6082">janus-remote SA</text>
 
-  <rect x="748" y="264" width="154" height="52" rx="9" fill="#1a0f06" stroke="#7c3910" stroke-width="1"/>
-  <text x="825" y="285" text-anchor="middle" font-size="10" fill="#fbbf24">cluster-2</text>
-  <text x="825" y="300" text-anchor="middle" font-size="8.5" fill="#4b6082">Pods · Namespaces</text>
-  <text x="825" y="312" text-anchor="middle" font-size="8.5" fill="#4b6082">janus-remote SA</text>
+  <rect x="778" y="261" width="222" height="62" rx="10" fill="#1a0f06" stroke="#7c3910" stroke-width="1.1"/>
+  <text x="889" y="284" text-anchor="middle" font-size="11"   font-weight="600" fill="#fbbf24">cluster-2</text>
+  <text x="889" y="300" text-anchor="middle" font-size="9.5" fill="#4b6082">Pods · Namespaces</text>
+  <text x="889" y="315" text-anchor="middle" font-size="9.5" fill="#4b6082">janus-remote SA</text>
 
-  <rect x="748" y="328" width="154" height="52" rx="9" fill="#1a0f06" stroke="#7c3910" stroke-width="1"/>
-  <text x="825" y="349" text-anchor="middle" font-size="10" fill="#fbbf24">cluster-N</text>
-  <text x="825" y="364" text-anchor="middle" font-size="8.5" fill="#4b6082">Pods · Namespaces</text>
-  <text x="825" y="376" text-anchor="middle" font-size="8.5" fill="#4b6082">janus-remote SA</text>
+  <rect x="778" y="335" width="222" height="62" rx="10" fill="#1a0f06" stroke="#7c3910" stroke-width="1.1"/>
+  <text x="889" y="358" text-anchor="middle" font-size="11"   font-weight="600" fill="#fbbf24">cluster-N</text>
+  <text x="889" y="374" text-anchor="middle" font-size="9.5" fill="#4b6082">Pods · Namespaces</text>
+  <text x="889" y="389" text-anchor="middle" font-size="9.5" fill="#4b6082">janus-remote SA</text>
 
   <!-- dots -->
-  <circle cx="825" cy="407" r="3" fill="#7c3910"/>
-  <circle cx="825" cy="418" r="3" fill="#7c3910" opacity="0.6"/>
+  <circle cx="889" cy="415" r="4" fill="#7c3910"/>
+  <circle cx="889" cy="430" r="4" fill="#7c3910" opacity="0.55"/>
+  <circle cx="889" cy="445" r="4" fill="#7c3910" opacity="0.25"/>
 
-  <!-- ══════════════════════════════════════════════════════
+  <!-- ══════════════════════════
+       APPROVAL FLOW  (bottom right)
+  ══════════════════════════════ -->
+  <rect x="762" y="474" width="256" height="162" rx="14"
+        fill="#0a1020" stroke="#1e2d4a" stroke-width="1.2"/>
+  <line x1="786" y1="474" x2="990" y2="474" stroke="url(#acc-blue)" stroke-width="1.3"/>
+
+  <text x="890" y="498" text-anchor="middle" font-size="10" font-weight="700"
+        fill="#4b6082" letter-spacing="2">APPROVAL FLOW</text>
+
+  <!-- Step rows -->
+  <circle cx="789" cy="524" r="12" fill="#1a2d52" stroke="#3b82f6" stroke-width="1.4"/>
+  <text x="789" y="529" text-anchor="middle" font-size="10" font-weight="700" fill="#60a5fa">1</text>
+  <text x="808"  y="529" font-size="11" fill="#94a3b8">User submits request</text>
+
+  <circle cx="789" cy="556" r="12" fill="#2a1f10" stroke="#f59e0b" stroke-width="1.4"/>
+  <text x="789" y="561" text-anchor="middle" font-size="10" font-weight="700" fill="#fbbf24">2</text>
+  <text x="808"  y="561" font-size="11" fill="#94a3b8">Admin approves in UI</text>
+
+  <circle cx="789" cy="588" r="12" fill="#0a2218" stroke="#10b981" stroke-width="1.4"/>
+  <text x="789" y="593" text-anchor="middle" font-size="10" font-weight="700" fill="#34d399">3</text>
+  <text x="808"  y="593" font-size="11" fill="#94a3b8">Controller provisions token</text>
+
+  <circle cx="789" cy="620" r="12" fill="#1a1040" stroke="#8b5cf6" stroke-width="1.4"/>
+  <text x="789" y="625" text-anchor="middle" font-size="10" font-weight="700" fill="#c4b5fd">4</text>
+  <text x="808"  y="625" font-size="11" fill="#94a3b8">Exec tunnel opens</text>
+
+  <!-- ══════════════════════════
+       LEGEND  (bottom center)
+  ══════════════════════════════ -->
+  <rect x="200" y="560" width="520" height="78" rx="13"
+        fill="#0c1220" stroke="#1e2d4a" stroke-width="1.1"/>
+  <line x1="224" y1="560" x2="696" y2="560" stroke="url(#acc-blue)" stroke-width="1.2" opacity="0.5"/>
+
+  <text x="460" y="582" text-anchor="middle" font-size="10" font-weight="700"
+        fill="#4b6082" letter-spacing="2">LEGEND</text>
+
+  <line x1="222" y1="608" x2="256" y2="608" stroke="#3b82f6" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#a-blue)"/>
+  <text x="263" y="613" font-size="10.5" fill="#64748b">HTTPS / WebSocket</text>
+
+  <line x1="368" y1="608" x2="402" y2="608" stroke="#8b5cf6" stroke-width="1.6" marker-end="url(#a-purple)"/>
+  <text x="409" y="613" font-size="10.5" fill="#64748b">Database (SQL)</text>
+
+  <line x1="502" y1="608" x2="536" y2="608" stroke="#10b981" stroke-width="1.6" marker-end="url(#a-green)"/>
+  <text x="543" y="613" font-size="10.5" fill="#64748b">K8s operations</text>
+
+  <line x1="222" y1="630" x2="256" y2="630" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#a-orange)"/>
+  <text x="263" y="635" font-size="10.5" fill="#64748b">kubectl exec tunnel</text>
+
+  <line x1="368" y1="630" x2="402" y2="630" stroke="#10b981" stroke-width="1.6" stroke-dasharray="3,2" marker-end="url(#a-green)"/>
+  <text x="409" y="635" font-size="10.5" fill="#64748b">CRD watch (internal)</text>
+
+  <!-- ══════════════════════════════════════════════════
        ARROWS
   ══════════════════════════════════════════════════════ -->
 
-  <!-- 1. User → WebUI -->
-  <line x1="140" y1="170" x2="140" y2="218"
-        stroke="#3b82f6" stroke-width="1.4" stroke-dasharray="4,3"
-        marker-end="url(#arr-blue)"/>
-  <text x="147" y="200" font-size="8.5" fill="#3b82f6">HTTPS</text>
+  <!-- 1. User → WebUI (straight down, blue dashed) -->
+  <line x1="147" y1="178" x2="147" y2="226"
+        stroke="#3b82f6" stroke-width="1.6" stroke-dasharray="5,3"
+        marker-end="url(#a-blue)"/>
+  <!-- label pill -->
+  <rect x="153" y="194" width="40" height="16" rx="4" fill="#0c1a30"/>
+  <text x="173" y="206" text-anchor="middle" font-size="9" fill="#3b82f6">HTTPS</text>
 
-  <!-- 2. WebUI ↔ PostgreSQL (bidirectional) -->
-  <line x1="155" y1="420" x2="155" y2="464"
-        stroke="#8b5cf6" stroke-width="1.4"
-        marker-end="url(#arr-purple)"/>
-  <line x1="175" y1="464" x2="175" y2="420"
-        stroke="#8b5cf6" stroke-width="1.4"
-        marker-end="url(#arr-purple)"/>
-  <text x="186" y="447" font-size="8.5" fill="#8b5cf6">SQL</text>
+  <!-- 2a. WebUI → PostgreSQL (down) -->
+  <line x1="155" y1="440" x2="155" y2="488"
+        stroke="#8b5cf6" stroke-width="1.6" marker-end="url(#a-purple)"/>
+  <!-- 2b. PostgreSQL → WebUI (up, offset) -->
+  <line x1="180" y1="488" x2="180" y2="440"
+        stroke="#8b5cf6" stroke-width="1.6" marker-end="url(#a-purple)"/>
+  <rect x="187" y="454" width="28" height="16" rx="4" fill="#0c1020"/>
+  <text x="201" y="466" text-anchor="middle" font-size="9" fill="#8b5cf6">SQL</text>
 
-  <!-- 3. WebUI → K8s API (create CRD) -->
-  <path d="M345 300 C372 300 378 200 398 185"
-        fill="none" stroke="#3b82f6" stroke-width="1.4" stroke-dasharray="5,3"
-        marker-end="url(#arr-blue)"/>
-  <text x="365" y="248" font-size="8.5" fill="#3b82f6" transform="rotate(-50,365,248)">Create CRD</text>
+  <!-- 3. WebUI → K8s API (curve up-right, blue dashed) -->
+  <path d="M355 290 C385 290 395 180 413 164"
+        fill="none" stroke="#3b82f6" stroke-width="1.6" stroke-dasharray="5,3"
+        marker-end="url(#a-blue)"/>
+  <!-- label on a pill background -->
+  <rect x="370" y="214" width="72" height="17" rx="5" fill="#0c1a30"/>
+  <text x="406" y="226" text-anchor="middle" font-size="9" fill="#3b82f6">Create CRD</text>
 
-  <!-- 4. Controller → Remote Clusters (provision RBAC + secrets) -->
-  <path d="M650 323 C690 323 705 290 728 265"
-        fill="none" stroke="#10b981" stroke-width="1.4"
-        marker-end="url(#arr-green)"/>
-  <text x="680" y="295" font-size="8.5" fill="#10b981">RBAC + Token</text>
+  <!-- 4. Controller → Remote Clusters (RBAC + Token)
+       Goes right from Central right-edge to Remote left-edge, mid-height -->
+  <path d="M695 356 L758 290"
+        fill="none" stroke="#10b981" stroke-width="1.8"
+        marker-end="url(#a-green)"/>
+  <!-- label pill between boxes, clearly outside both -->
+  <rect x="696" y="305" width="88" height="19" rx="6" fill="#081a10" stroke="#166534" stroke-width="0.8"/>
+  <text x="740" y="318" text-anchor="middle" font-size="9.5" fill="#34d399">RBAC + Token</text>
 
-  <!-- 5. WebUI → Remote (kubectl exec WS) -->
-  <path d="M345 350 C520 350 540 420 680 370 C710 360 720 310 728 285"
-        fill="none" stroke="#f59e0b" stroke-width="1.4" stroke-dasharray="5,3"
-        marker-end="url(#arr-orange)"/>
-  <text x="500" y="400" font-size="8.5" fill="#f59e0b">kubectl exec WebSocket</text>
+  <!-- 5. kubectl exec WebSocket — U-shape route BELOW all boxes -->
+  <!-- From WebUI bottom-center → down to y=530 → right → up to Remote bottom-right area -->
+  <path d="M205 440 L205 532 L889 532 L889 452"
+        fill="none" stroke="#f59e0b" stroke-width="1.7" stroke-dasharray="6,3"
+        marker-end="url(#a-orange)"/>
+  <!-- label pill in the straight bottom segment -->
+  <rect x="476" y="520" width="154" height="19" rx="6" fill="#1a100a" stroke="#7c3910" stroke-width="0.8"/>
+  <text x="553" y="533" text-anchor="middle" font-size="9.5" fill="#f59e0b">kubectl exec WebSocket</text>
 
-  <!-- 6. Controller watches CRD (internal arrow) -->
-  <path d="M535 302 L535 260"
-        fill="none" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"
-        marker-end="url(#arr-green)"/>
-  <text x="540" y="285" font-size="7.5" fill="#4b8a6a">watches</text>
-
-  <!-- ══════════════════════════════════════════════════════
-       LEGEND  (bottom)
-  ══════════════════════════════════════════════════════ -->
-  <rect x="215" y="484" width="440" height="60" rx="12" fill="#0c1220" stroke="#1e2d4a" stroke-width="1"/>
-  <text x="435" y="503" text-anchor="middle" font-size="9" font-weight="600" fill="#4b6082" letter-spacing="1.5">LEGEND</text>
-
-  <!-- HTTPS -->
-  <line x1="235" y1="518" x2="260" y2="518" stroke="#3b82f6" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr-blue)"/>
-  <text x="265" y="522" font-size="9" fill="#64748b">HTTPS / WS</text>
-
-  <!-- SQL -->
-  <line x1="325" y1="518" x2="350" y2="518" stroke="#8b5cf6" stroke-width="1.4" marker-end="url(#arr-purple)"/>
-  <text x="355" y="522" font-size="9" fill="#64748b">Database</text>
-
-  <!-- RBAC -->
-  <line x1="410" y1="518" x2="435" y2="518" stroke="#10b981" stroke-width="1.4" marker-end="url(#arr-green)"/>
-  <text x="440" y="522" font-size="9" fill="#64748b">K8s ops</text>
-
-  <!-- Exec -->
-  <line x1="495" y1="518" x2="520" y2="518" stroke="#f59e0b" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-orange)"/>
-  <text x="525" y="522" font-size="9" fill="#64748b">exec tunnel</text>
-
-  <!-- ══════════════════════════════════════════════════════
-       FLOW BADGE  (bottom right)
-  ══════════════════════════════════════════════════════ -->
-  <rect x="690" y="474" width="228" height="108" rx="14" fill="#0a1020" stroke="#1e2d4a" stroke-width="1"/>
-  <text x="804" y="494" text-anchor="middle" font-size="9" font-weight="600" fill="#4b6082" letter-spacing="1.5">APPROVAL FLOW</text>
-
-  <circle cx="712" cy="516" r="9" fill="#1a2d52" stroke="#3b82f6" stroke-width="1.2"/>
-  <text x="712" y="520" text-anchor="middle" font-size="8" font-weight="700" fill="#60a5fa">1</text>
-  <text x="727" y="520" font-size="8.5" fill="#64748b">User submits request</text>
-
-  <circle cx="712" cy="540" r="9" fill="#1a2d52" stroke="#f59e0b" stroke-width="1.2"/>
-  <text x="712" y="544" text-anchor="middle" font-size="8" font-weight="700" fill="#fbbf24">2</text>
-  <text x="727" y="544" font-size="8.5" fill="#64748b">Admin approves in UI</text>
-
-  <circle cx="712" cy="564" r="9" fill="#1a2d52" stroke="#10b981" stroke-width="1.2"/>
-  <text x="712" y="568" text-anchor="middle" font-size="8" font-weight="700" fill="#34d399">3</text>
-  <text x="727" y="568" font-size="8.5" fill="#64748b">Controller provisions token</text>
-
-  <circle cx="712" cy="588" r="9" fill="#1a2d52" stroke="#a78bfa" stroke-width="1.2"/>
-  <text x="712" y="592" text-anchor="middle" font-size="8" font-weight="700" fill="#c4b5fd">4</text>
-  <text x="727" y="592" font-size="8.5" fill="#64748b">Exec tunnel opens</text>
 </svg>
 </body>
 </html>
