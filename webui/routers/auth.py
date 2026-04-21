@@ -2,7 +2,7 @@
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 
 from core.config import (
     OIDC_ENABLED, LOCAL_AUTH_ENABLED, OIDC_PROVIDER, _PROVIDER_DISPLAY, _oauth,

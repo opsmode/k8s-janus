@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request, WebSocket
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from kubernetes.client.rest import ApiException
 
 from core.auth import _base_context, _get_user, _require_active_request
