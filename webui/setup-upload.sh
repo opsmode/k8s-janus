@@ -304,13 +304,13 @@ except ImportError:
 kc = yaml.safe_load(open(resolved_path))
 
 RULES = [
-    {"apiGroups": [""],   "resources": ["namespaces"],              "verbs": ["get","list"]},
-    {"apiGroups": [""],   "resources": ["serviceaccounts"],         "verbs": ["get","create","delete"]},
-    {"apiGroups": [""],   "resources": ["serviceaccounts/token"],   "verbs": ["create"]},
-    {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["rolebindings"],  "verbs": ["get","create","delete"]},
-    {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["clusterroles"],  "verbs": ["get","create","update","patch","delete","escalate","bind"]},
-    {"apiGroups": [""],   "resources": ["pods","pods/log"],         "verbs": ["get","list"]},
-    {"apiGroups": [""],   "resources": ["events"],                  "verbs": ["get","list","create","patch","update"]},
+    {"api_groups": [""],   "resources": ["namespaces"],              "verbs": ["get","list"]},
+    {"api_groups": [""],   "resources": ["serviceaccounts"],         "verbs": ["get","create","delete"]},
+    {"api_groups": [""],   "resources": ["serviceaccounts/token"],   "verbs": ["create"]},
+    {"api_groups": ["rbac.authorization.k8s.io"], "resources": ["rolebindings"],  "verbs": ["get","create","delete"]},
+    {"api_groups": ["rbac.authorization.k8s.io"], "resources": ["clusterroles"],  "verbs": ["get","create","update","patch","delete","escalate","bind"]},
+    {"api_groups": [""],   "resources": ["pods","pods/log"],         "verbs": ["get","list"]},
+    {"api_groups": [""],   "resources": ["events"],                  "verbs": ["get","list","create","patch","update"]},
 ]
 
 def slugify(name):
